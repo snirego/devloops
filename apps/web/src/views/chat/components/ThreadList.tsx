@@ -193,59 +193,59 @@ export default function ThreadList({
             />
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  {/* Thread type icon */}
-                  {isExternal ? (
-                    <HiOutlineGlobeAlt
-                      className="h-3 w-3 flex-shrink-0 text-indigo-500"
-                      title="External chat"
-                    />
-                  ) : (
-                    <HiOutlineLockClosed
-                      className="h-3 w-3 flex-shrink-0 text-amber-500"
-                      title="Team thread"
-                    />
-                  )}
-                  {/* Status dot */}
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${STATUS_DOTS[thread.status] ?? "bg-gray-400"}`}
+              {/* Row 1: title + badge */}
+              <div className="flex items-center gap-1.5">
+                {/* Thread type icon */}
+                {isExternal ? (
+                  <HiOutlineGlobeAlt
+                    className="h-3 w-3 flex-shrink-0 text-indigo-500"
+                    title="External chat"
                   />
-                  <span className="max-w-[140px] truncate text-sm font-medium text-light-900 dark:text-dark-900">
-                    {thread.title ??
-                      thread.customerId ??
-                      `Thread ${thread.publicId.slice(0, 6)}`}
-                  </span>
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-1.5">
-                  <span className="text-[10px] text-light-800 dark:text-dark-800">
-                    {isOptimistic
-                      ? "now"
-                      : formatDistanceToNow(new Date(thread.lastActivityAt), {
-                          addSuffix: true,
-                        })}
-                  </span>
-                  {unreadNum > 0 && (
-                    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white">
-                      {unreadNum > 99 ? "99+" : unreadNum}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <p className="mt-0.5 truncate text-xs text-light-800 dark:text-dark-800">
-                {isOptimistic ? (
-                  <span className="italic">Creating...</span>
                 ) : (
-                  <>
-                    {lastMessage?.senderName && (
-                      <span className="font-medium">
-                        {lastMessage.senderName}:{" "}
-                      </span>
-                    )}
-                    {preview}
-                  </>
+                  <HiOutlineLockClosed
+                    className="h-3 w-3 flex-shrink-0 text-amber-500"
+                    title="Team thread"
+                  />
                 )}
-              </p>
+                {/* Status dot */}
+                <span
+                  className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${STATUS_DOTS[thread.status] ?? "bg-gray-400"}`}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-light-900 dark:text-dark-900">
+                  {thread.title ??
+                    thread.customerId ??
+                    `Thread ${thread.publicId.slice(0, 6)}`}
+                </span>
+                {unreadNum > 0 && (
+                  <span className="flex h-[18px] min-w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white">
+                    {unreadNum > 99 ? "99+" : unreadNum}
+                  </span>
+                )}
+              </div>
+              {/* Row 2: preview + timestamp */}
+              <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                <p className="min-w-0 flex-1 truncate text-xs text-light-800 dark:text-dark-800">
+                  {isOptimistic ? (
+                    <span className="italic">Creating...</span>
+                  ) : (
+                    <>
+                      {lastMessage?.senderName && (
+                        <span className="font-medium">
+                          {lastMessage.senderName}:{" "}
+                        </span>
+                      )}
+                      {preview}
+                    </>
+                  )}
+                </p>
+                <span className="flex-shrink-0 text-[10px] text-light-800 dark:text-dark-800">
+                  {isOptimistic
+                    ? "now"
+                    : formatDistanceToNow(new Date(thread.lastActivityAt), {
+                        addSuffix: true,
+                      })}
+                </span>
+              </div>
             </div>
           </button>
         );

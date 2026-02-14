@@ -183,13 +183,13 @@ export const listAll = async (
     with: {
       messages: {
         columns: {
-          rawText: true,
           senderType: true,
           senderName: true,
           createdAt: true,
+          rawText: true,
         },
         orderBy: desc(feedbackMessages.createdAt),
-        limit: 1, // Only need the latest message for sidebar preview
+        limit: 30, // Enough for unread counts; latest message used for sidebar preview
       },
     },
   });
