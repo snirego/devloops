@@ -5,6 +5,7 @@ import Button from "~/components/Button";
 import { api } from "~/utils/api";
 import {
   DEFAULT_BRAND_COLOR,
+  cacheBrandColor,
   generateBrandPalette,
   getContrastText,
 } from "~/utils/brandColors";
@@ -81,6 +82,8 @@ export default function UpdateBrandColorForm({
 
   const handleSave = () => {
     if (disabled || !isValidHex(color)) return;
+    // Cache immediately so the next page load has it ready
+    cacheBrandColor(color);
     updateWorkspace.mutate({
       workspacePublicId,
       brandColor: color,

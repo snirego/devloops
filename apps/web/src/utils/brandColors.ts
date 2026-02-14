@@ -156,6 +156,27 @@ export function brandCssVariables(hex: string): Record<string, string> {
 /** Default brand color (indigo / blurple). */
 export const DEFAULT_BRAND_COLOR = "#6366f1";
 
+/** localStorage key for cached brand color. */
+const BRAND_COLOR_CACHE_KEY = "brandColor";
+
+/** Persist brand color to localStorage for instant paint on next load. */
+export function cacheBrandColor(hex: string) {
+  try {
+    localStorage.setItem(BRAND_COLOR_CACHE_KEY, hex);
+  } catch {
+    // storage blocked — not critical
+  }
+}
+
+/** Read cached brand color from localStorage. */
+export function getCachedBrandColor(): string | null {
+  try {
+    return localStorage.getItem(BRAND_COLOR_CACHE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /** Apply brand CSS variables to the document root. */
 export function applyBrandColors(hex: string) {
   if (typeof document === "undefined") return;

@@ -3,7 +3,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { api } from "~/utils/api";
-import { applyBrandColors, DEFAULT_BRAND_COLOR } from "~/utils/brandColors";
+import {
+  applyBrandColors,
+  cacheBrandColor,
+  getCachedBrandColor,
+  DEFAULT_BRAND_COLOR,
+} from "~/utils/brandColors";
 
 interface WorkspaceContextProps {
   workspace: Workspace;
@@ -129,11 +134,22 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [data, isLoading, workspacePublicId, router]);
 
-  // Apply brand color CSS variables whenever workspace changes
+  // Apply brand color CSS variables whenever workspace changes.
+  // Also persist to localStorage so the next page load can apply instantly.
   useEffect(() => {
     const color = workspace.brandColor || DEFAULT_BRAND_COLOR;
     applyBrandColors(color);
+    cacheBrandColor(color);
   }, [workspace.brandColor]);
+
+  // On first mount, apply cached brand color immediately (before DB fetch).
+  // This eliminates the flash of default color.
+  useEffect(() => {
+    const cached = getCachedBrandColor();
+    if (cached && /^#[0-9a-fA-F]{6}$/.test(cached)) {
+      applyBrandColors(cached);
+    }
+  }, []);
 
   return (
     <WorkspaceContext.Provider
