@@ -3,24 +3,16 @@
 @tailwind utilities;
 
 /* ── Brand color overrides ────────────────────────────────────────────────────
- * Map Tailwind's indigo-* to dynamic brand CSS variables so every existing
- * indigo class automatically follows the workspace brand color.
- * The CSS variables are set at runtime by the WorkspaceProvider.
+ * CSS variables are set at runtime:
+ *   1. Blocking <script> in _document.tsx reads localStorage and sets them
+ *      BEFORE the first paint (no flash of wrong color).
+ *   2. WorkspaceProvider fetches the authoritative color from the DB and
+ *      updates the vars + localStorage cache.
+ *
+ * Tailwind's color definitions in web.ts already include fallback values
+ * inside var() (e.g. var(--brand-500, 99 102 241)), so the default indigo
+ * works even if these CSS variables haven't been set yet.
  * ────────────────────────────────────────────────────────────────────────── */
-:root {
-  --brand-50: 247 247 254;
-  --brand-100: 239 240 254;
-  --brand-200: 224 224 252;
-  --brand-300: 193 194 249;
-  --brand-400: 146 148 245;
-  --brand-500: 99 102 241;
-  --brand-600: 56 60 243;
-  --brand-700: 14 19 244;
-  --brand-800: 7 11 211;
-  --brand-900: 6 9 171;
-  --brand-950: 4 7 132;
-  --brand: 99 102 241;
-}
 
 [contenteditable="true"]:empty:before {
   content: attr(placeholder);

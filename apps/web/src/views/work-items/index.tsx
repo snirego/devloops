@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
-  HiOutlinePlus,
   HiOutlineArrowPath,
-  HiOutlineCpuChip,
   HiOutlineDocumentText,
 } from "react-icons/hi2";
 
@@ -12,7 +10,6 @@ import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import WorkItemCard from "./components/WorkItemCard";
 import WorkItemDrawer from "./components/WorkItemDrawer";
-import IngestPanel from "./components/IngestPanel";
 import LogsPanel from "./components/LogsPanel";
 
 const KANBAN_COLUMNS = [
@@ -31,7 +28,6 @@ export default function WorkItemsView() {
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(
     null,
   );
-  const [showIngest, setShowIngest] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
 
   const { data: workItems, refetch, isLoading, isFetching } = api.workItem.list.useQuery(
@@ -46,10 +42,6 @@ export default function WorkItemsView() {
   useRealtimeWorkItems({
     enabled: !!workspace.publicId && workspace.publicId.length >= 12,
     onInvalidate: refetch,
-  });
-
-  const { data: llmHealth } = api.feedbackThread.llmHealth.useQuery(undefined, {
-    refetchInterval: 30000,
   });
 
   const itemsByStatus = (status: string) =>
@@ -75,38 +67,6 @@ export default function WorkItemsView() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* LLM Status indicator */}
-          <div
-            className="flex items-center gap-1.5 rounded-md border border-light-300 px-2 py-1 text-xs dark:border-dark-300"
-            title={
-              llmHealth
-                ? llmHealth.ok
-                  ? `Mode: ${llmHealth.mode ?? "unknown"}${llmHealth.checkedUrl ? ` | ${llmHealth.checkedUrl}` : ""}`
-                  : `Error: ${llmHealth.error ?? "unreachable"} | Mode: ${llmHealth.mode ?? "unknown"}`
-                : "Checking LLM status..."
-            }
-          >
-            <div className="relative flex items-center">
-              <HiOutlineCpuChip className="h-3.5 w-3.5" />
-              <span
-                className={`absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ${
-                  llmHealth?.ok ? "bg-emerald-500" : "bg-red-500"
-                }`}
-              />
-            </div>
-            <span
-              className={
-                llmHealth?.ok
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-500"
-              }
-            >
-              {llmHealth?.ok
-                ? `LLM Online${llmHealth.mode ? ` (${llmHealth.mode})` : ""}`
-                : "LLM Offline"}
-            </span>
-          </div>
-
           <button
             onClick={() => setShowLogs(true)}
             className="flex items-center gap-1.5 rounded-md border border-light-300 px-2.5 py-1.5 text-xs font-medium transition-colors duration-0 hover:bg-light-200 dark:border-dark-300 dark:hover:bg-dark-200"
@@ -121,13 +81,6 @@ export default function WorkItemsView() {
             title="Refresh"
           >
             <HiOutlineArrowPath className="h-4 w-4 text-light-900 dark:text-dark-900" />
-          </button>
-          <button
-            onClick={() => setShowIngest(true)}
-            className="flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white transition-colors duration-0 hover:bg-violet-700"
-          >
-            <HiOutlinePlus className="h-4 w-4" />
-            Ingest Message
           </button>
         </div>
       </div>
@@ -180,17 +133,6 @@ export default function WorkItemsView() {
           publicId={selectedWorkItemId}
           onClose={() => setSelectedWorkItemId(null)}
           onRefresh={() => refetch()}
-        />
-      )}
-
-      {/* Ingest Panel */}
-      {showIngest && (
-        <IngestPanel
-          onClose={() => setShowIngest(false)}
-          onSuccess={() => {
-            refetch();
-            setShowIngest(false);
-          }}
         />
       )}
 
