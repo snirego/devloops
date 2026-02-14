@@ -12,6 +12,7 @@
 import { getConfig } from "../config.js";
 import { getLogger } from "../utils/logger.js";
 import { repairJson } from "./jsonRepair.js";
+import { railwayFetch } from "./httpClient.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -154,14 +155,14 @@ export async function chatCompletion(
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(
+    const timeoutHandle = setTimeout(
       () => controller.abort(),
       config.LLM_REQUEST_TIMEOUT_MS,
     );
 
-    let response: Response;
+    let response: { ok: boolean; status: number; statusText: string; text: () => Promise<string>; json: () => Promise<unknown> };
     try {
-      response = await fetch(url, {
+      response = await railwayFetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -175,13 +176,14 @@ export async function chatCompletion(
           stream: false,
         }),
         signal: controller.signal,
+        timeoutMs: config.LLM_REQUEST_TIMEOUT_MS,
       });
     } catch (err) {
-      clearTimeout(timeout);
+      clearTimeout(timeoutHandle);
       lastError =
         err instanceof Error ? err : new Error(String(err));
 
-      if (lastError.name === "AbortError") {
+      if (lastError.name === "AbortError" || lastError.message.includes("timed out")) {
         lastError = new Error(
           `LLM request timed out after ${config.LLM_REQUEST_TIMEOUT_MS}ms (url: ${url})`,
         );
@@ -199,7 +201,7 @@ export async function chatCompletion(
       recordFailure(lastError.message);
       continue;
     } finally {
-      clearTimeout(timeout);
+      clearTimeout(timeoutHandle);
     }
 
     if (!response.ok) {
@@ -334,10 +336,10 @@ export async function checkLlmHealth(): Promise<boolean> {
 
   for (const ep of endpoints) {
     try {
-      const res = await fetch(ep.url, {
+      const res = await railwayFetch(ep.url, {
         method: ep.method,
         headers: { Authorization: `Bearer ${config.LLM_API_KEY}` },
-        signal: AbortSignal.timeout(5_000),
+        timeoutMs: 5_000,
       });
       if (res.ok) return true;
     } catch {
@@ -347,7 +349,7 @@ export async function checkLlmHealth(): Promise<boolean> {
 
   // Last resort: minimal chat completion
   try {
-    const res = await fetch(`${config.LLM_BASE_URL}/chat/completions`, {
+    const res = await railwayFetch(`${config.LLM_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -358,7 +360,7 @@ export async function checkLlmHealth(): Promise<boolean> {
         messages: [{ role: "user", content: "ping" }],
         max_tokens: 1,
       }),
-      signal: AbortSignal.timeout(15_000),
+      timeoutMs: 15_000,
     });
     return res.ok;
   } catch {
