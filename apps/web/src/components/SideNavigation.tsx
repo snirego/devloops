@@ -34,6 +34,7 @@ import ReactiveButton from "~/components/ReactiveButton";
 import UserMenu from "~/components/UserMenu";
 import WorkspaceMenu from "~/components/WorkspaceMenu";
 import { useAiActivity } from "~/providers/ai-activity";
+import { useUnreadThreadCount } from "~/hooks/useUnreadThreadCount";
 import { useModal } from "~/providers/modal";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
@@ -61,6 +62,7 @@ export default function SideNavigation({
   const [isInitialised, setIsInitialised] = useState(false);
   const { openModal } = useModal();
   const { isActive: aiIsActive } = useAiActivity();
+  const unreadChatCount = useUnreadThreadCount();
 
   // Nav items that should show the AI activity dot
   const aiDotPaths = new Set(["/chat", "/work-items"]);
@@ -226,6 +228,8 @@ export default function SideNavigation({
           <ul role="list" className="space-y-1">
             {navigation.map((item) => {
               const showDot = aiIsActive && aiDotPaths.has(item.href);
+              const isChatTab = item.href === "/chat";
+              const showBadge = isChatTab && unreadChatCount > 0;
               return (
                 <li key={item.name} className="relative">
                   <ReactiveButton
@@ -237,11 +241,27 @@ export default function SideNavigation({
                     onCloseSideNav={onCloseSideNav}
                     keyboardShortcut={item.keyboardShortcut}
                   />
-                  {showDot && (
+                  {showBadge && (
+                    <span
+                      className={twMerge(
+                        "pointer-events-none absolute top-1/2 -translate-y-1/2",
+                        isCollapsed ? "right-0.5" : "right-1.5",
+                      )}
+                    >
+                      {isCollapsed ? (
+                        <span className="flex h-2.5 w-2.5 items-center justify-center rounded-full bg-rose-500" />
+                      ) : (
+                        <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white">
+                          {unreadChatCount > 99 ? "99+" : unreadChatCount}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {showDot && !showBadge && (
                     <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2">
                       <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
                       </span>
                     </span>
                   )}

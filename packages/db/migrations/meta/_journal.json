@@ -232,6 +232,13 @@
       "when": 1771053600000,
       "tag": "20260214070000_AddPipelineJobTable",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1771089370664,
+      "tag": "20260214171610_AddBrandColorToWorkspace",
+      "breakpoints": true
     }
   ]
 }

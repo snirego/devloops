@@ -2,6 +2,26 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getSupabaseBrowserClient } from "@kan/auth/client";
 
+/**
+ * Normalize a timestamp from Supabase Realtime (or DB) to a proper ISO string.
+ *
+ * Postgres `timestamp` (without timezone) columns are stored as UTC but
+ * Supabase Realtime delivers them as bare strings like "2026-02-14 16:34:08.101"
+ * without a "Z" suffix. JavaScript's `new Date()` treats such strings as local
+ * time, causing incorrect display. This helper ensures UTC parsing by appending
+ * "Z" when the string has no timezone indicator.
+ */
+export function ensureUtcTimestamp(ts: string | Date): string {
+  if (ts instanceof Date) return ts.toISOString();
+  const s = ts.trim();
+  // Already has timezone info (Z, +HH:MM, -HH:MM) — leave as-is
+  if (/[Zz]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s) || /[+-]\d{4}$/.test(s)) {
+    return s;
+  }
+  // Bare timestamp — append Z to mark it as UTC
+  return s + "Z";
+}
+
 export interface RealtimeMessage {
   id: number;
   publicId: string;
@@ -124,7 +144,12 @@ export function useRealtimeMessages({
           filter: `threadId=eq.${threadId}`,
         },
         (payload) => {
-          const newMsg = payload.new as RealtimeMessage;
+          const raw = payload.new as RealtimeMessage;
+          // Normalize UTC timestamp from Supabase Realtime
+          const newMsg: RealtimeMessage = {
+            ...raw,
+            createdAt: ensureUtcTimestamp(raw.createdAt),
+          };
 
           // Filter internal messages in public-only mode
           if (publicOnly && newMsg.visibility !== "public") return;
@@ -159,7 +184,11 @@ export function useRealtimeMessages({
           filter: `threadId=eq.${threadId}`,
         },
         (payload) => {
-          const updated = payload.new as RealtimeMessage;
+          const raw = payload.new as RealtimeMessage;
+          const updated: RealtimeMessage = {
+            ...raw,
+            createdAt: ensureUtcTimestamp(raw.createdAt),
+          };
           setMessages((prev) =>
             prev.map((m) =>
               m.publicId === updated.publicId

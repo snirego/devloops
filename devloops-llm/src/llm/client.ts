@@ -51,21 +51,24 @@ export type LlmResponse<T> = LlmResult<T> | LlmError;
 // ─── Circuit Breaker ─────────────────────────────────────────────────────────
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
-const CIRCUIT_BREAKER_RESET_MS = 30_000;
+const CIRCUIT_BREAKER_RESET_MS = 15_000; // 15s (was 30s) — faster recovery
 
 let consecutiveFailures = 0;
 let circuitOpenUntil = 0;
+let lastFailureError = "";
 
 function recordSuccess(): void {
   consecutiveFailures = 0;
+  lastFailureError = "";
 }
 
-function recordFailure(): void {
+function recordFailure(errMsg?: string): void {
   consecutiveFailures++;
+  if (errMsg) lastFailureError = errMsg;
   if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
     circuitOpenUntil = Date.now() + CIRCUIT_BREAKER_RESET_MS;
     getLogger().warn(
-      { consecutiveFailures, resetMs: CIRCUIT_BREAKER_RESET_MS },
+      { consecutiveFailures, resetMs: CIRCUIT_BREAKER_RESET_MS, lastError: lastFailureError },
       "Circuit breaker OPEN — LLM requests will fail fast",
     );
   }
@@ -80,6 +83,35 @@ function isCircuitOpen(): boolean {
     return false;
   }
   return true;
+}
+
+/** Expose circuit breaker status for health endpoints */
+export function getCircuitBreakerStatus(): {
+  open: boolean;
+  consecutiveFailures: number;
+  lastError: string;
+  opensAt: number;
+  resetsAt: string | null;
+} {
+  const open = isCircuitOpen();
+  return {
+    open,
+    consecutiveFailures,
+    lastError: lastFailureError,
+    opensAt: CIRCUIT_BREAKER_THRESHOLD,
+    resetsAt: open ? new Date(circuitOpenUntil).toISOString() : null,
+  };
+}
+
+/** Force-reset the circuit breaker (admin action) */
+export function resetCircuitBreaker(): void {
+  getLogger().info(
+    { previousFailures: consecutiveFailures },
+    "Circuit breaker manually reset",
+  );
+  consecutiveFailures = 0;
+  circuitOpenUntil = 0;
+  lastFailureError = "";
 }
 
 // ─── Retry Helper ────────────────────────────────────────────────────────────
@@ -151,11 +183,20 @@ export async function chatCompletion(
 
       if (lastError.name === "AbortError") {
         lastError = new Error(
-          `LLM request timed out after ${config.LLM_REQUEST_TIMEOUT_MS}ms`,
+          `LLM request timed out after ${config.LLM_REQUEST_TIMEOUT_MS}ms (url: ${url})`,
+        );
+      } else {
+        // Network-level failure (DNS, connection refused, etc.)
+        lastError = new Error(
+          `LLM fetch failed: ${lastError.message} (url: ${url}, model: ${config.LLM_MODEL})`,
         );
       }
 
-      recordFailure();
+      logger.error(
+        { attempt, url, model: config.LLM_MODEL, err: lastError.message },
+        "LLM request network error",
+      );
+      recordFailure(lastError.message);
       continue;
     } finally {
       clearTimeout(timeout);
@@ -168,15 +209,14 @@ export async function chatCompletion(
         lastError = new Error(
           `LLM returned ${response.status}: ${body.slice(0, 300)}`,
         );
-        recordFailure();
+        recordFailure(lastError.message);
         continue;
       }
 
       // Non-retryable error
-      recordFailure();
-      throw new Error(
-        `LLM request failed (${response.status}): ${body.slice(0, 500)}`,
-      );
+      const errMsg = `LLM request failed (${response.status}): ${body.slice(0, 500)}`;
+      recordFailure(errMsg);
+      throw new Error(errMsg);
     }
 
     const data = (await response.json()) as ChatCompletionResponse;
@@ -200,8 +240,9 @@ export async function chatCompletion(
     return content;
   }
 
-  recordFailure();
-  throw lastError ?? new Error("LLM request failed after all retries");
+  const finalErr = lastError ?? new Error("LLM request failed after all retries");
+  recordFailure(finalErr.message);
+  throw finalErr;
 }
 
 // ─── Structured JSON Completion with Validation + Retry ──────────────────────
@@ -228,9 +269,15 @@ export async function llmJsonCompletion<T>(opts: {
     try {
       rawContent = await chatCompletion(messages, temperature, maxTokens);
     } catch (err) {
+      const config = getConfig();
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error(
+        { attempt, llmBaseUrl: config.LLM_BASE_URL, model: config.LLM_MODEL, err: errMsg },
+        "llmJsonCompletion: LLM request failed",
+      );
       return {
         ok: false,
-        error: `LLM request failed: ${err instanceof Error ? err.message : String(err)}`,
+        error: `LLM request failed: ${errMsg}`,
       };
     }
 

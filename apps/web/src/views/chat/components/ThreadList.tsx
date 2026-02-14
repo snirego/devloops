@@ -10,6 +10,7 @@ import {
   HiOutlineArrowPath,
 } from "react-icons/hi2";
 
+import { ensureUtcTimestamp } from "~/hooks/useRealtimeMessages";
 import ChatAvatar from "./ChatAvatar";
 import ContextMenu from "./ContextMenu";
 import type { ContextMenuEntry } from "./ContextMenu";
@@ -128,7 +129,7 @@ export default function ThreadList({
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     );
   }
@@ -179,7 +180,7 @@ export default function ThreadList({
               isOptimistic
                 ? "animate-pulse opacity-60"
                 : isActive
-                  ? "bg-indigo-50 dark:bg-indigo-950/30"
+                  ? "bg-brand-50 dark:bg-brand-950/30"
                   : isArchived
                     ? "opacity-50 hover:bg-light-100 hover:opacity-75 dark:hover:bg-dark-100"
                     : "hover:bg-light-100 dark:hover:bg-dark-100"
@@ -198,7 +199,7 @@ export default function ThreadList({
                 {/* Thread type icon */}
                 {isExternal ? (
                   <HiOutlineGlobeAlt
-                    className="h-3 w-3 flex-shrink-0 text-indigo-500"
+                    className="h-3 w-3 flex-shrink-0 text-brand-500"
                     title="External chat"
                   />
                 ) : (
@@ -241,7 +242,7 @@ export default function ThreadList({
                 <span className="flex-shrink-0 text-[10px] text-light-800 dark:text-dark-800">
                   {isOptimistic
                     ? "now"
-                    : formatDistanceToNow(new Date(thread.lastActivityAt), {
+                    : formatDistanceToNow(new Date(ensureUtcTimestamp(thread.lastActivityAt)), {
                         addSuffix: true,
                       })}
                 </span>

@@ -286,14 +286,14 @@ export default function WorkItemDrawer({
         {/* ── Thread summary (AI) ──────────────────────────────────────── */}
         {threadState?.summary && (
           <>
-            <SectionBlock title="AI Summary" icon={<HiOutlineSparkles className="h-4 w-4 text-indigo-500" />}>
+            <SectionBlock title="AI Summary" icon={<HiOutlineSparkles className="h-4 w-4 text-brand-500" />}>
               <p className="text-sm leading-relaxed text-light-800 dark:text-dark-800">
                 {threadState.summary as string}
               </p>
               {threadState.intent && (
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-[11px] font-medium uppercase tracking-wider text-light-900 dark:text-dark-900">Intent</span>
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                  <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                     {threadState.intent as string}
                   </span>
                 </div>

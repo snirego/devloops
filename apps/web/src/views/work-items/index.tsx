@@ -3,6 +3,7 @@ import {
   HiOutlinePlus,
   HiOutlineArrowPath,
   HiOutlineCpuChip,
+  HiOutlineDocumentText,
 } from "react-icons/hi2";
 
 import { PageHead } from "~/components/PageHead";
@@ -12,6 +13,7 @@ import { api } from "~/utils/api";
 import WorkItemCard from "./components/WorkItemCard";
 import WorkItemDrawer from "./components/WorkItemDrawer";
 import IngestPanel from "./components/IngestPanel";
+import LogsPanel from "./components/LogsPanel";
 
 const KANBAN_COLUMNS = [
   { status: "PendingApproval", label: "Pending Approval", color: "bg-amber-500" },
@@ -30,6 +32,7 @@ export default function WorkItemsView() {
     null,
   );
   const [showIngest, setShowIngest] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
 
   const { data: workItems, refetch, isLoading, isFetching } = api.workItem.list.useQuery(
     { workspacePublicId: workspace.publicId },
@@ -104,6 +107,14 @@ export default function WorkItemsView() {
             </span>
           </div>
 
+          <button
+            onClick={() => setShowLogs(true)}
+            className="flex items-center gap-1.5 rounded-md border border-light-300 px-2.5 py-1.5 text-xs font-medium transition-colors duration-0 hover:bg-light-200 dark:border-dark-300 dark:hover:bg-dark-200"
+            title="View pipeline logs"
+          >
+            <HiOutlineDocumentText className="h-3.5 w-3.5 text-light-900 dark:text-dark-900" />
+            <span className="text-light-900 dark:text-dark-900">Logs</span>
+          </button>
           <button
             onClick={() => refetch()}
             className="rounded-md border border-light-300 p-1.5 transition-colors duration-0 hover:bg-light-200 dark:border-dark-300 dark:hover:bg-dark-200"
@@ -182,6 +193,9 @@ export default function WorkItemsView() {
           }}
         />
       )}
+
+      {/* Logs Panel */}
+      {showLogs && <LogsPanel onClose={() => setShowLogs(false)} />}
     </div>
   );
 }

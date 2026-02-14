@@ -9,6 +9,9 @@ import { getSupabaseBrowserClient } from "@kan/auth/client";
  * list without polling.
  *
  * Replaces the previous 15s refetchInterval on chat.listThreads.
+ *
+ * Also runs a lightweight fallback poll every 10s to catch any events
+ * that Realtime might miss (network blips, cold-start of Supabase channel).
  */
 export function useRealtimeThreadList({
   enabled = true,
@@ -20,7 +23,7 @@ export function useRealtimeThreadList({
   const onInvalidateRef = useRef(onInvalidate);
   onInvalidateRef.current = onInvalidate;
 
-  // Throttle invalidation to max once per 3s to avoid hammering the API
+  // Throttle invalidation to max once per 2s to avoid hammering the API
   const lastInvalidateRef = useRef(0);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export function useRealtimeThreadList({
 
     const throttledInvalidate = () => {
       const now = Date.now();
-      if (now - lastInvalidateRef.current < 3000) return;
+      if (now - lastInvalidateRef.current < 2000) return;
       lastInvalidateRef.current = now;
       onInvalidateRef.current();
     };
@@ -57,10 +60,24 @@ export function useRealtimeThreadList({
         },
         throttledInvalidate,
       )
+      // Message updated (edited) — update preview
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "feedback_message",
+        },
+        throttledInvalidate,
+      )
       .subscribe();
+
+    // Fallback poll every 10s to catch events Realtime might miss
+    const pollInterval = setInterval(throttledInvalidate, 10_000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [enabled]);
 }

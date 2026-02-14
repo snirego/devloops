@@ -7,9 +7,10 @@
 
 import type { FastifyInstance } from "fastify";
 
+import { getConfig } from "../config.js";
 import { checkDbHealth } from "../db/client.js";
 import { checkRedisHealth } from "../queue/connection.js";
-import { checkLlmHealth } from "../llm/client.js";
+import { checkLlmHealth, getCircuitBreakerStatus, resetCircuitBreaker } from "../llm/client.js";
 import { getIngestQueue, getWorkItemQueue } from "../queue/queues.js";
 
 export async function registerHealthRoutes(
@@ -63,6 +64,9 @@ export async function registerHealthRoutes(
     const allHealthy = redis && postgres;
     const statusCode = allHealthy ? 200 : 503;
 
+    const config = getConfig();
+    const circuitBreaker = getCircuitBreakerStatus();
+
     return reply.code(statusCode).send({
       status: allHealthy ? "ready" : "degraded",
       timestamp: new Date().toISOString(),
@@ -71,10 +75,36 @@ export async function registerHealthRoutes(
         postgres,
         llm,
       },
+      circuitBreaker,
+      llmConfig: {
+        baseUrl: config.LLM_BASE_URL,
+        model: config.LLM_MODEL,
+        // Don't expose the full key — just show if it's set and a prefix
+        apiKeySet: !!config.LLM_API_KEY && config.LLM_API_KEY !== "ollama",
+        apiKeyPrefix: config.LLM_API_KEY
+          ? config.LLM_API_KEY.slice(0, 7) + "..."
+          : "(not set)",
+      },
       queues: {
         ingest: { waiting: ingestWaiting, active: ingestActive },
         workItem: { waiting: workItemWaiting, active: workItemActive },
       },
+    });
+  });
+
+  // ── Admin: Reset Circuit Breaker ──────────────────────────────────
+  app.post("/admin/reset-circuit-breaker", async (req, reply) => {
+    const config = getConfig();
+    const secret = req.headers["x-api-secret"];
+    if (secret !== config.API_SECRET) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    resetCircuitBreaker();
+    return reply.send({
+      status: "ok",
+      message: "Circuit breaker reset",
+      circuitBreaker: getCircuitBreakerStatus(),
     });
   });
 }

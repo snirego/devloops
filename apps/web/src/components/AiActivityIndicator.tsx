@@ -30,12 +30,12 @@ export default function AiActivityIndicator({
       >
         {/* Pulsing dot + sparkle icon */}
         <div className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center">
-          <span className="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-indigo-400 opacity-40" />
-          <HiOutlineSparkles className="relative h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
+          <span className="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-brand-400 opacity-40" />
+          <HiOutlineSparkles className="relative h-3.5 w-3.5 text-brand-500 dark:text-brand-400" />
         </div>
 
         {!isCollapsed && (
-          <span className="truncate text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+          <span className="truncate text-[11px] font-medium text-brand-500 dark:text-brand-400">
             AI analyzing
             {activeJobs.length > 1 ? ` (${activeJobs.length})` : "..."}
           </span>
@@ -44,7 +44,7 @@ export default function AiActivityIndicator({
         {/* Tooltip on hover — shows which threads are being analyzed */}
         {showTooltip && (
           <div className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border border-light-200 bg-white p-2 shadow-lg dark:border-dark-300 dark:bg-dark-100">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-brand-500">
               AI Processing
             </p>
             {activeJobs.map((job) => (
@@ -52,7 +52,7 @@ export default function AiActivityIndicator({
                 key={job.threadId}
                 className="flex items-center gap-1.5 py-0.5"
               >
-                <div className="h-1.5 w-1.5 flex-shrink-0 animate-pulse rounded-full bg-indigo-500" />
+                <div className="h-1.5 w-1.5 flex-shrink-0 animate-pulse rounded-full bg-brand-500" />
                 <span className="truncate text-[11px] text-light-700 dark:text-dark-700">
                   {job.threadTitle || `Thread ${job.threadPublicId.slice(0, 8)}`}
                 </span>

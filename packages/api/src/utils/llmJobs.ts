@@ -1,22 +1,20 @@
 /**
  * LLM Jobs — Durable pipeline job system backed by Postgres.
  *
- * Instead of fire-and-forget HTTP calls with an in-memory debounce
- * (which were lost on Vercel cold start, redeploy, or crash),
- * this module writes a `pipeline_job` row to the database.
+ * Two modes of operation:
+ *   1. DB-backed (pipeline_job table exists): writes a durable row to Postgres,
+ *      devloops-llm polls and processes it. Survives deploys/crashes.
+ *   2. HTTP fallback (pipeline_job table not yet migrated): enqueues directly
+ *      on the devloops-llm service via REST. Original behavior.
+ *   3. Local fallback (LLM_SERVICE_URL not set): runs in-process.
  *
- * The devloops-llm service polls the `pipeline_job` table and
- * processes jobs using BullMQ workers. Results are written directly
- * to the shared Postgres DB and surfaced via Supabase Realtime.
- *
- * Falls back to local execution if LLM_SERVICE_URL is not configured
- * (for local development without the separate service running).
+ * The system auto-detects which mode to use on the first call and caches the
+ * result so subsequent calls don't pay the detection cost.
  */
 
 import type { dbClient } from "@kan/db/client";
 import type { ThreadStateJson } from "@kan/db/schema";
 import * as feedbackThreadRepo from "@kan/db/repository/feedbackThread.repo";
-import * as pipelineJobRepo from "@kan/db/repository/pipelineJob.repo";
 
 // ─── Re-exports for backward compatibility ──────────────────────────────────
 
@@ -24,7 +22,7 @@ export { EMPTY_THREAD_STATE } from "./llmJobsLocal";
 
 export type { GatekeeperResult } from "./llmJobsLocal";
 
-// ─── LLM Service HTTP Client (kept for sync pipeline + workitem gen) ────────
+// ─── LLM Service HTTP Client ────────────────────────────────────────────────
 
 function getLlmServiceConfig() {
   return {
@@ -78,41 +76,56 @@ async function enqueueJob(
   }
 }
 
-// ─── Per-Thread Debounce (lightweight, with DB-backed durability) ────────────
-// When a user sends multiple messages rapidly (e.g. 3 messages in 5 seconds),
-// we debounce so that only the last message triggers a pipeline_job row.
-// Unlike the old approach, the job is ALWAYS written to DB — the debounce
-// just prevents multiple rows for rapid-fire messages.
+// ─── Pipeline Job Table Detection ────────────────────────────────────────────
+// Auto-detect whether the pipeline_job table exists. Cached after first check.
+
+let _pipelineTableAvailable: boolean | null = null;
+
+async function isPipelineTableAvailable(db: dbClient): Promise<boolean> {
+  if (_pipelineTableAvailable !== null) return _pipelineTableAvailable;
+
+  try {
+    const pipelineJobRepo = await import("@kan/db/repository/pipelineJob.repo");
+    // Try a lightweight query — if the table doesn't exist this will throw
+    await pipelineJobRepo.countPending(db);
+    _pipelineTableAvailable = true;
+    console.log("[Pipeline] pipeline_job table detected — using DB-backed mode");
+  } catch {
+    _pipelineTableAvailable = false;
+    console.log("[Pipeline] pipeline_job table not found — using HTTP fallback mode");
+  }
+
+  return _pipelineTableAvailable;
+}
+
+// ─── Per-Thread Debounce ─────────────────────────────────────────────────────
 
 interface PendingWrite {
   timer: ReturnType<typeof setTimeout>;
   threadId: number;
+  currentState: ThreadStateJson | null;
+  messageText: string;
+  metadata?: Record<string, unknown>;
   triggerMessageId: number | null;
 }
 
 const pendingWrites = new Map<number, PendingWrite>();
-const DEBOUNCE_MS = 2_000; // 2 seconds after last message
+const DEBOUNCE_MS = 2_000;
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Enqueue an ingest pipeline job by writing a `pipeline_job` row to Postgres.
- *
- * The devloops-llm service polls this table and processes jobs. This approach
- * is durable across page reloads, server restarts, and deploys.
- *
- * Includes a per-thread debounce: if multiple messages arrive within 2s,
- * only the last one creates a pipeline_job row.
- *
- * @param triggerMessageId - The id of the message that triggered this pipeline
- *                           (optional, used for auditing)
+ * Enqueue an ingest pipeline job. Auto-detects the best mode:
+ *   1. DB-backed (pipeline_job table) — durable, survives crashes
+ *   2. HTTP fallback (devloops-llm REST) — original behavior
+ *   3. Local in-process — for dev without the LLM service
  */
 export function runIngestPipelineAsync(
   db: dbClient,
   threadId: number,
-  _currentState: ThreadStateJson | null,
-  _newMessageText: string,
-  _metadata?: Record<string, unknown>,
+  currentState: ThreadStateJson | null,
+  newMessageText: string,
+  metadata?: Record<string, unknown>,
   triggerMessageId?: number,
 ): void {
   // If LLM service is not configured, fall back to local execution
@@ -121,7 +134,7 @@ export function runIngestPipelineAsync(
       "[LLM] LLM_SERVICE_URL not set — running pipeline in-process (not recommended for production)",
     );
     import("./llmJobsLocal").then(({ runIngestPipelineAsyncLocal }) => {
-      runIngestPipelineAsyncLocal(db, threadId, _currentState, _newMessageText, _metadata);
+      runIngestPipelineAsyncLocal(db, threadId, currentState, newMessageText, metadata);
     });
     return;
   }
@@ -132,56 +145,171 @@ export function runIngestPipelineAsync(
     clearTimeout(existing.timer);
   }
 
-  // Debounce: wait DEBOUNCE_MS after last message, then write pipeline_job row
+  // Debounce: wait DEBOUNCE_MS after last message, then dispatch
   const timer = setTimeout(() => {
     pendingWrites.delete(threadId);
-    writePipelineJob(db, threadId, triggerMessageId ?? null);
+    dispatchPipelineJob(db, threadId, currentState, newMessageText, metadata, triggerMessageId ?? null);
   }, DEBOUNCE_MS);
 
   pendingWrites.set(threadId, {
     timer,
     threadId,
+    currentState,
+    messageText: newMessageText,
+    metadata,
     triggerMessageId: triggerMessageId ?? null,
   });
 }
 
 /**
- * Write a pipeline_job row to Postgres (called after debounce).
- *
- * This is the durable intent — even if the server crashes right after,
- * the row is in the DB and devloops-llm will pick it up.
+ * Dispatch a pipeline job — tries DB-backed mode first, falls back to HTTP.
  */
-async function writePipelineJob(
+async function dispatchPipelineJob(
   db: dbClient,
   threadId: number,
+  currentState: ThreadStateJson | null,
+  messageText: string,
+  metadata: Record<string, unknown> | undefined,
   triggerMessageId: number | null,
 ): Promise<void> {
+  // Mark AI processing immediately so the UI shows the spinner
+  await feedbackThreadRepo.setAiProcessing(db, threadId).catch((err) => {
+    console.error(`[Pipeline] setAiProcessing failed for thread ${threadId}:`, err);
+  });
+
+  // Try DB-backed mode first
+  const useDbMode = await isPipelineTableAvailable(db);
+
+  if (useDbMode) {
+    try {
+      const pipelineJobRepo = await import("@kan/db/repository/pipelineJob.repo");
+
+      const job = await pipelineJobRepo.create(db, {
+        threadId,
+        triggerMessageId,
+      });
+
+      // Cancel any older pending jobs for this thread (superseded)
+      await pipelineJobRepo.cancelStaleForThread(db, threadId, job.id);
+
+      console.log(
+        `[Pipeline] DB job created: ${job.publicId} for thread ${threadId}`,
+      );
+      return;
+    } catch (err) {
+      console.error(
+        `[Pipeline] DB mode failed for thread ${threadId}, falling back to HTTP:`,
+        err,
+      );
+      // Mark table as unavailable so subsequent calls skip straight to HTTP
+      _pipelineTableAvailable = false;
+    }
+  }
+
+  // HTTP fallback — enqueue directly on devloops-llm service
   try {
-    // Mark AI processing immediately so the UI shows the spinner
-    await feedbackThreadRepo.setAiProcessing(db, threadId).catch((err) => {
-      console.error(`[Pipeline] setAiProcessing failed for thread ${threadId}:`, err);
-    });
-
-    // Create the durable pipeline job row
-    const job = await pipelineJobRepo.create(db, {
+    const result = await enqueueJob("/jobs/ingest", {
       threadId,
-      triggerMessageId,
+      currentState,
+      messageText,
+      metadata,
     });
-
-    // Cancel any older pending jobs for this thread (superseded by new message)
-    await pipelineJobRepo.cancelStaleForThread(db, threadId, job.id);
 
     console.log(
-      `[Pipeline] Job created: ${job.publicId} for thread ${threadId}`,
+      `[Pipeline] HTTP job enqueued: ${result.jobId} for thread ${threadId}`,
     );
+
+    // Monitor the job in the background so we can clear aiProcessingSince
+    // when it completes or fails. This is essential when the devloops-llm
+    // service writes to the same DB (production) but the originating app
+    // is running locally — Supabase Realtime may not fire on the local
+    // client, so we poll the LLM service directly.
+    monitorHttpJob(db, threadId, result.jobId);
   } catch (err) {
     console.error(
-      `[Pipeline] Failed to create pipeline job for thread ${threadId}:`,
+      `[Pipeline] Failed to enqueue job for thread ${threadId}:`,
       err,
     );
     // Clear AI processing flag since the job wasn't created
     feedbackThreadRepo.clearAiProcessing(db, threadId).catch(() => {});
   }
+}
+
+/**
+ * Background monitor for an HTTP-enqueued job.
+ *
+ * Polls the LLM service status endpoint until the job completes or fails,
+ * then clears aiProcessingSince on the thread. This is the safety net
+ * that ensures the UI spinner stops, even if Supabase Realtime doesn't
+ * deliver the update (e.g. local dev hitting production LLM service).
+ */
+function monitorHttpJob(
+  db: dbClient,
+  threadId: number,
+  jobId: string,
+): void {
+  const config = getLlmServiceConfig();
+  const maxPollMs = 180_000; // 3 minutes max
+  const pollIntervalMs = 4_000;
+  const startTime = Date.now();
+
+  const poll = async () => {
+    while (Date.now() - startTime < maxPollMs) {
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
+
+      try {
+        const res = await fetch(
+          `${config.url}/jobs/ingest/${jobId}/status`,
+          {
+            headers: { "X-API-Secret": config.secret },
+            signal: AbortSignal.timeout(5_000),
+          },
+        );
+
+        if (!res.ok) continue;
+
+        const data = (await res.json()) as {
+          status: string;
+          result?: unknown;
+          failedReason?: string;
+        };
+
+        if (data.status === "completed") {
+          console.log(
+            `[Pipeline] HTTP job ${jobId} completed for thread ${threadId}`,
+          );
+          // The LLM service's ingestPipeline already clears aiProcessingSince,
+          // but clear it again from this side as a safety net.
+          await feedbackThreadRepo.clearAiProcessing(db, threadId).catch(() => {});
+          return;
+        }
+
+        if (data.status === "failed") {
+          console.error(
+            `[Pipeline] HTTP job ${jobId} failed for thread ${threadId}: ${data.failedReason}`,
+          );
+          await feedbackThreadRepo.clearAiProcessing(db, threadId).catch(() => {});
+          return;
+        }
+
+        // Still processing — continue polling
+      } catch {
+        // Network error — continue polling
+      }
+    }
+
+    // Timed out — clear the flag so the UI doesn't hang forever
+    console.warn(
+      `[Pipeline] HTTP job ${jobId} monitor timed out for thread ${threadId} — clearing AI flag`,
+    );
+    await feedbackThreadRepo.clearAiProcessing(db, threadId).catch(() => {});
+  };
+
+  // Fire-and-forget — don't block the caller
+  poll().catch((err) => {
+    console.error(`[Pipeline] Job monitor error for thread ${threadId}:`, err);
+    feedbackThreadRepo.clearAiProcessing(db, threadId).catch(() => {});
+  });
 }
 
 /**

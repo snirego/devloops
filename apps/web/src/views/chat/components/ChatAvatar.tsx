@@ -5,7 +5,7 @@ import { twMerge } from "tailwind-merge";
  * Each sender gets a consistent colour based on their name hash.
  */
 const AVATAR_COLORS = [
-  "bg-indigo-600",
+  "bg-brand-500",
   "bg-rose-500",
   "bg-emerald-600",
   "bg-amber-500",

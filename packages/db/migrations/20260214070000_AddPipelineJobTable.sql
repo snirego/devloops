@@ -3,7 +3,11 @@
 -- and the devloops-llm service polls and processes pending jobs.
 -- Survives page reloads, server restarts, and deploys.
 
-CREATE TYPE "public"."pipeline_job_status" AS ENUM('pending', 'processing', 'waiting_for_input', 'completed', 'failed', 'canceled');--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."pipeline_job_status" AS ENUM('pending', 'processing', 'waiting_for_input', 'completed', 'failed', 'canceled');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "pipeline_job" (
 	"id" bigserial PRIMARY KEY NOT NULL,
 	"publicId" varchar(12) NOT NULL,

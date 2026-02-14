@@ -33,7 +33,7 @@ import {
 } from "../db/schema.js";
 import { getLogger } from "../utils/logger.js";
 import { generateUID } from "../utils/uid.js";
-import { runThreadStateUpdateFullContext } from "./threadStateUpdate.js";
+import { runThreadStateUpdateFullContext, LlmUnavailableError } from "./threadStateUpdate.js";
 import { runGatekeeper, type GatekeeperResult, type GatekeeperContext } from "./gatekeeper.js";
 import { runWorkItemGenerator } from "./workItemGenerator.js";
 
@@ -191,11 +191,37 @@ export async function runSmartPipeline(
 
     // ── Job A: Full-context ThreadState update ────────────────────────
     logger.info({ threadId: job.threadId }, "[SmartPipeline] Job A: ThreadState update (full context)");
-    const updatedState = await runThreadStateUpdateFullContext(
-      db,
-      job.threadId,
-      currentState,
-    );
+
+    let updatedState: ThreadStateJson;
+    try {
+      updatedState = await runThreadStateUpdateFullContext(
+        db,
+        job.threadId,
+        currentState,
+      );
+    } catch (err) {
+      if (err instanceof LlmUnavailableError) {
+        // LLM is unreachable — mark job as failed (will be retried on next poll)
+        // Do NOT proceed with stale state
+        const errMsg = `LLM unavailable during ThreadState update: ${err.message}`;
+        logger.warn(
+          { threadId: job.threadId, jobId: job.id, err: err.message },
+          "[SmartPipeline] LLM unreachable — marking job for retry",
+        );
+        await markJobFailed(db, job.id, errMsg);
+        return {
+          threadState: currentState ?? ({} as ThreadStateJson),
+          gatekeeper: {
+            shouldCreateWorkItem: false,
+            threadStatus: currentThreadStatus,
+            reason: errMsg,
+          },
+          workItem: null,
+          pipelineJobStatus: "failed",
+        };
+      }
+      throw err; // Re-throw non-LLM errors for the outer catch
+    }
 
     // ── Job B: Smart Gatekeeper ──────────────────────────────────────
     logger.info({ threadId: job.threadId }, "[SmartPipeline] Job B: Gatekeeper");
@@ -338,7 +364,7 @@ export async function runSmartPipeline(
 
     await markJobCompleted(db, job.id, resultJson);
 
-    // Audit log
+    // Audit log — include the LLM's recommendation for debugging
     await db.insert(auditLogs).values({
       entityType: "Thread",
       entityId: job.threadId,
@@ -348,6 +374,10 @@ export async function runSmartPipeline(
         gatekeeperAction: resultJson.gatekeeperAction,
         workItemCreated: !!workItem,
         workItemPublicId: workItem?.publicId,
+        llmRecommendation: updatedState.recommendation,
+        llmIntent: updatedState.intent,
+        llmSummary: updatedState.summary,
+        llmWorkItemCandidates: updatedState.workItemCandidates,
       },
     });
 

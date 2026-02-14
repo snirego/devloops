@@ -302,6 +302,7 @@ export const workspaceRouter = createTRPCRouter({
           .optional(),
         description: z.string().min(3).max(280).optional(),
         showEmailsToMembers: z.boolean().optional(),
+        brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
       }),
     )
     .output(z.custom<Awaited<ReturnType<typeof workspaceRepo.update>>>())
@@ -363,6 +364,7 @@ export const workspaceRouter = createTRPCRouter({
           slug: input.slug,
           description: input.description,
           showEmailsToMembers: input.showEmailsToMembers,
+          brandColor: input.brandColor,
         },
       );
 

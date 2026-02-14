@@ -17,6 +17,7 @@ import { useModal } from "~/providers/modal";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import { DeleteWorkspaceConfirmation } from "./components/DeleteWorkspaceConfirmation";
+import UpdateBrandColorForm from "./components/UpdateBrandColorForm";
 import UpdateWorkspaceDescriptionForm from "./components/UpdateWorkspaceDescriptionForm";
 import UpdateWorkspaceEmailVisibilityForm from "./components/UpdateWorkspaceEmailVisibilityForm";
 import UpdateWorkspaceNameForm from "./components/UpdateWorkspaceNameForm";
@@ -94,6 +95,15 @@ export default function WorkspaceSettings() {
           showEmailsToMembers={Boolean(
             workspaceData?.showEmailsToMembers ?? false,
           )}
+          disabled={!canEditWorkspace}
+        />
+
+        <h2 className="mb-4 mt-8 text-[14px] font-bold text-neutral-900 dark:text-dark-1000">
+          {t`Brand color`}
+        </h2>
+        <UpdateBrandColorForm
+          workspacePublicId={workspace.publicId}
+          currentBrandColor={workspaceData?.brandColor}
           disabled={!canEditWorkspace}
         />
 

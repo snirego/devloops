@@ -94,6 +94,8 @@ export default async function handler(
         thread.id,
         (thread.threadStateJson as ThreadStateJson) ?? null,
         rawText,
+        undefined,
+        message.id,
       );
     }
 

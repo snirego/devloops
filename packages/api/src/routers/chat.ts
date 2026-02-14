@@ -98,6 +98,7 @@ export const chatRouter = createTRPCRouter({
           (thread.threadStateJson as ThreadStateJson) ?? null,
           input.rawText,
           { userId: ctx.user?.id, source: "dashboard" },
+          message.id,
         );
       } else {
         // For internal notes, just update thread activity

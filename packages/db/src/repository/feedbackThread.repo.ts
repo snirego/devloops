@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
 import type { ThreadStateJson } from "@kan/db/schema";
@@ -196,7 +196,32 @@ export const listAll = async (
 };
 
 /** List threads where AI is currently processing */
+/**
+ * List threads where AI is currently processing.
+ *
+ * Also auto-clears stuck entries: if `aiProcessingSince` is older than 5 minutes,
+ * it means the pipeline crashed or the service restarted without clearing the flag.
+ * We clear those proactively so the UI doesn't show a spinner forever.
+ */
 export const listAiProcessing = async (db: dbClient, workspaceId?: number) => {
+  // Auto-clear stuck AI processing flags older than 5 minutes
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000);
+  const staleConditions = [
+    isNotNull(feedbackThreads.aiProcessingSince),
+    lt(feedbackThreads.aiProcessingSince, staleThreshold),
+  ];
+  if (workspaceId) {
+    staleConditions.push(eq(feedbackThreads.workspaceId, workspaceId));
+  }
+  await db
+    .update(feedbackThreads)
+    .set({ aiProcessingSince: null })
+    .where(and(...staleConditions))
+    .catch(() => {
+      // Non-critical — swallow errors
+    });
+
+  // Now return only genuinely active entries
   const conditions = [isNotNull(feedbackThreads.aiProcessingSince)];
   if (workspaceId) {
     conditions.push(eq(feedbackThreads.workspaceId, workspaceId));

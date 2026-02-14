@@ -3,6 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const STORAGE_KEY = "devloops_thread_read_timestamps";
 
 /**
+ * Custom event name used to synchronize read-status state across multiple
+ * hook instances *within the same tab*. The native `storage` event only
+ * fires across tabs, so we dispatch our own event to keep every mounted
+ * `useThreadReadStatus` hook in sync when any one of them calls `markAsRead`.
+ */
+const SYNC_EVENT = "devloops_thread_read_sync";
+
+/**
  * Lightweight client-side read tracking using localStorage.
  * Stores { [threadPublicId]: ISO timestamp of last read } in a single key.
  *
@@ -51,6 +59,27 @@ export function useThreadReadStatus() {
     initialized.current = true;
   }, []);
 
+  // Sync when another hook instance in the same tab calls markAsRead
+  useEffect(() => {
+    const handleSync = () => {
+      setReadTs(getReadTimestamps());
+    };
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) handleSync();
+    };
+
+    // Same-tab custom event
+    window.addEventListener(SYNC_EVENT, handleSync);
+    // Cross-tab native storage event
+    window.addEventListener("storage", handleStorageEvent);
+
+    return () => {
+      window.removeEventListener(SYNC_EVENT, handleSync);
+      window.removeEventListener("storage", handleStorageEvent);
+    };
+  }, []);
+
   /**
    * Mark a thread as fully read (sets timestamp to now).
    */
@@ -61,6 +90,8 @@ export function useThreadReadStatus() {
       setReadTimestamps(next);
       return next;
     });
+    // Notify other hook instances in this tab
+    window.dispatchEvent(new Event(SYNC_EVENT));
   }, []);
 
   /**

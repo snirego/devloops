@@ -95,9 +95,10 @@ export function runGatekeeper(
     rec.action === "CreateBugWorkItem" ||
     rec.action === "CreateFeatureWorkItem"
   ) {
-    // When the user is responding to our questions, we apply a lower
-    // confidence threshold since we explicitly asked for this info
-    const confidenceThreshold = isReturningFromWaiting ? 0.5 : 0.7;
+    // Confidence thresholds:
+    //   - Follow-up (user answering our questions): 0.4 (we asked, they answered)
+    //   - First message: 0.6 (reasonable confidence is enough)
+    const confidenceThreshold = isReturningFromWaiting ? 0.4 : 0.6;
 
     if (rec.confidence >= confidenceThreshold) {
       const type = rec.action === "CreateBugWorkItem" ? "Bug" : "Feature";
@@ -118,7 +119,7 @@ export function runGatekeeper(
     return {
       shouldCreateWorkItem: false,
       threadStatus: "WaitingOnUser",
-      reason: `Recommendation confidence (${rec.confidence.toFixed(2)}) below threshold (${isReturningFromWaiting ? "0.50" : "0.70"}) — asking for more details`,
+      reason: `Recommendation confidence (${rec.confidence.toFixed(2)}) below threshold (${isReturningFromWaiting ? "0.40" : "0.60"}) — asking for more details`,
       aiResponseText,
     };
   }
@@ -129,7 +130,7 @@ export function runGatekeeper(
     const topCandidate = candidates[0];
 
     if (topCandidate) {
-      const confidenceThreshold = isReturningFromWaiting ? 0.5 : 0.7;
+      const confidenceThreshold = isReturningFromWaiting ? 0.4 : 0.6;
 
       if (topCandidate.confidence >= confidenceThreshold) {
         const validTypes = ["Bug", "Feature", "Chore", "Docs"] as const;
@@ -170,10 +171,10 @@ export function runGatekeeper(
     };
   }
 
-  // ── Fallback: confidence too low ──────────────────────────────────────
+  // ── Fallback: unrecognized recommendation action ──────────────────────
   return {
     shouldCreateWorkItem: false,
     threadStatus: "Open",
-    reason: `Recommendation confidence (${rec.confidence}) below threshold (0.7)`,
+    reason: `Unrecognized recommendation action: "${rec.action}" (confidence: ${rec.confidence})`,
   };
 }

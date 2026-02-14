@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
 import { auditLogs } from "@kan/db/schema";
@@ -37,4 +37,48 @@ export const getByEntity = async (
     ),
     orderBy: desc(auditLogs.createdAt),
   });
+};
+
+/**
+ * List recent audit logs, optionally filtered by entity type and/or actions.
+ * Returns newest first. Used by the Logs panel in the Work Items view.
+ */
+export const listRecent = async (
+  db: dbClient,
+  opts?: {
+    entityTypes?: Array<"Thread" | "Message" | "WorkItem">;
+    actions?: string[];
+    limit?: number;
+    offset?: number;
+  },
+) => {
+  const conditions = [];
+
+  if (opts?.entityTypes && opts.entityTypes.length > 0) {
+    conditions.push(inArray(auditLogs.entityType, opts.entityTypes));
+  }
+
+  if (opts?.actions && opts.actions.length > 0) {
+    conditions.push(inArray(auditLogs.action, opts.actions));
+  }
+
+  return db.query.auditLogs.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
+    orderBy: desc(auditLogs.createdAt),
+    limit: opts?.limit ?? 100,
+    offset: opts?.offset ?? 0,
+  });
+};
+
+/**
+ * Count audit logs by action (for summary stats).
+ */
+export const countByAction = async (db: dbClient) => {
+  const result = await db.execute(sql`
+    SELECT action, COUNT(*) as count
+    FROM audit_log
+    GROUP BY action
+    ORDER BY count DESC
+  `);
+  return result.rows as Array<{ action: string; count: string }>;
 };

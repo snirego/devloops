@@ -1,7 +1,7 @@
 -- Add workspaceId column to feedback_thread for workspace-level data isolation
-ALTER TABLE "feedback_thread" ADD COLUMN "workspaceId" bigint REFERENCES "workspace"("id") ON DELETE CASCADE;
+ALTER TABLE "feedback_thread" ADD COLUMN IF NOT EXISTS "workspaceId" bigint REFERENCES "workspace"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-CREATE INDEX "feedback_thread_workspace_idx" ON "feedback_thread" ("workspaceId");
+CREATE INDEX IF NOT EXISTS "feedback_thread_workspace_idx" ON "feedback_thread" ("workspaceId");
 --> statement-breakpoint
 
 -- Backfill: assign all existing threads to the first workspace (if any exist)

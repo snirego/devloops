@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { api } from "~/utils/api";
+import { applyBrandColors, DEFAULT_BRAND_COLOR } from "~/utils/brandColors";
 
 interface WorkspaceContextProps {
   workspace: Workspace;
@@ -19,6 +20,7 @@ interface Workspace {
   slug: string | undefined;
   plan: "free" | "pro" | "enterprise" | undefined;
   role: "admin" | "member" | "guest";
+  brandColor: string | null | undefined;
 }
 
 const initialWorkspace: Workspace = {
@@ -28,6 +30,7 @@ const initialWorkspace: Workspace = {
   slug: "",
   plan: "free",
   role: "member",
+  brandColor: DEFAULT_BRAND_COLOR,
 };
 
 const initialAvailableWorkspaces: Workspace[] = [];
@@ -79,6 +82,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
         slug: workspace.slug,
         description: workspace.description,
         plan: workspace.plan,
+        brandColor: workspace.brandColor,
         hasLoaded: true,
       })) as Workspace[];
 
@@ -100,6 +104,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
         plan: selectedWorkspace.workspace.plan,
         description: selectedWorkspace.workspace.description,
         role: selectedWorkspace.role,
+        brandColor: selectedWorkspace.workspace.brandColor,
       });
 
       if (workspacePublicId) {
@@ -119,9 +124,16 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
         plan: primaryWorkspace.plan,
         description: primaryWorkspace.description,
         role: primaryWorkspaceRole,
+        brandColor: primaryWorkspace.brandColor,
       });
     }
   }, [data, isLoading, workspacePublicId, router]);
+
+  // Apply brand color CSS variables whenever workspace changes
+  useEffect(() => {
+    const color = workspace.brandColor || DEFAULT_BRAND_COLOR;
+    applyBrandColors(color);
+  }, [workspace.brandColor]);
 
   return (
     <WorkspaceContext.Provider

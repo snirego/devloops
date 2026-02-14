@@ -18,7 +18,7 @@ import type { ThreadStateJson } from "../db/schema.js";
 import { feedbackThreads, feedbackMessages } from "../db/schema.js";
 import { getLogger } from "../utils/logger.js";
 import { generateUID } from "../utils/uid.js";
-import { runThreadStateUpdate } from "./threadStateUpdate.js";
+import { runThreadStateUpdate, LlmUnavailableError } from "./threadStateUpdate.js";
 import { runGatekeeper, type GatekeeperResult } from "./gatekeeper.js";
 import { runWorkItemGenerator } from "./workItemGenerator.js";
 
@@ -85,13 +85,27 @@ export async function runIngestPipeline(
   try {
     // ── Job A: ThreadState update ──────────────────────────────────────
     logger.info({ threadId }, "Pipeline: starting Job A (ThreadState update)");
-    const updatedState = await runThreadStateUpdate(
-      db,
-      threadId,
-      currentState,
-      newMessageText,
-      metadata,
-    );
+
+    let updatedState: ThreadStateJson;
+    try {
+      updatedState = await runThreadStateUpdate(
+        db,
+        threadId,
+        currentState,
+        newMessageText,
+        metadata,
+      );
+    } catch (err) {
+      if (err instanceof LlmUnavailableError) {
+        // LLM is unreachable — throw so BullMQ retries the job
+        logger.warn(
+          { threadId, err: err.message },
+          "Pipeline: LLM unavailable — job will be retried",
+        );
+        throw err;
+      }
+      throw err;
+    }
 
     // ── Job B: Gatekeeper ──────────────────────────────────────────────
     logger.info({ threadId }, "Pipeline: starting Job B (Gatekeeper)");

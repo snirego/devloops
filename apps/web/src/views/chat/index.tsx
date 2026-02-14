@@ -76,6 +76,8 @@ export default function ChatView() {
     return () => window.removeEventListener("keydown", handler);
   }, [showDeleteConfirm, showWidgetEmbed, showNewMenu, activeThreadId]);
 
+  const utils = api.useUtils();
+
   const {
     data: threads,
     refetch: refetchThreads,
@@ -85,14 +87,19 @@ export default function ChatView() {
     { workspacePublicId: workspace.publicId },
     {
       enabled: !!workspace.publicId && workspace.publicId.length >= 12,
-      staleTime: 60_000, // Fresh for 60s — Realtime handles updates
+      staleTime: 5_000, // 5s — Realtime/fallback poll triggers invalidation
     },
   );
+
+  // Invalidate + refetch when Realtime fires (not just refetch — forces stale)
+  const invalidateThreadList = useCallback(() => {
+    void utils.chat.listThreads.invalidate();
+  }, [utils.chat.listThreads]);
 
   // Replace polling with Realtime subscription for instant updates
   useRealtimeThreadList({
     enabled: !!workspace.publicId && workspace.publicId.length >= 12,
-    onInvalidate: refetchThreads,
+    onInvalidate: invalidateThreadList,
   });
 
   const createThread = api.chat.createThread.useMutation({
@@ -339,7 +346,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
           <div className="relative">
             <button
               onClick={() => setShowNewMenu(!showNewMenu)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors duration-0 hover:bg-indigo-700"
+              className="inline-flex items-center gap-1.5 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition-colors duration-0 hover:bg-brand-600"
             >
               <HiOutlineChatBubbleLeftRight className="h-3.5 w-3.5" />
               New Conversation
@@ -357,7 +364,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
                     disabled={createThread.isPending}
                     className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-0 hover:bg-light-50 dark:hover:bg-dark-200"
                   >
-                    <HiOutlineGlobeAlt className="mt-0.5 h-5 w-5 flex-shrink-0 text-indigo-500" />
+                    <HiOutlineGlobeAlt className="mt-0.5 h-5 w-5 flex-shrink-0 text-brand-500" />
                     <div>
                       <div className="text-sm font-medium text-light-900 dark:text-dark-900">
                         External Chat
@@ -410,7 +417,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
                 onClick={() => setThreadFilter(tab.key)}
                 className={`relative flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-xs font-medium transition-colors duration-0 ${
                   threadFilter === tab.key
-                    ? "text-indigo-600 dark:text-indigo-400"
+                    ? "text-brand-500 dark:text-brand-400"
                     : "text-light-800 hover:text-light-900 dark:text-dark-800 dark:hover:text-dark-900"
                 }`}
               >
@@ -418,7 +425,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
                 <span
                   className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
                     threadFilter === tab.key
-                      ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                      ? "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
                       : "bg-light-200 text-light-800 dark:bg-dark-300 dark:text-dark-800"
                   }`}
                 >
@@ -426,7 +433,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
                 </span>
                 {/* Active indicator */}
                 {threadFilter === tab.key && (
-                  <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                  <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-brand-500 dark:bg-brand-400" />
                 )}
               </button>
             ))}
@@ -463,7 +470,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
           ) : activeThreadId?.startsWith("_opt_") ? (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
-                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
                 <p className="mt-3 text-sm text-light-800 dark:text-dark-800">
                   Creating conversation...
                 </p>
@@ -547,8 +554,8 @@ curl -X POST ${baseUrl}/api/chat/messages \\
             {/* Modal header */}
             <div className="flex items-center justify-between border-b border-light-200 px-6 py-4 dark:border-dark-300">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-                  <HiOutlineCodeBracket className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                  <HiOutlineCodeBracket className="h-4 w-4 text-brand-500 dark:text-brand-400" />
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold text-light-900 dark:text-dark-900">
@@ -582,13 +589,13 @@ curl -X POST ${baseUrl}/api/chat/messages \\
                   onClick={() => { setEmbedTab(tab.key); setCopiedSnippet(false); }}
                   className={`relative px-4 py-2.5 text-xs font-medium transition-colors duration-0 ${
                     embedTab === tab.key
-                      ? "text-indigo-600 dark:text-indigo-400"
+                      ? "text-brand-500 dark:text-brand-400"
                       : "text-light-800 hover:text-light-900 dark:text-dark-800 dark:hover:text-dark-900"
                   }`}
                 >
                   {tab.label}
                   {embedTab === tab.key && (
-                    <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                    <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-brand-500 dark:bg-brand-400" />
                   )}
                 </button>
               ))}
@@ -631,7 +638,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
             {/* Footer with tips */}
             <div className="border-t border-light-200 bg-light-50/50 px-6 py-3 dark:border-dark-300 dark:bg-dark-200/30">
               <div className="flex items-start gap-2">
-                <div className="mt-0.5 h-1 w-1 flex-shrink-0 rounded-full bg-indigo-500" />
+                <div className="mt-0.5 h-1 w-1 flex-shrink-0 rounded-full bg-brand-500" />
                 <p className="text-[11px] leading-relaxed text-light-800 dark:text-dark-800">
                   <span className="font-medium text-light-900 dark:text-dark-900">Optional attributes:</span>{" "}
                   <code className="rounded bg-light-200/60 px-1 py-0.5 text-[10px] dark:bg-dark-300/60">data-theme</code>{" "}
@@ -641,7 +648,7 @@ curl -X POST ${baseUrl}/api/chat/messages \\
                 </p>
               </div>
               <div className="mt-1.5 flex items-start gap-2">
-                <div className="mt-0.5 h-1 w-1 flex-shrink-0 rounded-full bg-indigo-500" />
+                <div className="mt-0.5 h-1 w-1 flex-shrink-0 rounded-full bg-brand-500" />
                 <p className="text-[11px] leading-relaxed text-light-800 dark:text-dark-800">
                   <span className="font-medium text-light-900 dark:text-dark-900">Workspace ID:</span>{" "}
                   <code className="rounded bg-light-200/60 px-1 py-0.5 text-[10px] dark:bg-dark-300/60">{workspacePublicId}</code>{" "}

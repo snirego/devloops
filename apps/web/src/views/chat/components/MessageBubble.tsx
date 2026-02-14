@@ -11,6 +11,7 @@ import {
   HiOutlineBugAnt,
 } from "react-icons/hi2";
 
+import { ensureUtcTimestamp } from "~/hooks/useRealtimeMessages";
 import ChatAvatar from "./ChatAvatar";
 import ContextMenu from "./ContextMenu";
 import type { ContextMenuEntry } from "./ContextMenu";
@@ -189,9 +190,9 @@ export default function MessageBubble({
   if (isSystem) {
     return (
       <div className="flex justify-center px-4 py-2">
-        <div className="flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 dark:bg-indigo-950/30">
-          <HiOutlineCpuChip className="h-3.5 w-3.5 text-indigo-500" />
-          <span className="text-xs text-indigo-700 dark:text-indigo-300">
+        <div className="flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 dark:bg-brand-950/30">
+          <HiOutlineCpuChip className="h-3.5 w-3.5 text-brand-500" />
+          <span className="text-xs text-brand-700 dark:text-brand-300">
             {rawText}
           </span>
         </div>
@@ -207,7 +208,7 @@ export default function MessageBubble({
         value={editText}
         onChange={(e) => setEditText(e.target.value)}
         onKeyDown={handleEditKeyDown}
-        className="w-full resize-none rounded border border-indigo-300 bg-white px-2 py-1.5 text-sm text-light-900 outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-indigo-700 dark:bg-dark-100 dark:text-dark-900"
+        className="w-full resize-none rounded border border-brand-300 bg-white px-2 py-1.5 text-sm text-light-900 outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-brand-700 dark:bg-dark-100 dark:text-dark-900"
         rows={Math.min(editText.split("\n").length + 1, 6)}
       />
       <div className="flex items-center justify-end gap-1.5">
@@ -219,7 +220,7 @@ export default function MessageBubble({
         </button>
         <button
           onClick={handleSaveEdit}
-          className="rounded bg-indigo-600 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-indigo-700"
+          className="rounded bg-brand-500 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-brand-600"
         >
           Save
         </button>
@@ -255,12 +256,12 @@ export default function MessageBubble({
               <p className="whitespace-pre-wrap text-sm text-amber-900 dark:text-amber-100">
                 <RenderText
                   text={rawText}
-                  mentionClass="font-semibold text-indigo-700 dark:text-indigo-300"
+                  mentionClass="font-semibold text-brand-700 dark:text-brand-300"
                 />
               </p>
             )}
             <span className="mt-1 block text-right text-[10px] text-amber-500">
-              {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+              {formatDistanceToNow(new Date(ensureUtcTimestamp(createdAt)), { addSuffix: true })}
             </span>
           </div>
         </div>
@@ -291,14 +292,14 @@ export default function MessageBubble({
           <div
             className={`rounded-lg px-3 py-2 ${
               isInternal
-                ? "bg-indigo-600 text-white"
+                ? "bg-brand-500 text-white"
                 : "bg-light-100 text-light-900 dark:bg-dark-200 dark:text-dark-900"
             } ${isFailed ? "opacity-60" : ""}`}
           >
             {senderName && (
               <span
                 className={`mb-0.5 block text-[10px] font-semibold ${
-                  isInternal ? "text-indigo-200" : "text-light-900 dark:text-dark-900"
+                  isInternal ? "text-brand-200" : "text-light-900 dark:text-dark-900"
                 }`}
               >
                 {senderName}
@@ -312,8 +313,8 @@ export default function MessageBubble({
                   text={rawText}
                   mentionClass={
                     isInternal
-                      ? "font-semibold text-indigo-200"
-                      : "font-semibold text-indigo-600 dark:text-indigo-400"
+                      ? "font-semibold text-brand-200"
+                      : "font-semibold text-brand-500 dark:text-brand-400"
                   }
                 />
               </p>
@@ -330,10 +331,10 @@ export default function MessageBubble({
               )}
               <span
                 className={`text-[10px] ${
-                  isInternal ? "text-indigo-200" : "text-light-800 dark:text-dark-800"
+                  isInternal ? "text-brand-200" : "text-light-800 dark:text-dark-800"
                 }`}
               >
-                {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(ensureUtcTimestamp(createdAt)), { addSuffix: true })}
               </span>
             </div>
           </div>

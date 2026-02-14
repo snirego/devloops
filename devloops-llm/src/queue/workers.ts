@@ -34,6 +34,7 @@ import {
 import { runIngestPipeline } from "../jobs/ingestPipeline.js";
 import { runWorkItemGenerator } from "../jobs/workItemGenerator.js";
 import { runSmartPipeline } from "../jobs/smartPipeline.js";
+import { getCircuitBreakerStatus } from "../llm/client.js";
 
 let _ingestWorker: Worker | null = null;
 let _workItemWorker: Worker | null = null;
@@ -128,9 +129,21 @@ async function processPipelinePollerJob(
   const db: DbClient = getDb();
   const config = getConfig();
 
+  // ── Guard: don't claim jobs if the LLM circuit breaker is open ────
+  const cbStatus = getCircuitBreakerStatus();
+  if (cbStatus.open) {
+    logger.debug(
+      { resetsAt: cbStatus.resetsAt, lastError: cbStatus.lastError },
+      "[PipelinePoller] Skipping — circuit breaker is open",
+    );
+    return { jobsClaimed: 0, jobsProcessed: 0, errors: 0 };
+  }
+
   // Claim up to concurrency limit of pending jobs
   const claimLimit = Math.max(1, Math.min(config.LLM_MAX_CONCURRENCY, 5));
 
+  // Claim pending jobs AND failed jobs that are eligible for retry
+  // Failed jobs must wait at least 15 seconds before retry (backoff)
   const result = await db.execute(sql`
     UPDATE pipeline_job
     SET
@@ -140,8 +153,15 @@ async function processPipelinePollerJob(
       "updatedAt" = NOW()
     WHERE id IN (
       SELECT id FROM pipeline_job
-      WHERE status = 'pending'
-        AND attempts < "maxAttempts"
+      WHERE (
+        status = 'pending'
+        OR (
+          status = 'failed'
+          AND attempts < "maxAttempts"
+          AND "updatedAt" < NOW() - INTERVAL '15 seconds'
+        )
+      )
+      AND attempts < "maxAttempts"
       ORDER BY "createdAt" ASC
       LIMIT ${claimLimit}
       FOR UPDATE SKIP LOCKED
@@ -170,8 +190,32 @@ async function processPipelinePollerJob(
   let processed = 0;
   let errors = 0;
 
-  // Process each claimed job
-  for (const claimedJob of claimed) {
+  // Process each claimed job (with a small gap between them to avoid rate limits)
+  for (let i = 0; i < claimed.length; i++) {
+    const claimedJob = claimed[i]!;
+
+    // Re-check circuit breaker before each job (if a previous job tripped it)
+    if (i > 0 && getCircuitBreakerStatus().open) {
+      logger.warn(
+        { remaining: claimed.length - i },
+        "[PipelinePoller] Circuit breaker tripped mid-batch — re-queuing remaining jobs",
+      );
+      // Mark remaining claimed jobs back to pending so they'll be retried
+      for (let j = i; j < claimed.length; j++) {
+        await db
+          .update(pipelineJobs)
+          .set({ status: "pending", attempts: sql`attempts - 1`, updatedAt: new Date() })
+          .where(sql`${pipelineJobs.id} = ${claimed[j]!.id} AND ${pipelineJobs.status} = 'processing'`)
+          .catch(() => {});
+      }
+      break;
+    }
+
+    // Small delay between jobs to avoid hammering the LLM provider
+    if (i > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+
     try {
       await runSmartPipeline(db, claimedJob);
       processed++;

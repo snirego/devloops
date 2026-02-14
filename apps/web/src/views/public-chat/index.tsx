@@ -8,6 +8,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { createClient } from "@supabase/supabase-js";
 
+import { ensureUtcTimestamp } from "~/hooks/useRealtimeMessages";
 import { PageHead } from "~/components/PageHead";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -95,7 +96,12 @@ export default function PublicChatView() {
         setThread(data.thread);
         setThreadDbId(data.thread?.id ?? null);
 
-        const msgs: PublicMessage[] = data.messages ?? [];
+        const rawMsgs: PublicMessage[] = data.messages ?? [];
+        // Normalize UTC timestamps from the API
+        const msgs = rawMsgs.map((m) => ({
+          ...m,
+          createdAt: ensureUtcTimestamp(m.createdAt),
+        }));
         const ids = new Set<string>();
         for (const m of msgs) ids.add(m.publicId);
         seenIds.current = ids;
@@ -187,7 +193,7 @@ export default function PublicChatView() {
                 senderType: row.senderType,
                 senderName: row.senderName,
                 rawText: row.rawText,
-                createdAt: row.createdAt,
+                createdAt: ensureUtcTimestamp(row.createdAt),
                 metadataJson: row.metadataJson,
               },
             ];
@@ -312,7 +318,7 @@ export default function PublicChatView() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     );
   }
@@ -334,7 +340,7 @@ export default function PublicChatView() {
         <PageHead title="Chat" />
         <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow-lg">
           <div className="mb-6 text-center">
-            <HiOutlineChatBubbleLeftRight className="mx-auto h-10 w-10 text-indigo-500" />
+            <HiOutlineChatBubbleLeftRight className="mx-auto h-10 w-10 text-brand-500" />
             <h1 className="mt-3 text-lg font-semibold text-gray-900">
               Join the Conversation
             </h1>
@@ -349,12 +355,12 @@ export default function PublicChatView() {
               onChange={(e) => setVisitorName(e.target.value)}
               placeholder="Your name"
               autoFocus
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400"
             />
             <button
               type="submit"
               disabled={!visitorName.trim()}
-              className="mt-3 w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+              className="mt-3 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
             >
               Start Chatting
             </button>
@@ -373,7 +379,7 @@ export default function PublicChatView() {
       {/* Header */}
       <div className="border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
-          <HiOutlineChatBubbleLeftRight className="h-5 w-5 text-indigo-500" />
+          <HiOutlineChatBubbleLeftRight className="h-5 w-5 text-brand-500" />
           <div>
             <h1 className="text-sm font-semibold text-gray-900">
               {thread?.title ?? "Conversation"}
@@ -425,7 +431,7 @@ export default function PublicChatView() {
               {/* Avatar */}
               <span
                 className={`mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${
-                  isMe ? "bg-indigo-600" : "bg-gray-500"
+                  isMe ? "bg-brand-500" : "bg-gray-500"
                 }`}
                 title={msg.senderName ?? undefined}
               >
@@ -436,14 +442,14 @@ export default function PublicChatView() {
                 <div
                   className={`rounded-lg px-3 py-2 ${
                     isMe
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-brand-500 text-white"
                       : "bg-white text-gray-900 shadow-sm"
                   }`}
                 >
                   {msg.senderName && (
                     <span
                       className={`mb-0.5 block text-[10px] font-semibold ${
-                        isMe ? "text-indigo-200" : "text-gray-500"
+                        isMe ? "text-brand-200" : "text-gray-500"
                       }`}
                     >
                       {msg.senderName}
@@ -452,10 +458,10 @@ export default function PublicChatView() {
                   <p className="whitespace-pre-wrap text-sm">{msg.rawText}</p>
                   <span
                     className={`mt-1 block text-right text-[10px] ${
-                      isMe ? "text-indigo-200" : "text-gray-500"
+                      isMe ? "text-brand-200" : "text-gray-500"
                     }`}
                   >
-                    {formatDistanceToNow(new Date(msg.createdAt), {
+                    {formatDistanceToNow(new Date(ensureUtcTimestamp(msg.createdAt)), {
                       addSuffix: true,
                     })}
                   </span>
@@ -475,13 +481,13 @@ export default function PublicChatView() {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-400"
             style={{ minHeight: "38px", maxHeight: "100px" }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="flex h-[38px] w-[38px] items-center justify-center rounded-lg bg-indigo-600 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+            className="flex h-[38px] w-[38px] items-center justify-center rounded-lg bg-brand-500 text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
           >
             <HiOutlinePaperAirplane className="h-4 w-4" />
           </button>

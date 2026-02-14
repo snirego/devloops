@@ -335,7 +335,7 @@ export default function ChatPanel({
   if ((threadLoading && !threadData) || (messagesLoading && !messagesData)) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     );
   }
@@ -363,7 +363,7 @@ export default function ChatPanel({
               onChange={(e) => setEditTitle(e.target.value)}
               onBlur={handleSaveTitle}
               onKeyDown={handleTitleKeyDown}
-              className="w-full rounded border border-indigo-300 bg-white px-2 py-0.5 text-sm font-semibold text-light-900 outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-indigo-700 dark:bg-dark-100 dark:text-dark-900"
+              className="w-full rounded border border-brand-300 bg-white px-2 py-0.5 text-sm font-semibold text-light-900 outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-brand-700 dark:bg-dark-100 dark:text-dark-900"
               maxLength={200}
             />
           ) : (
@@ -382,8 +382,8 @@ export default function ChatPanel({
             <span className="capitalize">{thread?.status}</span>
             {thread?.customerId && <span>- {thread.customerId}</span>}
             {isProcessingAI && (
-              <span className="flex items-center gap-1.5 text-indigo-500">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
+              <span className="flex items-center gap-1.5 text-brand-500">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
                 AI analyzing...
               </span>
             )}
@@ -423,7 +423,7 @@ export default function ChatPanel({
               onClick={() => setShowAiInsights(!showAiInsights)}
               className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors duration-0 ${
                 showAiInsights
-                  ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300"
+                  ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-700 dark:bg-brand-950/30 dark:text-brand-300"
                   : "border-light-200 text-light-900 hover:bg-light-100 dark:border-dark-300 dark:text-dark-900 dark:hover:bg-dark-200"
               }`}
             >
@@ -441,11 +441,11 @@ export default function ChatPanel({
 
       {/* AI Insights panel */}
       {showAiInsights && threadState && (
-        <div className="border-b border-indigo-200 bg-indigo-50/50 px-4 py-3 dark:border-indigo-900 dark:bg-indigo-950/20">
+        <div className="border-b border-brand-200 bg-brand-50/50 px-4 py-3 dark:border-brand-900 dark:bg-brand-950/20">
           <div className="space-y-2">
             {threadState.summary && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                   Summary
                 </p>
                 <p className="text-xs text-light-950 dark:text-dark-950">
@@ -456,10 +456,10 @@ export default function ChatPanel({
             <div className="flex flex-wrap gap-3">
               {threadState.intent && (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                     Intent
                   </p>
-                  <span className="mt-0.5 inline-block rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                  <span className="mt-0.5 inline-block rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                     {threadState.intent as string}
                   </span>
                 </div>
@@ -469,7 +469,7 @@ export default function ChatPanel({
                 (threadState.recommendation as Record<string, unknown>)
                   ?.action !== "NoTicket" && (
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                       Recommendation
                     </p>
                     <span className="mt-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
@@ -490,7 +490,7 @@ export default function ChatPanel({
                 )}
               {(threadState.signals as Record<string, unknown>)?.urgency && (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                     Urgency
                   </p>
                   <span className="mt-0.5 inline-block text-xs text-light-950 dark:text-dark-950">
@@ -505,7 +505,7 @@ export default function ChatPanel({
             {Array.isArray(threadState.openQuestions) &&
               (threadState.openQuestions as string[]).length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                     Open Questions
                   </p>
                   <ul className="mt-0.5 list-inside list-disc text-xs text-light-900 dark:text-dark-900">
@@ -521,9 +521,9 @@ export default function ChatPanel({
 
       {/* Work item creation toast */}
       {workItemCreating && (
-        <div className="flex items-center gap-2 border-b border-indigo-200 bg-indigo-50 px-4 py-2 dark:border-indigo-900 dark:bg-indigo-950/30">
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-          <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
+        <div className="flex items-center gap-2 border-b border-brand-200 bg-brand-50 px-4 py-2 dark:border-brand-900 dark:bg-brand-950/30">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <span className="text-xs font-medium text-brand-700 dark:text-brand-300">
             AI is creating a {workItemCreating} work item...
           </span>
         </div>

@@ -195,6 +195,7 @@ export const feedbackThreadRouter = createTRPCRouter({
           (thread.threadStateJson as ThreadStateJson) ?? null,
           input.rawText,
           input.metadata as Record<string, unknown>,
+          message.id,
         );
       }
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { formatDistanceToNow } from "date-fns";
 import { createClient } from "@supabase/supabase-js";
+import { DEFAULT_BRAND_COLOR } from "~/utils/brandColors";
 
 /**
  * Widget embed page — rendered inside an iframe on external sites.
@@ -86,6 +87,11 @@ export default function WidgetEmbedPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+
+  // Semi-transparent version for disabled states
+  const [br, bg, bb] = brandColor.replace("#", "").match(/.{2}/g)!.map(h => parseInt(h, 16));
+  const brandLight = `rgba(${br}, ${bg}, ${bb}, 0.3)`;
 
   // Track whether the parent modal is visible (chat is open).
   // Starts as false — the iframe loads before the user opens the popup.
@@ -127,6 +133,21 @@ export default function WidgetEmbedPage() {
     document.head.appendChild(style);
     return () => { style.remove(); };
   }, []);
+
+  // ── Fetch brand color from workspace ──────────────────────────────
+  useEffect(() => {
+    if (!workspaceId) return;
+    fetch(`/api/chat/brand-color?workspaceId=${encodeURIComponent(workspaceId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.brandColor && /^#[0-9a-fA-F]{6}$/.test(data.brandColor)) {
+          setBrandColor(data.brandColor);
+        }
+      })
+      .catch(() => {
+        // non-critical — keep default
+      });
+  }, [workspaceId]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -468,7 +489,7 @@ export default function WidgetEmbedPage() {
               width: 40,
               height: 40,
               borderRadius: "50%",
-              background: "#6366f1",
+              background: brandColor,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -524,7 +545,7 @@ export default function WidgetEmbedPage() {
                 width: "100%",
                 marginTop: 10,
                 padding: "10px",
-                background: visitorName.trim() ? "#6366f1" : "#c7d2fe",
+                background: visitorName.trim() ? brandColor : brandLight,
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
@@ -585,7 +606,7 @@ export default function WidgetEmbedPage() {
           display: "flex",
           alignItems: "center",
           gap: 10,
-          background: "#6366f1",
+          background: brandColor,
           color: "#fff",
           flexShrink: 0,
         }}
@@ -726,7 +747,7 @@ export default function WidgetEmbedPage() {
                     width: 26,
                     height: 26,
                     borderRadius: "50%",
-                    background: isMe ? "#6366f1" : "#e2e8f0",
+                    background: isMe ? brandColor : "#e2e8f0",
                     color: isMe ? "#fff" : "#475569",
                     display: "flex",
                     alignItems: "center",
@@ -744,7 +765,7 @@ export default function WidgetEmbedPage() {
                   style={{
                     maxWidth: "72%",
                     minWidth: 0,
-                    background: isMe ? "#6366f1" : "#f1f5f9",
+                    background: isMe ? brandColor : "#f1f5f9",
                     color: isMe ? "#fff" : "#111",
                     borderRadius: 12,
                     padding: "8px 12px",
@@ -834,7 +855,7 @@ export default function WidgetEmbedPage() {
               height: 38,
               borderRadius: "50%",
               border: "none",
-              background: input.trim() ? "#6366f1" : "#c7d2fe",
+              background: input.trim() ? brandColor : brandLight,
               color: "#fff",
               cursor: input.trim() ? "pointer" : "default",
               display: "flex",

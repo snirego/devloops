@@ -618,4 +618,48 @@ export const workItemRouter = createTRPCRouter({
     .query(() => {
       return { configured: isGitHubConfigured() };
     }),
+
+  // ── Pipeline / AI Activity Logs ──────────────────────────────────────────
+  logs: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(500).optional(),
+        offset: z.number().min(0).optional(),
+        filter: z
+          .enum(["all", "pipeline", "workitem", "errors"])
+          .optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const filter = input.filter ?? "all";
+
+      let entityTypes: Array<"Thread" | "Message" | "WorkItem"> | undefined;
+      let actions: string[] | undefined;
+
+      if (filter === "pipeline") {
+        entityTypes = ["Thread"];
+        actions = [
+          "threadstate_updated",
+          "threadstate_update_failed",
+          "ai_asked_questions",
+          "smart_pipeline_completed",
+        ];
+      } else if (filter === "workitem") {
+        entityTypes = ["WorkItem"];
+      } else if (filter === "errors") {
+        actions = [
+          "threadstate_update_failed",
+          "workitem_generation_failed",
+        ];
+      }
+
+      const logs = await auditLogRepo.listRecent(ctx.db, {
+        entityTypes,
+        actions,
+        limit: input.limit ?? 100,
+        offset: input.offset ?? 0,
+      });
+
+      return logs;
+    }),
 });

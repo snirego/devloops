@@ -127,6 +127,7 @@ export const update = async (
     plan?: "free" | "pro" | "enterprise";
     description?: string;
     showEmailsToMembers?: boolean;
+    brandColor?: string;
   },
 ) => {
   const [result] = await db
@@ -137,6 +138,7 @@ export const update = async (
       plan: workspaceInput.plan,
       description: workspaceInput.description,
       showEmailsToMembers: workspaceInput.showEmailsToMembers,
+      brandColor: workspaceInput.brandColor,
     })
     .where(eq(workspaces.publicId, workspacePublicId))
     .returning({
@@ -147,6 +149,7 @@ export const update = async (
       description: workspaces.description,
       plan: workspaces.plan,
       showEmailsToMembers: workspaces.showEmailsToMembers,
+      brandColor: workspaces.brandColor,
     });
 
   return result;
@@ -160,6 +163,7 @@ export const getByPublicId = (db: dbClient, workspacePublicId: string) => {
       name: true,
       plan: true,
       slug: true,
+      brandColor: true,
     },
     where: eq(workspaces.publicId, workspacePublicId),
   });
@@ -189,6 +193,7 @@ export const getByPublicIdWithMembers = (
       name: true,
       slug: true,
       showEmailsToMembers: true,
+      brandColor: true,
     },
     with: {
       members: {
@@ -274,6 +279,7 @@ export const getAllByUserId = async (db: dbClient, userId: string) => {
           description: true,
           slug: true,
           plan: true,
+          brandColor: true,
           deletedAt: true,
         },
         // https://github.com/drizzle-team/drizzle-orm/issues/2903

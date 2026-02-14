@@ -45,6 +45,7 @@ export const workspaces = pgTable("workspace", {
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   plan: workspacePlanEnum("plan").notNull().default("free"),
   showEmailsToMembers: boolean("showEmailsToMembers").notNull().default(true),
+  brandColor: varchar("brandColor", { length: 7 }).default("#6366f1"),
   createdBy: uuid("createdBy").references(() => users.id, {
     onDelete: "set null",
   }),

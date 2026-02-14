@@ -17,6 +17,22 @@ import { feedbackThreads, feedbackMessages, auditLogs } from "../db/schema.js";
 import { llmJsonCompletion } from "../llm/client.js";
 import { getLogger } from "../utils/logger.js";
 
+// ─── Error type for network-level LLM failures ──────────────────────────────
+
+/**
+ * Thrown when the LLM request fails at the network/provider level
+ * (fetch failed, circuit breaker open, timeout, DNS error).
+ *
+ * The smart pipeline and legacy ingest pipeline check for this to decide
+ * whether to retry the job instead of proceeding with stale state.
+ */
+export class LlmUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LlmUnavailableError";
+  }
+}
+
 // ─── Default empty ThreadState ───────────────────────────────────────────────
 
 export const EMPTY_THREAD_STATE: ThreadStateJson = {
@@ -82,18 +98,33 @@ function validateThreadState(parsed: unknown): ThreadStateJson {
 
 // ─── System Prompt ───────────────────────────────────────────────────────────
 
-const THREAD_STATE_SYSTEM_PROMPT = `You are a developer-first support intelligence engine.
-You analyze conversation messages and maintain a cumulative ThreadState that reflects the ENTIRE conversation, not just the latest message.
+const THREAD_STATE_SYSTEM_PROMPT = `You are a developer-first support intelligence engine for a software product.
+You analyze conversation messages from end-users and maintain a cumulative ThreadState that reflects the ENTIRE conversation.
 
-CRITICAL RULES:
+Your PRIMARY GOAL is to convert user feedback into actionable work items (bug reports or feature requests).
+
+CLASSIFICATION RULES:
+- If the user describes something broken, not working, or unexpected → intent = "Bug", recommend CreateBugWorkItem
+- If the user asks for new functionality, wants to be able to do something, or suggests an improvement → intent = "Feature", recommend CreateFeatureWorkItem
+- If the user's message is clearly actionable (bug report or feature request), set confidence to 0.8-0.9 even if brief. A single clear sentence like "I want X" or "Y is broken" IS enough.
+- Only use AskQuestions when the intent is genuinely AMBIGUOUS (you can't tell if it's a bug or feature) or when critical details are missing that would make the work item useless (e.g., "it doesn't work" with zero context about what "it" is).
+- Use NoTicket ONLY for: greetings, thank-you messages, off-topic chatter, or messages that are clearly not feedback. When in doubt between NoTicket and creating a work item, prefer creating a work item.
+- If user introduces a completely unrelated second topic, set recommendation.action to "SplitIntoTwo".
+
+CONFIDENCE GUIDELINES:
+- 0.9 = Clear, specific request with enough detail to act on (e.g., "Add a comments feature to cards")
+- 0.8 = Clear intent but light on specifics (e.g., "I want to add comments")
+- 0.7 = Reasonable intent but needs some clarification
+- 0.5-0.6 = Ambiguous, ask questions
+- Below 0.5 = Very unclear, ask questions or NoTicket
+
+CUMULATIVE STATE RULES:
 - Keep ALL previous facts, repro steps, environment info. Never lose data.
 - Update fields cumulatively — add to arrays, refine summaries.
 - Move answered questions from openQuestions to resolvedQuestions.
-- If user introduces a completely unrelated topic, set recommendation.action to "SplitIntoTwo".
-- Be conservative with CreateBugWorkItem/CreateFeatureWorkItem — only when you have enough info and confidence >= 0.7.
-- Default recommendation is NoTicket or AskQuestions.
 - When you set action to AskQuestions, populate openQuestions with specific, clear questions.
-- Consider the full conversation flow: if you previously asked questions and the user responded, evaluate whether the answers are sufficient.
+- Consider the full conversation flow: if you previously asked questions and the user responded, evaluate whether the answers are sufficient to upgrade confidence.
+- Populate workItemCandidates with at least one entry whenever intent is Bug or Feature.
 
 OUTPUT FORMAT — STRICT:
 - Respond with ONLY a valid JSON object. Nothing else.
@@ -246,6 +277,18 @@ export async function runThreadStateUpdate(
       },
     });
 
+    // If the error is a network-level failure, throw so the caller can retry
+    const isNetworkError =
+      result.error.includes("fetch failed") ||
+      result.error.includes("Circuit breaker") ||
+      result.error.includes("timed out") ||
+      result.error.includes("ECONNREFUSED") ||
+      result.error.includes("ENOTFOUND");
+
+    if (isNetworkError) {
+      throw new LlmUnavailableError(result.error);
+    }
+
     return state;
   }
 
@@ -327,6 +370,21 @@ export async function runThreadStateUpdateFullContext(
       },
     });
 
+    // If the error is a network/fetch failure, throw so the pipeline can retry
+    // instead of silently proceeding with stale state
+    const isNetworkError =
+      result.error.includes("fetch failed") ||
+      result.error.includes("Circuit breaker") ||
+      result.error.includes("timed out") ||
+      result.error.includes("ECONNREFUSED") ||
+      result.error.includes("ENOTFOUND");
+
+    if (isNetworkError) {
+      throw new LlmUnavailableError(result.error);
+    }
+
+    // For parse/validation errors, return the old state (the LLM responded but
+    // with garbage — retrying likely won't help, let the gatekeeper decide)
     return state;
   }
 

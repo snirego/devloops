@@ -50,6 +50,30 @@
     return;
   }
 
+  // ── Fetch workspace brand color (non-blocking) ────────────────────────
+  var resolvedColor = config.color;
+  function applyColor(hex) {
+    resolvedColor = hex;
+    if (btn) btn.style.background = hex;
+  }
+
+  if (!attr("data-color") && !globalCfg.color) {
+    // No explicit color override — try to fetch workspace brand color
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", config.baseUrl + "/api/chat/brand-color?workspaceId=" + encodeURIComponent(config.workspaceId), true);
+      xhr.onload = function () {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (data.brandColor && /^#[0-9a-fA-F]{6}$/.test(data.brandColor)) {
+            applyColor(data.brandColor);
+          }
+        } catch (e) { /* ignore */ }
+      };
+      xhr.send();
+    } catch (e) { /* non-critical */ }
+  }
+
   var chatSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var closeSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 

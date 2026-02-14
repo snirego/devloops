@@ -232,7 +232,7 @@ export default function InternalNoteInput({
           onClick={() => setMode("public")}
           className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-0 ${
             mode === "public"
-              ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+              ? "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
               : "text-light-800 hover:text-light-900 dark:text-dark-800 dark:hover:text-dark-900"
           }`}
         >
@@ -275,7 +275,7 @@ export default function InternalNoteInput({
             className={`w-full resize-none rounded-lg border px-3 py-2 text-sm text-light-900 placeholder-light-800 focus:outline-none focus:ring-2 dark:text-dark-900 dark:placeholder-dark-800 ${
               mode === "internal"
                 ? "border-amber-300 bg-amber-50 focus:ring-amber-400 dark:border-amber-700 dark:bg-amber-950/20"
-                : "border-light-300 bg-white focus:ring-indigo-400 dark:border-dark-300 dark:bg-dark-100"
+                : "border-light-300 bg-white focus:ring-brand-400 dark:border-dark-300 dark:bg-dark-100"
             }`}
             style={{ minHeight: "38px", maxHeight: "120px" }}
           />
@@ -296,11 +296,11 @@ export default function InternalNoteInput({
                   }}
                   className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-0 ${
                     i === mentionIdx
-                      ? "bg-indigo-50 dark:bg-indigo-950/30"
+                      ? "bg-brand-50 dark:bg-brand-950/30"
                       : "hover:bg-light-100 dark:hover:bg-dark-200"
                   }`}
                 >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-500 dark:bg-brand-900 dark:text-brand-300">
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -333,7 +333,7 @@ export default function InternalNoteInput({
           className={`flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-lg transition-colors duration-0 disabled:opacity-40 ${
             mode === "internal"
               ? "bg-amber-500 text-white hover:bg-amber-600"
-              : "bg-indigo-600 text-white hover:bg-indigo-700"
+              : "bg-brand-500 text-white hover:bg-brand-600"
           }`}
         >
           <HiOutlinePaperAirplane className="h-4 w-4" />
