@@ -140,15 +140,25 @@ export const memberRouter = createTRPCRouter({
           code: "INTERNAL_SERVER_ERROR",
         });
 
-      const { status } = await ctx.auth.api.signInMagicLink({
-        email: input.email,
-        callbackURL: `/boards?type=invite&memberPublicId=${invite.publicId}`,
-      });
+      // Use Supabase admin API to send invite email
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+      );
 
-      if (!status) {
-        console.error("Failed to send magic link invitation:", {
+      const baseUrl = env("NEXT_PUBLIC_BASE_URL") ?? "http://localhost:3000";
+      const redirectTo = `${baseUrl}/boards?type=invite&memberPublicId=${invite.publicId}`;
+
+      const { error: inviteError } =
+        await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
+          redirectTo,
+        });
+
+      if (inviteError) {
+        console.error("Failed to send Supabase invite:", {
           email: input.email,
-          callbackURL: `/boards?type=invite&memberPublicId=${invite.publicId}`,
+          error: inviteError.message,
         });
 
         await memberRepo.softDelete(ctx.db, {
@@ -158,7 +168,7 @@ export const memberRouter = createTRPCRouter({
         });
 
         throw new TRPCError({
-          message: `Failed to send magic link invitation to user with email ${input.email}.`,
+          message: `Failed to send invitation to user with email ${input.email}.`,
           code: "INTERNAL_SERVER_ERROR",
         });
       }

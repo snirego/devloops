@@ -1,0 +1,61 @@
+---
+description: Rules for the authentication package — Supabase Auth integration
+globs: packages/auth/**
+alwaysApply: false
+---
+
+# Auth Layer (`@kan/auth`)
+
+## Package Overview
+
+`packages/auth/` wraps Supabase Auth for use across the monorepo. It provides browser clients, server clients, React hooks, and a compatibility layer that mirrors the old better-auth API surface.
+
+### Exports
+
+| Path | File | Purpose |
+|---|---|---|
+| `@kan/auth` | `src/index.ts` | Barrel — re-exports everything below |
+| `@kan/auth/client` | `src/client.ts` | Browser Supabase client + `authClient` compat layer |
+| `@kan/auth/server` | `src/server.ts` | Server-side Supabase client for API routes / SSR |
+
+### Dependencies
+
+- `@supabase/ssr` — cookie-aware Supabase client for SSR
+- `@supabase/supabase-js` — core Supabase SDK
+
+## Architecture
+
+### Browser / Client Side (`client.ts`)
+
+- `createBrowserSupabaseClient()` — factory for a fresh browser Supabase client.
+- `getSupabaseBrowserClient()` — singleton instance (safe to reuse across the app).
+- `authClient` — drop-in compatibility object that mimics the old better-auth client:
+  - `authClient.useSession()` — React hook returning `{ data, isPending, error }`.
+  - `authClient.signOut()` — signs out via Supabase.
+  - `authClient.changePassword(...)` — calls `/api/auth/change-password`.
+  - `authClient.deleteUser()` — calls `/api/auth/delete-user`.
+  - `authClient.apiKey.*` — CRUD for API keys via `/api/auth/api-keys`.
+  - `authClient.subscription.upgrade(...)` — Stripe upgrade flow.
+
+### Server Side (`server.ts`)
+
+- `createServerClient(req, res)` — cookie-aware Supabase client for Next.js **API routes**.
+- `createServerPropsClient(context)` — convenience wrapper for `getServerSideProps`.
+
+### Hooks (`hooks.ts`)
+
+- `useSession()` — React hook that subscribes to Supabase auth state changes.
+- `useSignOut()` — Hook returning `{ signOut, isPending }`. Redirects to `/auth/login` after sign-out.
+
+### Utilities (`utils.ts`)
+
+- `getUser(supabase)` / `getSession(supabase)` — thin wrappers around Supabase auth SDK.
+
+## Rules & Conventions
+
+1. **Environment variables**: Auth depends on `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. These must be set in the root `.env`.
+2. **Never import `@supabase/supabase-js` directly** in other packages — always go through `@kan/auth`.
+3. **Server context (tRPC)**: The tRPC context in `packages/api/src/trpc.ts` handles auth resolution. It reads cookies via `@supabase/ssr`'s `createServerClient`, calls `supabase.auth.getUser()`, and maps to the internal user record.
+4. **API routes**: Auth API endpoints (password change, delete user, API keys) live in `apps/web/src/pages/api/auth/`.
+5. **Social providers**: Configured in `src/providers.ts`. Adding a new OAuth provider requires setting the corresponding `*_CLIENT_ID` / `*_CLIENT_SECRET` env vars.
+6. **Session shape**: `useSession()` returns `{ data: { user, session } | null, isPending, error }`. The `user` is a Supabase `User` object, not the internal DB user.

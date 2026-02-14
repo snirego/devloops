@@ -1,0 +1,142 @@
+---
+description: Rules for the Next.js web application — pages, views, components, hooks
+globs: apps/web/**
+alwaysApply: false
+---
+
+# Frontend (`@kan/web`)
+
+## Package Overview
+
+`apps/web/` is the Next.js 15 application using the **Pages Router**, React 18, Tailwind CSS, and tRPC for data fetching.
+
+## Directory Structure
+
+```
+apps/web/src/
+  pages/            → Next.js file-based routes (Pages Router)
+    api/            → API routes (tRPC, auth, uploads, Stripe webhooks, OpenAPI v1)
+    boards/         → Board pages
+    cards/          → Card detail pages
+    settings/       → Settings pages
+    login/          → Login page
+    signup/         → Signup page
+    [workspaceSlug] → Dynamic workspace route
+  views/            → Page-level view components (heavy lifting)
+    board/          → Board view + components/
+    boards/         → Boards list view + components/
+    card/           → Card detail view + components/
+    auth/           → Login / signup views
+    settings/       → Settings views + components/
+    …
+  components/       → Shared/reusable UI components
+  hooks/            → Custom React hooks
+  providers/        → React context providers
+  utils/            → Client-side utility functions
+  styles/           → Global CSS / Tailwind
+  types/            → Shared TypeScript types
+  locales/          → Lingui translation files (en, de, es, fr, it, nl, pl, pt-BR, ru)
+  assets/           → Static assets (logos, etc.)
+```
+
+## Page / View Pattern
+
+Pages are thin wrappers that compose layout + view:
+
+```tsx
+// pages/boards/[...boardId]/index.tsx
+import type { NextPageWithLayout } from "~/pages/_app";
+import { getDashboardLayout } from "~/components/Dashboard";
+import BoardView from "~/views/board";
+
+const BoardPage: NextPageWithLayout = () => (
+  <>
+    <BoardView />
+    <Popup />
+  </>
+);
+
+BoardPage.getLayout = (page) => getDashboardLayout(page);
+export default BoardPage;
+```
+
+- **Pages**: Minimal — just mount a view component and assign a layout.
+- **Views**: Contain all the page logic, data fetching, and sub-components. Views live in `src/views/<feature>/` and can have a `components/` subfolder for local components.
+- **Layouts**: Use `getLayout` pattern for persistent layouts (e.g. dashboard sidebar).
+
+## Component Rules
+
+- Place **shared / reusable** components in `src/components/`.
+- Place **feature-specific** components in `src/views/<feature>/components/`.
+- Use `PascalCase` for component file names (e.g. `Button.tsx`, `CardModal.tsx`).
+- Prefer function components with TypeScript interfaces for props.
+- Export components as named exports (not default) for shared components; default export is fine for view-level components.
+
+## Styling
+
+- **Tailwind CSS** for all styling — no CSS modules or styled-components.
+- Use `tailwind-merge` (`twMerge`) when conditionally combining class names.
+- Follow the shared Tailwind config from `@kan/tailwind-config`.
+
+## Data Fetching (tRPC)
+
+- Use tRPC React Query hooks for all server state:
+  - `trpc.<router>.<procedure>.useQuery()` for reads.
+  - `trpc.<router>.<procedure>.useMutation()` for writes.
+- Implement **optimistic updates** via `onMutate` for immediate UI feedback.
+- Invalidate relevant queries in `onSettled` or `onSuccess`.
+- Never call `fetch()` directly for tRPC endpoints — always use the typed hooks.
+
+## Internationalization (Lingui)
+
+- All user-facing strings must use the `t` template literal from `@lingui/macro`:
+  ```tsx
+  import { t } from "@lingui/macro";
+  const label = t`Create new board`;
+  ```
+- After adding new strings, run `pnpm lingui:extract` from `apps/web/`.
+- Translation files are in `src/locales/<lang>/messages.po`.
+- Lingui uses an SWC plugin for compilation (configured in `next.config.js`).
+
+## State Management
+
+| Type | Approach |
+|---|---|
+| Server state | tRPC + React Query |
+| UI modals | `useModal()` hook |
+| Toast / popups | `usePopup()` hook |
+| Theme | `next-themes` |
+| Auth session | `authClient.useSession()` from `@kan/auth/client` |
+
+## Hooks
+
+Custom hooks live in `src/hooks/`. Follow the `use<Name>` convention. Common hooks:
+
+- `useModal()` — modal state management
+- `usePopup()` — toast notification management
+- Auth hooks from `@kan/auth`
+
+## API Routes
+
+- tRPC handler: `src/pages/api/trpc/[trpc].ts`
+- Auth routes: `src/pages/api/auth/[...all].ts` + specific handlers
+- OpenAPI (REST): `src/pages/api/v1/[...trpc].ts`
+- File uploads: `src/pages/api/upload/`
+- Stripe webhooks: `src/pages/api/stripe/`
+
+## Images & Assets
+
+- Use Next.js `<Image>` component for optimized images.
+- Remote image patterns are configured in `next.config.js`.
+- SVGs are loaded via `@svgr/webpack` (configured in turbopack rules).
+
+## Performance
+
+- `optimizePackageImports` is configured for `react-icons`, `date-fns`, `@headlessui/react`, `framer-motion`.
+- Use dynamic imports (`next/dynamic`) for heavy components that aren't needed on first paint.
+- Implement proper loading and error states for all data-fetching components.
+
+## Path Aliases
+
+- `~/` maps to `src/` (configured in `tsconfig.json`).
+- Example: `import Button from "~/components/Button"`.

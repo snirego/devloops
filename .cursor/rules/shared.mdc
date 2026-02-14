@@ -1,0 +1,40 @@
+---
+description: Rules for the shared utilities and constants package
+globs: packages/shared/**
+alwaysApply: false
+---
+
+# Shared Package (`@kan/shared`)
+
+## Package Overview
+
+`packages/shared/` contains utilities, constants, and types that are used across multiple packages (API, DB, frontend). It must remain **framework-agnostic** — no React, no Next.js, no tRPC imports.
+
+## Directory Structure
+
+```
+packages/shared/src/
+  constants/
+    index.ts       → Shared constants
+    colours.ts     → Color definitions for labels, etc.
+  utils/
+    index.ts       → Barrel exports for utilities
+    generateUID.ts → 12-char public ID generator
+    generateSlug.ts → Slug generation for workspaces
+    s3.ts          → S3 URL helpers (generateAvatarUrl, generateAttachmentUrl)
+    email.ts       → Email-related utilities
+    mentions.ts    → @mention parsing helpers
+    subscriptions.ts → Subscription tier logic
+    dueDateFilters.ts → Due date filter utilities
+  permissions.ts   → Permission definitions and helpers
+  index.ts         → Main barrel export
+```
+
+## Rules
+
+1. **No framework imports**: This package must not depend on React, Next.js, tRPC, or Drizzle. It should only contain pure TypeScript utilities.
+2. **No side effects**: All exports should be pure functions or constant values.
+3. **Public ID generation**: `generateUID()` is the canonical way to create 12-character public IDs. Always use it — never hand-roll IDs.
+4. **URL generation**: Use `generateAvatarUrl()` and `generateAttachmentUrl()` from `utils/s3.ts` for consistent S3 URL construction.
+5. **Permissions**: The permission system is defined in `permissions.ts`. Workspace member roles and their capabilities are declared here.
+6. **Keep it lean**: Only add utilities here if they are genuinely needed by 2+ packages. Single-package utilities belong in that package.

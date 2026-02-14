@@ -1,0 +1,55 @@
+---
+description: Rules for shared tooling configurations — ESLint, Prettier, TypeScript, Tailwind
+globs: tooling/**
+alwaysApply: false
+---
+
+# Tooling Configurations
+
+## Overview
+
+The `tooling/` directory contains shared configuration packages consumed by all other packages and apps.
+
+```
+tooling/
+  eslint/       → @kan/eslint-config
+  prettier/     → @kan/prettier-config
+  tailwind/     → @kan/tailwind-config
+  typescript/   → @kan/tsconfig
+```
+
+## ESLint (`@kan/eslint-config`)
+
+- Configs: `base.js`, `react.js`, `nextjs.js`
+- Each package / app picks the appropriate config in its own `eslint.config.js`:
+  - Backend packages → `base.js`
+  - React packages → `react.js`
+  - Next.js app → `nextjs.js`
+- When adding new ESLint rules, add them to the appropriate config here — not in individual packages.
+
+## Prettier (`@kan/prettier-config`)
+
+- Single config in `index.js`.
+- Every package references it via `"prettier": "@kan/prettier-config"` in `package.json`.
+- Do not override Prettier settings in individual packages.
+
+## TypeScript (`@kan/tsconfig`)
+
+- `base.json` — base `compilerOptions` shared by all packages.
+- `internal-package.json` — extends `base.json` with settings for internal library packages (`composite`, `declarationMap`, etc.).
+- Each package's `tsconfig.json` extends one of these:
+  - Libraries: `"extends": "@kan/tsconfig/internal-package.json"`
+  - Apps may have custom settings but should still extend `base.json`.
+
+## Tailwind (`@kan/tailwind-config`)
+
+- `web.ts` — the Tailwind config for the web app.
+- Consumed by `apps/web/tailwind.config.ts` via `@kan/tailwind-config/web`.
+- Theme customizations, plugins, and content paths are defined here.
+
+## Rules
+
+1. **Centralize**: All linting / formatting / type-checking config changes should happen in `tooling/`, not in individual packages.
+2. **Don't duplicate**: If a rule applies to all packages, put it in the base config. If it applies only to React code, put it in the React config.
+3. **Version alignment**: TypeScript, ESLint, Prettier, and Tailwind versions are pinned in the pnpm catalog (`pnpm-workspace.yaml`). Update versions there, not in individual `package.json` files.
+4. **No local overrides**: Individual packages should not add ESLint or Prettier plugins unless there is a very specific reason (and it should be documented).

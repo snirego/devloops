@@ -1,0 +1,117 @@
+---
+description: Rules for the database layer — schema, migrations, and repositories
+globs: packages/db/**
+alwaysApply: false
+---
+
+# Database Layer (`@kan/db`)
+
+## Package Overview
+
+`packages/db/` owns the PostgreSQL schema (Drizzle ORM), migrations, repository functions, and the database client.
+
+### Exports (from `package.json`)
+
+| Path | File |
+|---|---|
+| `@kan/db` | `src/index.ts` |
+| `@kan/db/client` | `src/client.ts` |
+| `@kan/db/schema` | `src/schema/index.ts` |
+| `@kan/db/types/*` | `src/types/*` |
+| `@kan/db/repository/*` | `src/repository/*.ts` |
+| `@kan/db/redis` | `src/redis.ts` |
+
+## Directory Structure
+
+```
+packages/db/
+  src/
+    schema/          → Drizzle table definitions (one file per entity)
+    repository/      → Database query functions (one file per entity)
+    types/           → Shared TypeScript types
+    client.ts        → Drizzle client factory
+    redis.ts         → Redis client
+    index.ts         → Barrel exports
+  migrations/        → Generated SQL migration files (never edit by hand)
+  drizzle.config.ts  → Drizzle-kit config
+```
+
+## Schema Rules
+
+- Each entity gets its own file in `src/schema/` (e.g. `cards.ts`, `boards.ts`).
+- Re-export all tables from `src/schema/index.ts`.
+- Use Drizzle's `pgTable`, `pgEnum`, etc.
+- Use `bigserial` for internal primary keys, `varchar(12)` for `publicId`.
+- Every table that supports deletion must have a `deletedAt timestamp` column for soft deletes.
+- Define Drizzle `relations()` alongside the table definition.
+- Use `uuid` type for user IDs (matching Supabase auth user IDs).
+
+### Naming
+
+- Table names: **snake_case plural** (e.g. `cards`, `workspace_members`).
+- Column names: **camelCase** in Drizzle schema (maps to snake_case in SQL via Drizzle).
+- Enum names: **camelCase** with a descriptive suffix (e.g. `activityTypeEnum`).
+
+## Repository Rules
+
+- Each entity gets `<entity>.repo.ts` in `src/repository/`.
+- Repository functions are **pure data-access functions** — they accept a `db` client as the first argument and return typed results.
+- Never import tRPC, auth, or request context inside repository files.
+- Use **transactions** (`db.transaction(...)`) for multi-step operations (e.g. reindexing cards).
+- Always filter soft-deleted rows: `isNull(table.deletedAt)`.
+- Return plain objects — never return Drizzle query builders.
+
+### Example pattern
+
+```typescript
+import type { dbClient } from "../client";
+import { cards } from "../schema/cards";
+import { eq, isNull } from "drizzle-orm";
+
+export async function getByPublicId(db: dbClient, publicId: string) {
+  return db.query.cards.findFirst({
+    where: (c, { eq, isNull, and }) =>
+      and(eq(c.publicId, publicId), isNull(c.deletedAt)),
+  });
+}
+```
+
+## Migrations
+
+1. **Generate**: `cd packages/db && pnpm drizzle-kit generate --name "DescriptiveName"`
+2. **Run**: `pnpm db:migrate`
+3. **Never** edit migration files after they have been generated.
+4. **Never** delete or rename existing migration files.
+5. Always test migrations against a development database before pushing.
+6. Use PascalCase for migration names (e.g. `"AddDueDateToCards"`).
+
+## Key Patterns
+
+### Public IDs
+
+- All user-facing entities have a `publicId` field — a 12-character randomly generated UID.
+- Generated with `generateUID()` from `@kan/shared`.
+- Internal `id` (bigserial) or relation columns (`cardId`, `listId`, etc.) are never exposed outside the DB/API boundary.
+
+### Soft Deletion
+
+```typescript
+// Always include this in queries:
+where: and(eq(table.publicId, publicId), isNull(table.deletedAt))
+
+// To "delete":
+await db.update(table).set({ deletedAt: new Date() }).where(eq(table.id, id));
+```
+
+### Card Index Management
+
+- Cards have an `index` integer column representing their position within a list.
+- When creating: set `index` to max + 1 (append) or insert at a specific position.
+- When moving: adjust indices of all affected cards in a transaction.
+- When deleting: decrement indices of subsequent cards in a transaction.
+
+### Activity Tracking
+
+- All significant card changes create a record in `card_activity`.
+- Activity types are defined as a `pgEnum` in `src/schema/cards.ts`.
+- The `activityTypes` array is the source of truth for valid activity types.

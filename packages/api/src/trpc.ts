@@ -7,8 +7,9 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import type { dbClient } from "@kan/db/client";
-import { initAuth } from "@kan/auth/server";
 import { createDrizzleClient } from "@kan/db/client";
+import * as userRepo from "@kan/db/repository/user.repo";
+import { createServerClient } from "@supabase/ssr";
 
 export interface User {
   id: string;
@@ -21,31 +22,12 @@ export interface User {
   stripeCustomerId?: string | null | undefined;
 }
 
-const createAuthWithHeaders = (
-  auth: ReturnType<typeof initAuth>,
-  headers: Headers,
-) => {
-  return {
-    api: {
-      getSession: () => auth.api.getSession({ headers }),
-      signInMagicLink: (input: { email: string; callbackURL: string }) =>
-        auth.api.signInMagicLink({
-          headers,
-          body: { email: input.email, callbackURL: input.callbackURL },
-        }),
-      listActiveSubscriptions: (input: { workspacePublicId: string }) =>
-        auth.api.listActiveSubscriptions({
-          headers,
-          query: { referenceId: input.workspacePublicId },
-        }),
-    },
-  };
-};
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 interface CreateContextOptions {
   user: User | null | undefined;
   db: dbClient;
-  auth: ReturnType<typeof createAuthWithHeaders>;
   headers: Headers;
 }
 
@@ -53,48 +35,106 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     user: opts.user,
     db: opts.db,
-    auth: opts.auth,
     headers: opts.headers,
   };
 };
 
+/**
+ * Gets the Supabase user from request cookies, then looks up the
+ * corresponding user in our database.
+ */
+async function getUserFromRequest(
+  req: NextApiRequest,
+  db: dbClient,
+): Promise<User | null> {
+  const cookies: { name: string; value: string }[] = [];
+  for (const [name, value] of Object.entries(req.cookies ?? {})) {
+    if (value !== undefined) {
+      cookies.push({ name, value });
+    }
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookies;
+      },
+      setAll() {
+        // No-op for read-only context
+      },
+    },
+  });
+
+  const {
+    data: { user: supabaseUser },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !supabaseUser) {
+    return null;
+  }
+
+  // Look up the user in our database by their Supabase user ID
+  const dbUser = await userRepo.getById(db, supabaseUser.id);
+
+  if (!dbUser) {
+    // User exists in Supabase but not in our DB yet - create them
+    const email = supabaseUser.email;
+    if (!email) return null;
+
+    const newUser = await userRepo.create(db, {
+      id: supabaseUser.id,
+      email,
+    });
+
+    if (!newUser) return null;
+
+    return {
+      id: newUser.id,
+      name: newUser.name ?? "",
+      email: newUser.email,
+      emailVerified: newUser.emailVerified,
+      createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt,
+      image: null,
+      stripeCustomerId: newUser.stripeCustomerId,
+    };
+  }
+
+  return {
+    id: dbUser.id,
+    name: dbUser.name ?? "",
+    email: dbUser.email ?? "",
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    image: dbUser.image,
+    stripeCustomerId: dbUser.stripeCustomerId,
+  };
+}
+
 export const createTRPCContext = async ({ req }: CreateNextContextOptions) => {
   const db = createDrizzleClient();
-  const baseAuth = initAuth(db);
   const headers = new Headers(req.headers as Record<string, string>);
-  const auth = createAuthWithHeaders(baseAuth, headers);
+  const user = await getUserFromRequest(req, db);
 
-  const session = await auth.api.getSession();
-
-  return createInnerTRPCContext({ db, user: session?.user, auth, headers });
+  return createInnerTRPCContext({ db, user, headers });
 };
 
 export const createNextApiContext = async (req: NextApiRequest) => {
   const db = createDrizzleClient();
-  const baseAuth = initAuth(db);
   const headers = new Headers(req.headers as Record<string, string>);
-  const auth = createAuthWithHeaders(baseAuth, headers);
+  const user = await getUserFromRequest(req, db);
 
-  const session = await auth.api.getSession();
-
-  return createInnerTRPCContext({ db, user: session?.user, auth, headers });
+  return createInnerTRPCContext({ db, user, headers });
 };
 
 export const createRESTContext = async ({ req }: CreateNextContextOptions) => {
   const db = createDrizzleClient();
-  const baseAuth = initAuth(db);
   const headers = new Headers(req.headers as Record<string, string>);
-  const auth = createAuthWithHeaders(baseAuth, headers);
+  const user = await getUserFromRequest(req, db);
 
-  let session;
-  try {
-    session = await auth.api.getSession();
-  } catch (error) {
-    console.error("Error getting session, ", error);
-    throw error;
-  }
-
-  return createInnerTRPCContext({ db, user: session?.user, auth, headers });
+  return createInnerTRPCContext({ db, user, headers });
 };
 
 const t = initTRPC

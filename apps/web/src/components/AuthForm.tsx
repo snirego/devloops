@@ -1,41 +1,24 @@
-import type { SocialProvider } from "better-auth/social-providers";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { useQuery } from "@tanstack/react-query";
 import { env } from "next-runtime-env";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
-  FaApple,
   FaDiscord,
-  FaDropbox,
-  FaFacebook,
   FaGithub,
-  FaGitlab,
   FaGoogle,
-  FaLinkedin,
-  FaMicrosoft,
-  FaOpenid,
-  FaReddit,
-  FaSpotify,
-  FaTiktok,
-  FaTwitch,
-  FaTwitter,
-  FaVk,
 } from "react-icons/fa";
-import { SiRoblox, SiZoom } from "react-icons/si";
-import { TbBrandKick } from "react-icons/tb";
 import { z } from "zod";
 
-import { authClient } from "@kan/auth/client";
+import { getSupabaseBrowserClient } from "@kan/auth/client";
 
 import Button from "~/components/Button";
 import Input from "~/components/Input";
 import { usePopup } from "~/providers/popup";
 
-type AuthProvider = SocialProvider | "oidc";
+type SocialProvider = "google" | "github" | "discord";
 
 interface FormValues {
   name?: string;
@@ -54,7 +37,10 @@ const EmailSchema = z.object({
   password: z.string().optional(),
 });
 
-const availableSocialProviders = {
+const availableSocialProviders: Record<
+  string,
+  { id: string; name: string; icon: React.ComponentType }
+> = {
   google: {
     id: "google",
     name: "Google",
@@ -70,98 +56,17 @@ const availableSocialProviders = {
     name: "Discord",
     icon: FaDiscord,
   },
-  apple: {
-    id: "apple",
-    name: "Apple",
-    icon: FaApple,
-  },
-  microsoft: {
-    id: "microsoft",
-    name: "Microsoft",
-    icon: FaMicrosoft,
-  },
-  facebook: {
-    id: "facebook",
-    name: "Facebook",
-    icon: FaFacebook,
-  },
-  spotify: {
-    id: "spotify",
-    name: "Spotify",
-    icon: FaSpotify,
-  },
-  twitch: {
-    id: "twitch",
-    name: "Twitch",
-    icon: FaTwitch,
-  },
-  twitter: {
-    id: "twitter",
-    name: "Twitter",
-    icon: FaTwitter,
-  },
-  dropbox: {
-    id: "dropbox",
-    name: "Dropbox",
-    icon: FaDropbox,
-  },
-  linkedin: {
-    id: "linkedin",
-    name: "LinkedIn",
-    icon: FaLinkedin,
-  },
-  gitlab: {
-    id: "gitlab",
-    name: "GitLab",
-    icon: FaGitlab,
-  },
-  tiktok: {
-    id: "tiktok",
-    name: "TikTok",
-    icon: FaTiktok,
-  },
-  reddit: {
-    id: "reddit",
-    name: "Reddit",
-    icon: FaReddit,
-  },
-  roblox: {
-    id: "roblox",
-    name: "Roblox",
-    icon: SiRoblox,
-  },
-  vk: {
-    id: "vk",
-    name: "VK",
-    icon: FaVk,
-  },
-  kick: {
-    id: "kick",
-    name: "Kick",
-    icon: TbBrandKick,
-  },
-  zoom: {
-    id: "zoom",
-    name: "Zoom",
-    icon: SiZoom,
-  },
-  oidc: {
-    id: "oidc",
-    name: "OIDC",
-    icon: FaOpenid,
-  },
 };
 
 export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
   const [isCloudEnv, setIsCloudEnv] = useState(false);
   const [isLoginWithProviderPending, setIsLoginWithProviderPending] =
-    useState<null | AuthProvider>(null);
+    useState<null | string>(null);
   const [isCredentialsEnabled, setIsCredentialsEnabled] = useState(false);
   const [isEmailSendingEnabled, setIsEmailSendingEnabled] = useState(false);
   const [isLoginWithEmailPending, setIsLoginWithEmailPending] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const { showPopup } = usePopup();
-  const oidcProviderName = "OIDC";
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
   const redirect = useSearchParams().get("next");
@@ -173,8 +78,8 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
       env("NEXT_PUBLIC_ALLOW_CREDENTIALS")?.toLowerCase() === "true";
     const emailSendingEnabled =
       env("NEXT_PUBLIC_DISABLE_EMAIL")?.toLowerCase() !== "true";
-    const isCloudEnv = env("NEXT_PUBLIC_KAN_ENV") === "cloud";
-    setIsCloudEnv(isCloudEnv);
+    const isCloud = env("NEXT_PUBLIC_KAN_ENV") === "cloud";
+    setIsCloudEnv(isCloud);
     setIsEmailSendingEnabled(emailSendingEnabled);
     setIsCredentialsEnabled(credentialsAllowed);
   }, []);
@@ -188,10 +93,9 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
     resolver: zodResolver(EmailSchema),
   });
 
-  const { data: socialProviders } = useQuery({
-    queryKey: ["social_providers"],
-    queryFn: () => authClient.getSocialProviders(),
-  });
+  // Social providers are configured in Supabase dashboard
+  // We show the ones defined in our local config
+  const socialProviders = Object.keys(availableSocialProviders);
 
   const handleLoginWithEmail = async (
     email: string,
@@ -200,89 +104,93 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
   ) => {
     setIsLoginWithEmailPending(true);
     setLoginError(null);
-    if (password) {
-      if (isSignUp && name) {
-        await authClient.signUp.email(
-          {
-            name,
+    const supabase = getSupabaseBrowserClient();
+
+    try {
+      if (password) {
+        if (isSignUp) {
+          // Create the user via our server-side admin API to bypass
+          // Supabase's confirmation-email requirement entirely.
+          const signUpRes = await fetch("/api/auth/sign-up", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password, name }),
+          });
+
+          const signUpBody = (await signUpRes.json()) as {
+            error?: string;
+            user?: unknown;
+          };
+
+          if (!signUpRes.ok) {
+            setLoginError(signUpBody.error ?? t`Sign up failed.`);
+          } else {
+            // User created & auto-confirmed — sign in immediately
+            const { error: signInError } =
+              await supabase.auth.signInWithPassword({ email, password });
+
+            if (signInError) {
+              setLoginError(signInError.message);
+            } else {
+              window.location.href = callbackURL;
+            }
+          }
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
-            callbackURL,
-          },
-          {
-            onSuccess: () =>
-              showPopup({
-                header: t`Success`,
-                message: t`You have been signed up successfully.`,
-                icon: "success",
-              }),
-            onError: ({ error }) => setLoginError(error.message),
-          },
-        );
+          });
+
+          if (error) {
+            setLoginError(error.message);
+          } else {
+            window.location.href = callbackURL;
+          }
+        }
       } else {
-        await authClient.signIn.email(
-          {
+        // Magic link login
+        if (isCloudEnv || (isEmailSendingEnabled && !isSignUp)) {
+          const { error } = await supabase.auth.signInWithOtp({
             email,
-            password,
-            callbackURL,
-          },
-          {
-            onSuccess: () =>
-              showPopup({
-                header: t`Success`,
-                message: t`You have been logged in successfully.`,
-                icon: "success",
-              }),
-            onError: ({ error }) => setLoginError(error.message),
-          },
-        );
+            options: {
+              emailRedirectTo: `${window.location.origin}${callbackURL}`,
+            },
+          });
+
+          if (error) {
+            setLoginError(error.message);
+          } else {
+            setIsMagicLinkSent(true, email);
+          }
+        } else {
+          setLoginError(
+            isSignUp
+              ? t`Password is required to sign up.`
+              : t`Password is required to login.`,
+          );
+        }
       }
-    } else {
-      // Only allow magic link if email sending is enabled and not in sign up mode
-      if (isCloudEnv || (isEmailSendingEnabled && !isSignUp)) {
-        await authClient.signIn.magicLink(
-          {
-            email,
-            callbackURL,
-          },
-          {
-            onSuccess: () => setIsMagicLinkSent(true, email),
-            onError: ({ error }) => setLoginError(error.message),
-          },
-        );
-      } else {
-        // Provide a clear error feedback when password omitted but magic link unavailable
-        setLoginError(
-          isSignUp
-            ? t`Password is required to sign up.`
-            : t`Password is required to login.`,
-        );
-      }
+    } catch (err) {
+      setLoginError(
+        err instanceof Error ? err.message : t`An unexpected error occurred.`,
+      );
     }
 
     setIsLoginWithEmailPending(false);
   };
 
-  const handleLoginWithProvider = async (provider: AuthProvider) => {
+  const handleLoginWithProvider = async (provider: SocialProvider) => {
     setIsLoginWithProviderPending(provider);
     setLoginError(null);
 
-    let error;
-    if (provider === "oidc") {
-      // Use oauth2 signin for OIDC provider
-      const result = await authClient.signIn.oauth2({
-        providerId: "oidc",
-        callbackURL,
-      });
-      error = result.error;
-    } else {
-      // Use social signin for traditional social providers
-      const result = await authClient.signIn.social({
-        provider,
-        callbackURL,
-      });
-      error = result.error;
-    }
+    const supabase = getSupabaseBrowserClient();
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}${callbackURL}`,
+      },
+    });
 
     setIsLoginWithProviderPending(null);
 
@@ -294,7 +202,6 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
   };
 
   const onSubmit = async (values: FormValues) => {
-    // Treat empty password string as undefined to trigger magic link path
     const sanitizedPassword = values.password?.trim()
       ? values.password
       : undefined;
@@ -307,20 +214,15 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
     return isCloudEnv || (isEmailSendingEnabled && !isSignUp);
   }, [isCloudEnv, isEmailSendingEnabled, isSignUp]);
 
-  // Determine if we should operate in magic link mode for current form state (login only)
   const isMagicLinkMode = useMemo(() => {
-    // Magic link only viable when email sending enabled AND not sign up.
     if (!isEmailSendingEnabled || isSignUp) return false;
-    // If credentials disabled we always default to magic link.
     if (!isCredentialsEnabled) return true;
-    // Credentials enabled: user chooses magic link by leaving password blank.
     return !password;
   }, [isEmailSendingEnabled, isSignUp, isCredentialsEnabled, password]);
 
   // Auto-focus password field when an error indicates it's required
   useEffect(() => {
     if (!isCredentialsEnabled) return;
-    // Focus when: sign up and missing password; login error requiring password; validation error on password.
     const pwdEmpty = (password ?? "").length === 0;
     let needsPassword = false;
     if (isSignUp && pwdEmpty) {
@@ -337,24 +239,25 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
 
   return (
     <div className="space-y-6">
-      {socialProviders?.length !== 0 && (
+      {socialProviders.length !== 0 && (
         <div className="space-y-2">
           {Object.entries(availableSocialProviders).map(([key, provider]) => {
-            if (!socialProviders?.includes(key)) {
+            if (!socialProviders.includes(key)) {
               return null;
             }
             return (
               <Button
                 key={key}
-                onClick={() => handleLoginWithProvider(key as AuthProvider)}
+                onClick={() =>
+                  handleLoginWithProvider(key as SocialProvider)
+                }
                 isLoading={isLoginWithProviderPending === key}
                 iconLeft={<provider.icon />}
                 fullWidth
                 size="lg"
               >
                 <Trans>
-                  Continue with{" "}
-                  {key === "oidc" ? oidcProviderName : provider.name}
+                  Continue with {provider.name}
                 </Trans>
               </Button>
             );
@@ -362,7 +265,7 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
         </div>
       )}
       {!(isCredentialsEnabled || isMagicLinkAvailable) &&
-        socialProviders?.length === 0 && (
+        socialProviders.length === 0 && (
           <div className="flex w-full items-center gap-4">
             <div className="h-[1px] w-1/3 bg-light-600 dark:bg-dark-600" />
             <span className="text-center text-sm text-light-900 dark:text-dark-900">
@@ -373,7 +276,7 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
         )}
       {(isCredentialsEnabled || isMagicLinkAvailable) && (
         <form onSubmit={handleSubmit(onSubmit)}>
-          {socialProviders?.length !== 0 && (
+          {socialProviders.length !== 0 && (
             <div className="mb-[1.5rem] flex w-full items-center gap-4">
               <div className="h-[1px] w-full bg-light-600 dark:bg-dark-600" />
               <span className="text-sm text-light-900 dark:text-dark-900">

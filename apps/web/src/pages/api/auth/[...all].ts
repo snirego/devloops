@@ -1,35 +1,244 @@
-import { toNodeHandler } from "better-auth/node";
+import crypto from "crypto";
 
-import { initAuth } from "@kan/auth/server";
-import { createDrizzleClient } from "@kan/db/client";
-import { withRateLimit } from "@kan/api/utils/rateLimit";
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
+import { and, eq } from "drizzle-orm";
 
-export const config = { api: { bodyParser: false } };
+import { db } from "@kan/db/client";
+import { apikey } from "@kan/db/schema";
 
-export const auth = initAuth(createDrizzleClient());
+import { createServerClient } from "@kan/auth/server";
 
-const authHandler = toNodeHandler(auth.handler);
+// Lazily-initialised Supabase admin client (service-role)
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  );
+}
 
-export default withRateLimit(
-  { points: 100, duration: 60 },
-  async (req, res) => {
-    /**
-     * Better-auth behind proxies (Nginx/Cloudflare) can sometimes fail to parse the protocol
-     * if headers are incorrectly set or if there are multiple values in X-Forwarded-Proto.
-     * We sanitize these headers here to ensure better-auth gets a clean protocol and host.
-     */
-    const forwardedProto = req.headers["x-forwarded-proto"];
-    if (forwardedProto) {
-      const p = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto;
-      req.headers["x-forwarded-proto"] = p?.split(",")[0]?.trim();
+/** Return the authenticated Supabase user or null. */
+async function getAuthenticatedUser(
+  supabase: ReturnType<typeof createServerClient>,
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+}
+
+/**
+ * Catch-all auth API route.
+ * Handles session, sign-up, sign-out, password change, account deletion,
+ * and API-key CRUD.
+ */
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  const supabase = createServerClient(req, res);
+  const pathSegments = (req.query.all as string[]) ?? [];
+  const path = pathSegments.join("/");
+
+  try {
+    switch (path) {
+      // ----------------------------------------------------------------
+      // SESSION
+      // ----------------------------------------------------------------
+      case "session":
+      case "get-session": {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+        if (error) return res.status(401).json({ error: error.message });
+        if (!session) return res.status(401).json({ error: "No session" });
+        return res.status(200).json({ session, user: session.user });
+      }
+
+      // ----------------------------------------------------------------
+      // SOCIAL PROVIDERS
+      // ----------------------------------------------------------------
+      case "social-providers": {
+        return res.status(200).json([]);
+      }
+
+      // ----------------------------------------------------------------
+      // SIGN-UP  (admin API → email_confirm: true, no email sent)
+      // ----------------------------------------------------------------
+      case "sign-up": {
+        if (req.method !== "POST")
+          return res.status(405).json({ error: "Method not allowed" });
+
+        const { email, password, name } = req.body as {
+          email?: string;
+          password?: string;
+          name?: string;
+        };
+        if (!email || !password)
+          return res
+            .status(400)
+            .json({ error: "Email and password are required" });
+
+        const admin = getAdminClient();
+        const { data: adminData, error: adminError } =
+          await admin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { name: name ?? "" },
+          });
+        if (adminError)
+          return res.status(400).json({ error: adminError.message });
+        return res
+          .status(200)
+          .json({ user: adminData.user, message: "User created" });
+      }
+
+      // ----------------------------------------------------------------
+      // SIGN-OUT
+      // ----------------------------------------------------------------
+      case "sign-out": {
+        const { error } = await supabase.auth.signOut();
+        if (error) return res.status(500).json({ error: error.message });
+        return res.status(200).json({ success: true });
+      }
+
+      // ----------------------------------------------------------------
+      // CHANGE PASSWORD
+      // ----------------------------------------------------------------
+      case "change-password": {
+        if (req.method !== "POST")
+          return res.status(405).json({ error: "Method not allowed" });
+
+        const user = await getAuthenticatedUser(supabase);
+        if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+        const { newPassword } = req.body as {
+          currentPassword?: string;
+          newPassword?: string;
+          revokeOtherSessions?: boolean;
+        };
+        if (!newPassword)
+          return res
+            .status(400)
+            .json({ error: "New password is required" });
+
+        const admin = getAdminClient();
+        const { error: updateErr } = await admin.auth.admin.updateUserById(
+          user.id,
+          { password: newPassword },
+        );
+        if (updateErr)
+          return res.status(400).json({ error: updateErr.message });
+        return res.status(200).json({ success: true });
+      }
+
+      // ----------------------------------------------------------------
+      // DELETE USER
+      // ----------------------------------------------------------------
+      case "delete-user": {
+        if (req.method !== "POST")
+          return res.status(405).json({ error: "Method not allowed" });
+
+        const user = await getAuthenticatedUser(supabase);
+        if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+        const admin = getAdminClient();
+        const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
+        if (delErr) return res.status(500).json({ error: delErr.message });
+        return res.status(200).json({ success: true });
+      }
+
+      // ----------------------------------------------------------------
+      // API KEYS  (list / create / delete)
+      // ----------------------------------------------------------------
+      case "api-keys": {
+        const user = await getAuthenticatedUser(supabase);
+        if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+        // LIST
+        if (req.method === "GET") {
+          const keys = await db
+            .select({
+              id: apikey.id,
+              name: apikey.name,
+              start: apikey.start,
+              createdAt: apikey.createdAt,
+              lastRequest: apikey.lastRequest,
+            })
+            .from(apikey)
+            .where(eq(apikey.userId, user.id));
+
+          return res.status(200).json({ data: keys });
+        }
+
+        // CREATE
+        if (req.method === "POST") {
+          const { name: keyName, prefix } = req.body as {
+            name: string;
+            prefix?: string;
+          };
+          if (!keyName)
+            return res.status(400).json({ error: "Name is required" });
+
+          const rawKey = crypto.randomBytes(24).toString("hex");
+          const fullKey = `${prefix ?? ""}${rawKey}`;
+          const start = fullKey.slice(0, 8);
+          const now = new Date();
+
+          const [created] = await db
+            .insert(apikey)
+            .values({
+              name: keyName,
+              key: fullKey,
+              start,
+              prefix: prefix ?? null,
+              userId: user.id,
+              createdAt: now,
+              updatedAt: now,
+              enabled: true,
+            })
+            .returning();
+
+          return res
+            .status(200)
+            .json({ data: { key: fullKey, name: keyName, id: created?.id } });
+        }
+
+        // DELETE
+        if (req.method === "DELETE") {
+          const keyId = req.query.keyId as string | undefined;
+          if (!keyId)
+            return res.status(400).json({ error: "keyId is required" });
+
+          await db
+            .delete(apikey)
+            .where(
+              and(eq(apikey.id, Number(keyId)), eq(apikey.userId, user.id)),
+            );
+
+          return res.status(200).json({ success: true });
+        }
+
+        return res.status(405).json({ error: "Method not allowed" });
+      }
+
+      // ----------------------------------------------------------------
+      // SUBSCRIPTION UPGRADE (stub — cloud-only)
+      // ----------------------------------------------------------------
+      case "subscription-upgrade": {
+        return res
+          .status(501)
+          .json({ error: "Subscription management is cloud-only" });
+      }
+
+      // ----------------------------------------------------------------
+      default:
+        return res.status(404).json({ error: "Not found" });
     }
-
-    const forwardedHost = req.headers["x-forwarded-host"];
-    if (forwardedHost) {
-      const h = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
-      req.headers["host"] = h?.split(",")[0]?.trim();
-    }
-
-    return await authHandler(req, res);
-  },
-);
+  } catch (error) {
+    console.error("Auth API error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}

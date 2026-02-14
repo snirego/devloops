@@ -92,6 +92,13 @@ const config = {
   experimental: {
     // instrumentationHook: true,
     swcPlugins: [["@lingui/swc-plugin", {}]],
+    /** Tree-shake large packages for faster dev compilation and HMR */
+    optimizePackageImports: [
+      "react-icons",
+      "date-fns",
+      "@headlessui/react",
+      "framer-motion",
+    ],
   },
 
   async rewrites() {

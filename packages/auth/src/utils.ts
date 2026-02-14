@@ -1,49 +1,41 @@
-import type { Subscription } from "@better-auth/stripe";
-import type Stripe from "stripe";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-import type { dbClient } from "@kan/db/client";
-import * as userRepo from "@kan/db/repository/user.repo";
-import { notificationClient } from "@kan/email";
-import { createEmailUnsubscribeLink } from "@kan/shared";
+import { createServerClient } from "./server";
 
-export async function downloadImage(url: string): Promise<Buffer> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download image: ${response.statusText}`);
+/**
+ * Gets the current user from Supabase auth in an API route context.
+ * Returns the user object or null if not authenticated.
+ */
+export const getUser = async (req: NextApiRequest, res: NextApiResponse) => {
+  const supabase = createServerClient(req, res);
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
   }
-  return Buffer.from(await response.arrayBuffer());
-}
 
-export async function triggerWorkflow(
-  db: dbClient,
-  workflowId: string,
-  subscription: Subscription,
-  cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
-) {
-  try {
-    if (!subscription.stripeCustomerId || !notificationClient) return;
+  return user;
+};
 
-    const user = await userRepo.getByStripeCustomerId(
-      db,
-      subscription.stripeCustomerId,
-    );
+/**
+ * Gets the current session from Supabase auth in an API route context.
+ */
+export const getSession = async (
+  req: NextApiRequest,
+  res: NextApiResponse,
+) => {
+  const supabase = createServerClient(req, res);
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
 
-    if (!user || !notificationClient) return;
-
-    const unsubscribeUrl = await createEmailUnsubscribeLink(user.id);
-
-    await notificationClient.trigger({
-      to: {
-        subscriberId: user.id,
-      },
-      payload: {
-        ...subscription,
-        cancellationDetails,
-        emailUnsubscribeUrl: unsubscribeUrl,
-      },
-      workflowId,
-    });
-  } catch (error) {
-    console.error("Error triggering workflow", error);
+  if (error || !session) {
+    return null;
   }
-}
+
+  return session;
+};

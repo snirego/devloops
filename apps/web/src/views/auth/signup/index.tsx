@@ -5,7 +5,7 @@ import { Trans } from "@lingui/react/macro";
 import { env } from "next-runtime-env";
 import { useState } from "react";
 
-import { authClient } from "@kan/auth/client";
+import { useSession } from "@kan/auth";
 
 import { Auth } from "~/components/AuthForm";
 import { PageHead } from "~/components/PageHead";
@@ -19,9 +19,9 @@ export default function SignUpPage() {
 
   const redirect = useSearchParams().get("next");
 
-  const { data } = authClient.useSession();
+  const { data } = useSession();
 
-  if (data?.user.id) router.push("/boards");
+  if (data?.user?.id) router.push("/boards");
 
   const handleMagicLinkSent = (value: boolean, recipient: string) => {
     setIsMagicLinkSent(value);

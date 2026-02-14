@@ -1,0 +1,121 @@
+---
+description: Rules for the tRPC API layer — routers, procedures, and middleware
+globs: packages/api/**
+alwaysApply: false
+---
+
+# API Layer (`@kan/api`)
+
+## Package Overview
+
+`packages/api/` defines all tRPC routers, procedures, and server-side business logic.
+
+### Exports
+
+| Path | File |
+|---|---|
+| `@kan/api` | `src/index.ts` (barrel) |
+| `@kan/api/root` | `src/root.ts` (merged router) |
+| `@kan/api/trpc` | `src/trpc.ts` (context, procedures) |
+| `@kan/api/types` | `src/types/router.types.ts` |
+| `@kan/api/openapi` | `src/openapi.ts` |
+| `@kan/api/utils/permissions` | `src/utils/permissions.ts` |
+| `@kan/api/utils/rateLimit` | `src/utils/rateLimit.ts` |
+
+## Directory Structure
+
+```
+packages/api/src/
+  routers/       → One file per entity (card.ts, board.ts, list.ts, …)
+  utils/         → Shared helpers (permissions, notifications, activities, rate-limit)
+  types/         → Router type exports
+  trpc.ts        → tRPC init, context creation, procedure definitions
+  root.ts        → Merged app router
+  openapi.ts     → OpenAPI document generation
+  index.ts       → Barrel exports
+```
+
+## Router & Procedure Rules
+
+### Creating a Router
+
+- One router per entity in `src/routers/<entity>.ts`.
+- Export a single `<entity>Router` from each file (e.g. `cardRouter`, `boardRouter`).
+- Register in `src/root.ts`.
+
+### Procedure Types
+
+| Procedure | Use Case |
+|---|---|
+| `publicProcedure` | Unauthenticated / public endpoints |
+| `protectedProcedure` | Requires authenticated user |
+| `adminProtectedProcedure` | Requires admin API key |
+
+### Input / Output Validation
+
+- **Always** validate inputs with Zod schemas inside `.input(z.object({...}))`.
+- Use `.output()` to type-check return values when practical.
+- Use `z.string().min(12)` for publicId inputs.
+- Use `z.string().min(1).max(...)` for user-provided strings.
+
+### OpenAPI Metadata
+
+Every procedure must include `.meta({ openapi: { ... } })`:
+
+```typescript
+.meta({
+  openapi: {
+    summary: "Short description",
+    method: "POST",        // GET, POST, PUT, PATCH, DELETE
+    path: "/cards",        // RESTful path
+    description: "Longer description",
+    tags: ["Cards"],
+    protect: true,         // for protected endpoints
+  },
+})
+```
+
+### Authorization Pattern
+
+1. Extract `userId` from `ctx.user?.id`.
+2. Throw `UNAUTHORIZED` if not present (for protected procedures this is already handled by middleware, but double-check when needed).
+3. Look up the resource to find its workspace.
+4. Call `assertUserInWorkspace(db, userId, workspaceId)` or use permission helpers from `utils/permissions.ts`.
+
+```typescript
+const userId = ctx.user?.id;
+if (!userId) throw new TRPCError({ message: "User not authenticated", code: "UNAUTHORIZED" });
+
+// Look up workspace via the resource
+const resource = await someRepo.getByPublicId(ctx.db, input.publicId);
+if (!resource) throw new TRPCError({ message: "Not found", code: "NOT_FOUND" });
+
+await assertPermission(ctx.db, userId, resource.workspaceId, "edit");
+```
+
+### Error Handling
+
+- Use `TRPCError` with appropriate codes: `UNAUTHORIZED`, `NOT_FOUND`, `FORBIDDEN`, `BAD_REQUEST`, `INTERNAL_SERVER_ERROR`.
+- Provide clear, user-friendly error messages.
+
+### Repository Usage
+
+- Import repositories as namespaces: `import * as cardRepo from "@kan/db/repository/card.repo";`
+- Always pass `ctx.db` as the first argument to repo functions.
+- Never write raw SQL in routers — push data access into repositories.
+
+## Context (`trpc.ts`)
+
+- `createTRPCContext` — used by the tRPC adapter in Next.js API routes.
+- `createNextApiContext` — used by standalone Next.js API handlers.
+- `createRESTContext` — used for OpenAPI / REST routes.
+- The context provides `{ user, db, headers }`.
+- Auth is resolved by reading Supabase session cookies from the request and looking up the user in the DB.
+
+## Key Conventions
+
+- **Never expose internal DB IDs** in responses. Use `publicId` for all external communication.
+- **Activity logging**: When mutating cards, create appropriate activity records via `cardActivityRepo`.
+- **Optimistic updates**: Design mutations to return the data the frontend needs for cache updates.
+- **Transactions**: Use `ctx.db.transaction(...)` for multi-step operations.
+- **Superjson**: The tRPC instance uses Superjson as the transformer — Dates, Maps, etc. are serialized automatically.

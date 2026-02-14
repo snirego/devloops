@@ -1,0 +1,121 @@
+---
+description: Root-level project conventions for the Devloops (Kan) monorepo
+globs: 
+alwaysApply: true
+---
+
+# Devloops (Kan) — Project Rules
+
+## What is this project?
+
+Kan is an open-source project management tool (Trello/Jira alternative). The codebase is a **pnpm monorepo** managed with **Turborepo**.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 15 (Pages Router), React 18, TypeScript, Tailwind CSS |
+| Backend / API | tRPC (v11), Node.js |
+| Database | PostgreSQL, Drizzle ORM |
+| Auth | Supabase Auth (`@supabase/ssr`, `@supabase/supabase-js`) |
+| Monorepo | pnpm workspaces + Turborepo |
+| i18n | Lingui |
+| Payments | Stripe |
+| Email | React Email |
+| Deployment | Docker, docker-compose |
+
+## Monorepo Layout
+
+```
+apps/
+  web/          → Next.js web application (@kan/web)
+  docs/         → Documentation site (Mintlify)
+packages/
+  api/          → tRPC API routers (@kan/api)
+  auth/         → Supabase authentication package (@kan/auth)
+  db/           → Database schema, migrations, repositories (@kan/db)
+  email/        → Email templates and sending (@kan/email)
+  shared/       → Shared utilities and constants (@kan/shared)
+  stripe/       → Stripe integration (@kan/stripe)
+tooling/
+  eslint/       → Shared ESLint configuration (@kan/eslint-config)
+  prettier/     → Shared Prettier configuration (@kan/prettier-config)
+  tailwind/     → Shared Tailwind configuration (@kan/tailwind-config)
+  typescript/   → Shared TypeScript configuration (@kan/tsconfig)
+```
+
+## Naming Conventions
+
+- **Files**: `kebab-case` (e.g. `card-repo.ts`, `workspace-menu.tsx`)
+- **React Components**: `PascalCase` (e.g. `BoardView`, `CardModal`)
+- **Functions / variables**: `camelCase`
+- **Constants**: `UPPER_SNAKE_CASE`
+- **Types / Interfaces**: `PascalCase`
+- **Database tables**: `snake_case` plural (e.g. `cards`, `workspace_members`)
+- **Repository files**: `<entity>.repo.ts` (e.g. `card.repo.ts`)
+- **Schema files**: `<entity>.ts` (e.g. `cards.ts`, `boards.ts`)
+
+## Package Dependencies
+
+- Use `workspace:*` or `workspace:^` for internal packages — never hardcode versions.
+- Use the pnpm **catalog** (defined in `pnpm-workspace.yaml`) for shared dependency versions (React, TypeScript, ESLint, Prettier, Zod, tRPC, Tailwind, TanStack Query).
+- Never add a dependency directly to the root `package.json` unless it is a dev-only tool used monorepo-wide.
+
+## Commands
+
+| Task | Command |
+|---|---|
+| Install dependencies | `pnpm install` |
+| Dev server (all) | `pnpm dev` |
+| Dev server (web only) | `pnpm dev:next` |
+| Build all | `pnpm build` |
+| Lint | `pnpm lint` |
+| Lint + fix | `pnpm lint:fix` |
+| Type check | `pnpm typecheck` |
+| Format | `pnpm format:fix` |
+| DB migrations (generate) | `cd packages/db && pnpm drizzle-kit generate --name "MigrationName"` |
+| DB migrations (run) | `pnpm db:migrate` |
+| DB studio | `pnpm db:studio` |
+| Extract i18n strings | `cd apps/web && pnpm lingui:extract` |
+| Compile i18n | `cd apps/web && pnpm lingui:compile` |
+
+## Git & Commits
+
+- **Conventional commits**: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`, `perf:`
+- Keep commits focused on a single change.
+- Reference issue numbers when applicable.
+- Always run `pnpm lint` and `pnpm typecheck` before committing.
+
+## Environment Variables
+
+- All env vars live in the root `.env` file (git-ignored).
+- `.env.example` is the reference for required variables.
+- `turbo.json` declares `globalEnv` and `globalPassThroughEnv` — any new env var consumed at build/runtime must be added there.
+- Frontend env vars that need to be available in the browser must be prefixed with `NEXT_PUBLIC_`.
+
+## Core Domain Concepts
+
+- **Workspaces** contain **Boards**, which contain **Lists**, which contain **Cards**.
+- **Cards** are the primary entity — they have titles, descriptions, labels, members, checklists, comments, attachments, due dates.
+- All significant card changes are tracked via `card_activity`.
+- Entities use **soft deletion** (`deletedAt` timestamp). Queries must filter with `isNull(table.deletedAt)`.
+- All user-facing entities use a 12-character **`publicId`**. Internal database `id` fields must never be exposed in API responses, URLs, or frontend code.
+
+## Security Principles
+
+1. Always check user authentication.
+2. Always verify workspace membership (`assertUserInWorkspace`).
+3. Always validate inputs with Zod.
+4. Never expose internal DB IDs — use `publicId` externally.
+5. Sanitize all user input.
+6. Never commit `.env` files or secrets.
+
+## Adding a New Feature — Checklist
+
+1. **Schema**: Add/update table in `packages/db/src/schema/`
+2. **Migration**: Generate with drizzle-kit, then run `pnpm db:migrate`
+3. **Repository**: Add functions in `packages/db/src/repository/<entity>.repo.ts`
+4. **API**: Add tRPC procedures in `packages/api/src/routers/<entity>.ts`
+5. **Frontend**: Add UI in `apps/web/src/views/` and/or `apps/web/src/components/`
+6. **i18n**: Wrap user-facing strings with `t` template literal, then extract
+7. **Tests**: Add test coverage
