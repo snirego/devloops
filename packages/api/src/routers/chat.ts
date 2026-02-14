@@ -10,7 +10,7 @@ import * as feedbackThreadRepo from "@kan/db/repository/feedbackThread.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { runIngestPipelineAsync } from "../utils/llmJobs";
+
 import { assertPermission } from "../utils/permissions";
 
 // ─── Workspace resolver helpers ─────────────────────────────────────────────
@@ -90,25 +90,15 @@ export const chatRouter = createTRPCRouter({
         publicId: input.publicId,
       });
 
-      // Run LLM analysis asynchronously on public messages
-      if (input.visibility === "public") {
-        runIngestPipelineAsync(
+      // Dashboard sends are from the dev team (senderType: "internal"),
+      // so we only update thread activity — no LLM analysis needed.
+      // The LLM pipeline should only run on incoming user/widget messages.
+      if (thread.threadStateJson) {
+        await feedbackThreadRepo.updateThreadState(
           ctx.db,
           thread.id,
-          (thread.threadStateJson as ThreadStateJson) ?? null,
-          input.rawText,
-          { userId: ctx.user?.id, source: "dashboard" },
-          message.id,
+          thread.threadStateJson as ThreadStateJson,
         );
-      } else {
-        // For internal notes, just update thread activity
-        if (thread.threadStateJson) {
-          await feedbackThreadRepo.updateThreadState(
-            ctx.db,
-            thread.id,
-            thread.threadStateJson as ThreadStateJson,
-          );
-        }
       }
 
       return {

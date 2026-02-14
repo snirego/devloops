@@ -18,6 +18,7 @@ import { getSubscriptionByPlan } from "@kan/shared/utils";
 
 import Button from "~/components/Button";
 import Input from "~/components/Input";
+import RolePickerDropdown from "~/components/RolePickerDropdown";
 import Toggle from "~/components/Toggle";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
@@ -46,10 +47,12 @@ export function InviteMemberForm({
   const { showPopup } = usePopup();
 
   const isEmailEnabled = env("NEXT_PUBLIC_DISABLE_EMAIL") !== "true";
+  const [selectedRole, setSelectedRole] = useState<"admin" | "member" | "tester" | "guest">("member");
 
   const InviteMemberSchema = z.object({
     email: z.string().email({ message: t`Invalid email address` }),
     workspacePublicId: z.string(),
+    role: z.enum(["admin", "member", "tester", "guest"]).optional(),
   });
 
   const {
@@ -61,6 +64,7 @@ export function InviteMemberForm({
     defaultValues: {
       email: "",
       workspacePublicId: workspace.publicId || "",
+      role: "member",
     },
     resolver: zodResolver(InviteMemberSchema),
   });
@@ -172,7 +176,7 @@ export function InviteMemberForm({
   }
 
   const onSubmit = (member: InviteMemberInput) => {
-    inviteMember.mutate(member);
+    inviteMember.mutate({ ...member, role: selectedRole });
   };
 
   const handleInviteLinkToggle = async () => {
@@ -284,6 +288,24 @@ export function InviteMemberForm({
             }}
             errorMessage={errors.email?.message}
           />
+        )}
+        {isEmailEnabled && (
+          <div className="mt-3">
+            <label
+              htmlFor="role"
+              className="mb-1 block text-xs font-medium text-light-900 dark:text-dark-900"
+            >
+              {t`Role`}
+            </label>
+            <RolePickerDropdown
+              value={selectedRole}
+              onChange={(role) =>
+                setSelectedRole(
+                  role as "admin" | "member" | "tester" | "guest",
+                )
+              }
+            />
+          </div>
         )}
         {(!isEmailEnabled || (isShareInviteLinkEnabled && inviteLink)) && (
           <div className="my-4">

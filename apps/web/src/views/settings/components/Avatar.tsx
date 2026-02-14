@@ -105,44 +105,34 @@ export default function Avatar({
     if (!imgRef.current || !crop) throw new Error("No crop to save");
     const image = imgRef.current;
 
-    const canvas = document.createElement("canvas");
     const cropXpx = (crop.x / 100) * image.naturalWidth;
     const cropYpx = (crop.y / 100) * image.naturalHeight;
     const cropWpx = (crop.width / 100) * image.naturalWidth;
     const cropHpx = (crop.height / 100) * image.naturalHeight;
-    canvas.width = Math.max(1, Math.floor(cropWpx));
-    canvas.height = Math.max(1, Math.floor(cropHpx));
+
+    // Cap output to 512px to keep file size under Vercel's 4.5 MB body limit
+    const MAX_OUTPUT = 512;
+    const outputSize = Math.min(MAX_OUTPUT, Math.floor(Math.max(cropWpx, cropHpx)));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = outputSize;
+    canvas.height = outputSize;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not supported");
 
-    // For better quality on HiDPI screens
-    const pixelRatio = window.devicePixelRatio || 1;
-    canvas.width = canvas.width * pixelRatio;
-    canvas.height = canvas.height * pixelRatio;
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(image, cropXpx, cropYpx, cropWpx, cropHpx, 0, 0, outputSize, outputSize);
 
-    ctx.drawImage(
-      image,
-      cropXpx,
-      cropYpx,
-      cropWpx,
-      cropHpx,
-      0,
-      0,
-      canvas.width / pixelRatio,
-      canvas.height / pixelRatio,
-    );
-
-    const mime = selectedFile?.type ?? "image/jpeg";
+    // Always export as JPEG at 85% quality to keep the payload small
     const blob: Blob = await new Promise((resolve, reject) => {
       canvas.toBlob(
         (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
-        mime,
+        "image/jpeg",
+        0.85,
       );
     });
     return blob;
-  }, [crop, selectedFile]);
+  }, [crop]);
 
   const resetCropState = useCallback(() => {
     setCrop(undefined);
@@ -162,8 +152,7 @@ export default function Avatar({
       setUploading(true);
       const blob = await getCroppedBlob();
 
-      const originalExt = selectedFile.name.split(".").pop() ?? "jpg";
-      const fileName = `${userId}/avatar-${generateUID()}.${originalExt}`;
+      const fileName = `${userId}/avatar-${generateUID()}.jpg`;
 
       const baseUrl = env("NEXT_PUBLIC_BASE_URL") ?? "";
       const response = await fetch(

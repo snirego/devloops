@@ -1,5 +1,5 @@
 import { render } from "@react-email/render";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 import JoinWorkspaceTemplate from "./templates/join-workspace";
 import MagicLinkTemplate from "./templates/magic-link";
@@ -15,37 +15,7 @@ const emailTemplates: Record<Templates, React.ComponentType<any>> = {
   MENTION: MentionTemplate,
 };
 
-function resolveEnvBool(value: string | undefined, fallback: boolean): boolean {
-  if (!value || value.trim() === "" || value.trim().startsWith("#")) {
-    return fallback;
-  }
-  return value.trim().toLowerCase() === "true";
-}
-
-const smtpPort = Number(process.env.SMTP_PORT) || 465;
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: smtpPort,
-  // Default secure based on port: 465 → true (implicit TLS), 587 → false (STARTTLS)
-  secure: resolveEnvBool(process.env.SMTP_SECURE, smtpPort === 465),
-  tls: {
-    rejectUnauthorized: resolveEnvBool(
-      process.env.SMTP_REJECT_UNAUTHORIZED,
-      true,
-    ),
-  },
-  ...(process.env.SMTP_USER &&
-    process.env.SMTP_PASSWORD && {
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    }),
-  // Increase connection timeout for slower providers
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async (
   to: string,
@@ -58,24 +28,22 @@ export const sendEmail = async (
 
     const html = await render(<EmailTemplate {...data} />, { pretty: true });
 
-    const options = {
-      from: process.env.EMAIL_FROM,
+    const { data: response, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM ?? "Devloops <onboarding@resend.dev>",
       to,
       subject,
       html,
-    };
+    });
 
-    const response = await transporter.sendMail(options);
-
-    if (!response.accepted.length) {
-      throw new Error(`Failed to send email: ${response.response}`);
+    if (error) {
+      throw new Error(error.message);
     }
 
     return response;
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
 
-    // Provide actionable guidance for common SMTP errors
+    // Provide actionable guidance for common Resend errors
     if (errMsg.includes("domain is not verified")) {
       console.error(
         `Email sending failed: The sender domain in EMAIL_FROM (${process.env.EMAIL_FROM}) is not verified with your email provider. ` +
@@ -93,7 +61,6 @@ export const sendEmail = async (
         subject,
         template,
         error: errMsg,
-        stack: error instanceof Error ? error.stack : undefined,
       });
     }
     throw error;

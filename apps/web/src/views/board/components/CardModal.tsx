@@ -502,7 +502,7 @@ export function CardModal({
                             <ActivityList
                               cardPublicId={cardPublicId}
                               isLoading={!card}
-                              isAdmin={workspace.role === "admin"}
+                              isAdmin={workspace.role === "admin" || workspace.role === "super-admin"}
                             />
                             {!isTemplate && (
                               <div className="mt-6">

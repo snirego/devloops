@@ -25,15 +25,17 @@ interface WorkItemCardProps {
     title: string;
     type: string;
     priority: string;
+    status: string;
     confidenceScore: number;
     riskLevel: string;
     estimatedEffortJson?: unknown;
     thread?: { publicId: string } | null;
   };
   onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-export default function WorkItemCard({ item, onClick }: WorkItemCardProps) {
+export default function WorkItemCard({ item, onClick, onContextMenu }: WorkItemCardProps) {
   const effort = item.estimatedEffortJson as
     | { tShirt?: string }
     | null
@@ -42,6 +44,7 @@ export default function WorkItemCard({ item, onClick }: WorkItemCardProps) {
   return (
     <button
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className="w-full rounded-lg border border-light-300 bg-white p-3 text-left shadow-sm transition-all duration-0 hover:shadow-md dark:border-dark-300 dark:bg-dark-50 dark:hover:border-dark-400"
     >
       {/* Top row: type icon + priority */}

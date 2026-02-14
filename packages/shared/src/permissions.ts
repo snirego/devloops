@@ -47,8 +47,10 @@ export const allPermissions = [
 export type Permission = (typeof allPermissions)[number];
 
 export const roleHierarchy = {
+  "super-admin": 200,
   admin: 100,
   member: 50,
+  tester: 30,
   guest: 10,
 } as const;
 
@@ -56,6 +58,7 @@ export type Role = keyof typeof roleHierarchy;
 export const roles = Object.keys(roleHierarchy) as Role[];
 
 export const defaultRolePermissions: Record<Role, readonly Permission[]> = {
+  "super-admin": allPermissions,
   admin: allPermissions,
   member: [
     "workspace:view",
@@ -75,7 +78,18 @@ export const defaultRolePermissions: Record<Role, readonly Permission[]> = {
     "comment:delete",
     "member:view",
   ],
-
+  tester: [
+    "workspace:view",
+    "board:view",
+    "list:view",
+    "card:view",
+    "card:create",
+    "card:edit",
+    "comment:view",
+    "comment:create",
+    "comment:edit",
+    "member:view",
+  ],
   guest: [
     "workspace:view",
     "board:view",
@@ -153,7 +167,7 @@ export function getRoleLevel(role: Role): number {
 }
 
 export function canManageRole(managerRole: Role, targetRole: Role): boolean {
-  return roleHierarchy[managerRole] >= roleHierarchy[targetRole];
+  return roleHierarchy[managerRole] > roleHierarchy[targetRole];
 }
 
 export function hasPermissionInDefaults(

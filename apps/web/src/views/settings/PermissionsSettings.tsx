@@ -16,7 +16,7 @@ export default function PermissionsSettings() {
   const { showPopup } = usePopup();
   const utils = api.useUtils();
 
-  const isAdmin = workspace.role === "admin";
+  const isAdmin = workspace.role === "admin" || workspace.role === "super-admin";
 
   const resetAllOverrides = api.permission.resetWorkspaceMemberPermissions.useMutation(
     {

@@ -484,7 +484,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   boardSlug={boardData?.slug ?? ""}
                   queryParams={queryParams}
                   isLoading={!boardData}
-                  isAdmin={workspace.role === "admin"}
+                  isAdmin={workspace.role === "admin" || workspace.role === "super-admin"}
                 />
                 {boardData && (
                   <Filters

@@ -173,34 +173,11 @@ export default function UpdateBrandColorForm({
         </div>
       </div>
 
-      {/* Palette preview */}
-      <div className="mb-4">
-        <p className="mb-2 text-xs font-medium text-light-900 dark:text-dark-900">
-          {t`Generated palette`}
-        </p>
-        <div className="flex overflow-hidden rounded-lg border border-light-200 dark:border-dark-400">
-          {Object.entries(palette).map(([weight, hex]) => (
-            <div
-              key={weight}
-              className="flex flex-1 flex-col items-center justify-end py-1"
-              style={{ backgroundColor: hex, minHeight: 48 }}
-            >
-              <span
-                className="text-[9px] font-medium"
-                style={{ color: getContrastText(hex) }}
-              >
-                {weight}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Live preview bar */}
       <div className="mb-5 overflow-hidden rounded-lg border border-light-200 dark:border-dark-400">
         <div
           className="flex items-center gap-2 px-4 py-3"
-          style={{ backgroundColor: palette[600] }}
+          style={{ backgroundColor: palette[500] }}
         >
           <div
             className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"

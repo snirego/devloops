@@ -493,7 +493,7 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
                       <ActivityList
                         cardPublicId={cardId}
                         isLoading={!card}
-                        isAdmin={workspace.role === "admin"}
+                        isAdmin={workspace.role === "admin" || workspace.role === "super-admin"}
                       />
                     </div>
                     {!isTemplate && (

@@ -26,8 +26,8 @@ import membersIconDark from "~/assets/members-dark.json";
 import membersIconLight from "~/assets/members-light.json";
 import settingsIconDark from "~/assets/settings-dark.json";
 import settingsIconLight from "~/assets/settings-light.json";
-import templatesIconDark from "~/assets/templates-dark.json";
-import templatesIconLight from "~/assets/templates-light.json";
+// import templatesIconDark from "~/assets/templates-dark.json";
+// import templatesIconLight from "~/assets/templates-light.json";
 import AiActivityIndicator from "~/components/AiActivityIndicator";
 import ButtonComponent from "~/components/Button";
 import ReactiveButton from "~/components/ReactiveButton";
@@ -119,30 +119,18 @@ export default function SideNavigation({
         description: t`Go to boards`,
       },
     },
-    {
-      name: t`Templates`,
-      href: "/templates",
-      icon: isDarkMode ? templatesIconDark : templatesIconLight,
-      keyboardShortcut: {
-        type: "SEQUENCE",
-        strokes: [{ key: "G" }, { key: "T" }],
-        action: () => router.push("/templates"),
-        group: "NAVIGATION",
-        description: t`Go to templates`,
-      },
-    },
-    {
-      name: t`Members`,
-      href: "/members",
-      icon: isDarkMode ? membersIconDark : membersIconLight,
-      keyboardShortcut: {
-        type: "SEQUENCE",
-        strokes: [{ key: "G" }, { key: "M" }],
-        action: () => router.push("/members"),
-        group: "NAVIGATION",
-        description: t`Go to members`,
-      },
-    },
+    // {
+    //   name: t`Templates`,
+    //   href: "/templates",
+    //   icon: isDarkMode ? templatesIconDark : templatesIconLight,
+    //   keyboardShortcut: {
+    //     type: "SEQUENCE",
+    //     strokes: [{ key: "G" }, { key: "T" }],
+    //     action: () => router.push("/templates"),
+    //     group: "NAVIGATION",
+    //     description: t`Go to templates`,
+    //   },
+    // },
     {
       name: t`Chat`,
       href: "/chat",
@@ -165,6 +153,18 @@ export default function SideNavigation({
         action: () => router.push("/work-items"),
         group: "NAVIGATION",
         description: t`Go to work items`,
+      },
+    },
+    {
+      name: t`Members`,
+      href: "/members",
+      icon: isDarkMode ? membersIconDark : membersIconLight,
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "M" }],
+        action: () => router.push("/members"),
+        group: "NAVIGATION",
+        description: t`Go to members`,
       },
     },
     {

@@ -99,7 +99,7 @@ export default function MembersPage() {
     showSkeleton?: boolean;
     showPendingIcon?: boolean;
   }) => {
-    const handleRoleChange = (newRole: "admin" | "member" | "guest") => {
+    const handleRoleChange = (newRole: "super-admin" | "admin" | "member" | "tester" | "guest") => {
       if (!memberPublicId) return;
 
       updateRoleMutation.mutate({
@@ -107,6 +107,19 @@ export default function MembersPage() {
         memberPublicId,
         role: newRole,
       });
+    };
+
+    const roleBadgeStyles: Record<string, string> = {
+      "super-admin": "bg-purple-500/10 text-purple-400 ring-purple-500/20",
+      admin: "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20",
+      member: "bg-blue-500/10 text-blue-400 ring-blue-500/20",
+      tester: "bg-amber-500/10 text-amber-400 ring-amber-500/20",
+      guest: "bg-gray-500/10 text-gray-400 ring-gray-500/20",
+    };
+
+    const roleLabel = (role: string) => {
+      if (role === "super-admin") return "Super Admin";
+      return role.charAt(0).toUpperCase() + role.slice(1);
     };
 
     return (
@@ -144,7 +157,7 @@ export default function MembersPage() {
                     {memberName}
                   </p>
                 </div>
-                {((workspace.role === "admin" ||
+                {(((workspace.role === "admin" || workspace.role === "super-admin") ||
                   data?.showEmailsToMembers === true) ||
                   showSkeleton) && (
                   <p
@@ -178,10 +191,11 @@ export default function MembersPage() {
                 />
               ) : (
                 <div className="relative inline-flex items-center">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20 sm:text-[11px]">
-                    {memberRole &&
-                      memberRole.charAt(0).toUpperCase() +
-                        memberRole.slice(1)}
+                  <span className={twMerge(
+                    "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset sm:text-[11px]",
+                    roleBadgeStyles[memberRole ?? "member"] ?? roleBadgeStyles.member,
+                  )}>
+                    {memberRole && roleLabel(memberRole)}
                     {canEditMember && session?.user.id !== memberId && (
                       <HiChevronDown className="h-3 w-3" />
                     )}
@@ -192,14 +206,16 @@ export default function MembersPage() {
                       value={memberRole}
                       onChange={(e) =>
                         handleRoleChange(
-                          e.target.value as "admin" | "member" | "guest",
+                          e.target.value as "super-admin" | "admin" | "member" | "tester" | "guest",
                         )
                       }
                       disabled={updateRoleMutation.isPending}
                       className="absolute inset-0 h-full w-full cursor-pointer appearance-none border-none bg-transparent p-0 text-[10px] leading-none opacity-0 focus:outline-none focus-visible:outline-none sm:text-[11px]"
                     >
+                      <option value="super-admin">{t`Super Admin`}</option>
                       <option value="admin">{t`Admin`}</option>
                       <option value="member">{t`Member`}</option>
+                      <option value="tester">{t`Tester`}</option>
                       <option value="guest">{t`Guest`}</option>
                     </select>
                   )}
@@ -214,7 +230,7 @@ export default function MembersPage() {
             <div
               className={twMerge(
                 "relative",
-                (workspace.role !== "admin" || showSkeleton) && "hidden",
+                ((workspace.role !== "admin" && workspace.role !== "super-admin") || showSkeleton) && "hidden",
               )}
             >
               {session?.user.id !== memberId && (
@@ -301,7 +317,7 @@ export default function MembersPage() {
             <Button
               onClick={() => openModal("INVITE_MEMBER")}
               iconLeft={<HiOutlinePlusSmall className="h-4 w-4" />}
-              disabled={workspace.role !== "admin"}
+              disabled={workspace.role !== "admin" && workspace.role !== "super-admin"}
             >
               {t`Invite`}
             </Button>

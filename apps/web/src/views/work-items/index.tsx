@@ -9,6 +9,7 @@ import { useRealtimeWorkItems } from "~/hooks/useRealtimeWorkItems";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import WorkItemCard from "./components/WorkItemCard";
+import { WorkItemContextMenu } from "./components/WorkItemContextMenu";
 import WorkItemDrawer from "./components/WorkItemDrawer";
 import LogsPanel from "./components/LogsPanel";
 
@@ -29,6 +30,13 @@ export default function WorkItemsView() {
     null,
   );
   const [showLogs, setShowLogs] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    publicId: string;
+    title: string;
+    status: string;
+  } | null>(null);
 
   const { data: workItems, refetch, isLoading, isFetching } = api.workItem.list.useQuery(
     { workspacePublicId: workspace.publicId },
@@ -108,11 +116,21 @@ export default function WorkItemsView() {
 
                 {/* Cards */}
                 <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
-                  {items.map((item: { publicId: string }) => (
+                  {items.map((item: { publicId: string; title: string; status: string }) => (
                     <WorkItemCard
                       key={item.publicId}
                       item={item}
                       onClick={() => setSelectedWorkItemId(item.publicId)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setContextMenu({
+                          x: e.clientX,
+                          y: e.clientY,
+                          publicId: item.publicId,
+                          title: item.title,
+                          status: item.status,
+                        });
+                      }}
                     />
                   ))}
                   {items.length === 0 && !isLoading && (
@@ -133,6 +151,19 @@ export default function WorkItemsView() {
           publicId={selectedWorkItemId}
           onClose={() => setSelectedWorkItemId(null)}
           onRefresh={() => refetch()}
+        />
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <WorkItemContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          publicId={contextMenu.publicId}
+          title={contextMenu.title}
+          status={contextMenu.status}
+          onClose={() => setContextMenu(null)}
+          onAction={() => refetch()}
         />
       )}
 

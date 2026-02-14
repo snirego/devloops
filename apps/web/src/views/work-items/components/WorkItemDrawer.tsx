@@ -323,7 +323,7 @@ export default function WorkItemDrawer({
         {promptBundle && (
           <>
             <CollapsibleSection
-              title="Cursor Prompt"
+              title="Prompt"
               icon={<HiOutlineCodeBracket className="h-4 w-4" />}
               open={promptOpen}
               onToggle={() => setPromptOpen(!promptOpen)}

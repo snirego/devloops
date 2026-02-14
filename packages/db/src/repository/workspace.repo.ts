@@ -31,6 +31,11 @@ const SYSTEM_ROLES: {
   hierarchyLevel: number;
 }[] = [
   {
+    name: "super-admin",
+    description: "Full platform control including billing and role management",
+    hierarchyLevel: 200,
+  },
+  {
     name: "admin",
     description: "Full access to all workspace features",
     hierarchyLevel: 100,
@@ -39,6 +44,11 @@ const SYSTEM_ROLES: {
     name: "member",
     description: "Standard member with create and edit permissions",
     hierarchyLevel: 50,
+  },
+  {
+    name: "tester",
+    description: "Can create and edit bug reports, test cases, and add comments",
+    hierarchyLevel: 30,
   },
   {
     name: "guest",
@@ -85,7 +95,7 @@ export const create = async (
 
   if (workspace) {
     // Create system roles for the workspace
-    let adminRoleId: number | null = null;
+    let superAdminRoleId: number | null = null;
     for (const roleData of SYSTEM_ROLES) {
       const role = await permissionRepo.createRole(db, {
         workspaceId: workspace.id,
@@ -95,8 +105,8 @@ export const create = async (
         isSystem: true,
         permissions: [...getDefaultPermissions(roleData.name)] as Permission[],
       });
-      if (roleData.name === "admin" && role) {
-        adminRoleId = role.id;
+      if (roleData.name === "super-admin" && role) {
+        superAdminRoleId = role.id;
       }
     }
 
@@ -106,8 +116,8 @@ export const create = async (
       email: workspaceInput.createdByEmail,
       workspaceId: workspace.id,
       createdBy: workspaceInput.createdBy,
-      role: "admin",
-      roleId: adminRoleId,
+      role: "super-admin",
+      roleId: superAdminRoleId,
       status: "active",
     });
   }

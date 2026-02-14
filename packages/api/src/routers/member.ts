@@ -39,6 +39,7 @@ export const memberRouter = createTRPCRouter({
       z.object({
         email: z.string().email(),
         workspacePublicId: z.string().min(12),
+        role: z.enum(["admin", "member", "tester", "guest"]).default("member"),
       }),
     )
     .output(z.custom<Awaited<ReturnType<typeof memberRepo.create>>>())
@@ -118,11 +119,13 @@ export const memberRouter = createTRPCRouter({
 
       const existingUser = await userRepo.getByEmail(ctx.db, input.email);
 
+      const selectedRole = input.role ?? "member";
+
       // Get the workspace role to set roleId
-      const memberRole = await permissionRepo.getRoleByWorkspaceIdAndName(
+      const inviteRole = await permissionRepo.getRoleByWorkspaceIdAndName(
         ctx.db,
         workspace.id,
-        "member",
+        selectedRole,
       );
 
       const invite = await memberRepo.create(ctx.db, {
@@ -130,8 +133,8 @@ export const memberRouter = createTRPCRouter({
         email: input.email,
         userId: existingUser?.id ?? null,
         createdBy: userId,
-        role: "member",
-        roleId: memberRole?.id ?? null,
+        role: selectedRole,
+        roleId: inviteRole?.id ?? null,
         status: "invited",
       });
 
@@ -141,7 +144,7 @@ export const memberRouter = createTRPCRouter({
           code: "INTERNAL_SERVER_ERROR",
         });
 
-      // Send invite email via SMTP (Resend)
+      // Send invite email via Resend
       const baseUrl = env("NEXT_PUBLIC_BASE_URL") ?? "http://localhost:3000";
       const inviteUrl = `${baseUrl}/boards?type=invite&memberPublicId=${invite.publicId}`;
 
@@ -697,7 +700,7 @@ export const memberRouter = createTRPCRouter({
       z.object({
         workspacePublicId: z.string().min(12),
         memberPublicId: z.string().min(12),
-        role: z.enum(["admin", "member", "guest"]),
+        role: z.enum(["super-admin", "admin", "member", "tester", "guest"]),
       }),
     )
     .output(

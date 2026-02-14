@@ -131,7 +131,7 @@ export default function WorkspaceSettings() {
             <Button
               variant="secondary"
               onClick={() => openModal("DELETE_WORKSPACE")}
-              disabled={workspace.role !== "admin"}
+              disabled={workspace.role !== "admin" && workspace.role !== "super-admin"}
             >
               {t`Delete workspace`}
             </Button>

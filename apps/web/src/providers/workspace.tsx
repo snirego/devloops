@@ -24,7 +24,7 @@ interface Workspace {
   publicId: string;
   slug: string | undefined;
   plan: "free" | "pro" | "enterprise" | undefined;
-  role: "admin" | "member" | "guest";
+  role: "super-admin" | "admin" | "member" | "tester" | "guest";
   brandColor: string | null | undefined;
 }
 
