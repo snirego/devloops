@@ -40,4 +40,5 @@ EXPOSE 3001
 
 # Start
 ENV NODE_ENV=production
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["node"]
+CMD ["dist/index.js"]
