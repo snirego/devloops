@@ -340,18 +340,27 @@ export const chatRouter = createTRPCRouter({
           },
         };
 
-      const workItem = await runWorkItemGenerator(
-        ctx.db,
-        thread.id,
-        threadState,
-        input.type,
-      );
+      let workItem: { publicId: string; id: number } | null = null;
+      try {
+        workItem = await runWorkItemGenerator(
+          ctx.db,
+          thread.id,
+          threadState,
+          input.type,
+        );
+      } catch (err) {
+        console.error("[createWorkItemFromMessage] runWorkItemGenerator threw:", err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `LLM work item generation failed: ${err instanceof Error ? err.message : "Unknown error"}. Check that the LLM endpoint is running and the model is loaded.`,
+        });
+      }
 
       if (!workItem) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "LLM failed to generate a work item. Check that the LLM endpoint is running.",
+            "LLM failed to generate a valid work item. The model returned unparseable output. Try again — small local models can be inconsistent.",
         });
       }
 

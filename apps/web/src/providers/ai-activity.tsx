@@ -43,11 +43,11 @@ export const useAiActivity = () => useContext(AiActivityContext);
  *
  * The LLM pipeline sets `aiProcessingSince` on the feedback_thread row when
  * it starts, and clears it when done. This provider:
- *   1. Polls via tRPC every 10s for threads with aiProcessingSince != null.
- *      Backs off to 30s on consecutive errors to avoid log spam.
- *   2. Listens to Supabase Realtime for thread updates to refetch instantly
- *      when the AI finishes (aiProcessingSince is cleared).
- *   3. Only activates when the user is authenticated (protectedProcedure).
+ *   1. Fetches AI processing state on mount and on window re-focus.
+ *   2. Only polls (every 5s) while jobs are active — stops when idle.
+ *   3. Listens to Supabase Realtime for thread updates to refetch instantly
+ *      when the AI starts or finishes (aiProcessingSince set/cleared).
+ *   4. Only activates when the user is authenticated (protectedProcedure).
  */
 export function AiActivityProvider({
   children,
@@ -57,25 +57,25 @@ export function AiActivityProvider({
   const { data: session } = authClient.useSession();
   const isAuthenticated = !!session?.user;
 
+  // Track whether we currently have active jobs — drives polling
+  const [hasActiveJobs, setHasActiveJobs] = useState(false);
+
   // Track consecutive errors so we can back off
   const errorCountRef = useRef(0);
 
   // Only query when authenticated — the endpoint uses protectedProcedure
-  const { data, refetch, status } = api.chat.aiProcessing.useQuery(undefined, {
+  const { data, refetch } = api.chat.aiProcessing.useQuery(undefined, {
     enabled: isAuthenticated,
-    // Dynamic interval: 10s normally, 30s after 2+ errors, stop after 5+ errors
-    refetchInterval: (query) => {
+    // Only poll while there are active jobs (5s), otherwise don't poll at all.
+    // Supabase Realtime handles the "AI just started" notification.
+    refetchInterval: () => {
       if (!isAuthenticated) return false;
-      if (query.state.status === "error") {
-        errorCountRef.current++;
-        if (errorCountRef.current >= 5) return false; // stop polling until page reload
-        return 30_000; // back off to 30s on error
-      }
-      errorCountRef.current = 0; // reset on success
-      return 10_000;
+      if (errorCountRef.current >= 3) return false; // stop on repeated errors
+      if (hasActiveJobs) return 5_000; // poll while active
+      return false; // idle — no polling, Realtime will trigger refetch
     },
     refetchOnWindowFocus: true,
-    retry: 1, // only retry once on failure, don't stack retries
+    retry: 1,
     retryDelay: 5_000,
   });
 
@@ -85,7 +85,7 @@ export function AiActivityProvider({
     refetchRef.current = refetch;
   }, [refetch]);
 
-  // Memoised job list
+  // Derive job list from query data
   const [activeJobs, setActiveJobs] = useState<AiJob[]>([]);
 
   useEffect(() => {
@@ -100,6 +100,9 @@ export function AiActivityProvider({
         : new Date().toISOString(),
     }));
     setActiveJobs(jobs);
+    setHasActiveJobs(jobs.length > 0);
+    // Reset error count on any successful response
+    errorCountRef.current = 0;
   }, [data]);
 
   // ── Supabase Realtime subscription (global, never remounts) ──────────
@@ -131,7 +134,6 @@ export function AiActivityProvider({
         () => {
           // Refetch immediately when any thread changes
           // (AI starting or finishing — aiProcessingSince set/cleared)
-          // Also reset error count so polling resumes normally
           errorCountRef.current = 0;
           refetchRef.current();
         },

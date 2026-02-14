@@ -67,13 +67,20 @@ export type LlmResponse<T> = LlmResult<T> | LlmError;
 function repairJson(raw: string): string {
   let s = raw.trim();
 
+  // Strip markdown code fences
   if (s.startsWith("```json")) s = s.slice(7);
   else if (s.startsWith("```")) s = s.slice(3);
   if (s.endsWith("```")) s = s.slice(0, -3);
   s = s.trim();
 
+  // Strip comments
   s = s.replace(/(?<!["\w])\/\/[^\n]*/g, "");
   s = s.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  // Fix garbled key prefixes: LLMs sometimes emit a stray character before a
+  // quoted key (e.g. `G"title"` or ` G"key"`). Remove single non-whitespace
+  // chars that appear right before a `"key":` pattern.
+  s = s.replace(/([{,\[]\s*)[A-Z]"/g, '$1"');
 
   const startObj = s.indexOf("{");
   const startArr = s.indexOf("[");

@@ -95,24 +95,77 @@ interface WorkItemGenOutput {
 function validateWorkItemGenOutput(parsed: unknown): WorkItemGenOutput {
   const obj = parsed as Record<string, unknown>;
   if (!obj || typeof obj !== "object") throw new Error("Expected object");
-  if (typeof obj.title !== "string" || obj.title.length === 0)
-    throw new Error("title must be non-empty string");
 
+  // Title: required, coerce if possible
+  if (typeof obj.title !== "string" || obj.title.trim().length === 0) {
+    // Try to find any string field that could serve as a title
+    const fallback = typeof obj.name === "string" ? obj.name
+      : typeof obj.summary === "string" ? obj.summary
+      : null;
+    if (fallback && fallback.trim().length > 0) {
+      obj.title = fallback.trim().slice(0, 200);
+    } else {
+      throw new Error("title must be non-empty string");
+    }
+  }
+
+  // Type: coerce to valid value
   const validTypes = ["Bug", "Feature", "Chore", "Docs"];
-  if (!validTypes.includes(obj.type as string)) obj.type = "Bug";
+  if (!validTypes.includes(obj.type as string)) {
+    // Try case-insensitive match
+    const typeStr = String(obj.type ?? "").toLowerCase();
+    const matched = validTypes.find((t) => t.toLowerCase() === typeStr);
+    obj.type = matched ?? "Feature";
+  }
 
+  // Priority: coerce, handle common alternatives like "High"/"Low"
   const validPriorities = ["P0", "P1", "P2", "P3"];
-  if (!validPriorities.includes(obj.priority as string)) obj.priority = "P2";
+  if (!validPriorities.includes(obj.priority as string)) {
+    const pStr = String(obj.priority ?? "").toLowerCase();
+    if (pStr.includes("critical") || pStr.includes("urgent") || pStr === "high" || pStr === "p0") obj.priority = "P0";
+    else if (pStr.includes("high") || pStr === "p1") obj.priority = "P1";
+    else if (pStr.includes("low") || pStr === "p3") obj.priority = "P3";
+    else obj.priority = "P2";
+  }
 
+  // Severity: coerce to 1-5
+  if (typeof obj.severity === "string") {
+    const parsed = parseInt(obj.severity, 10);
+    obj.severity = isNaN(parsed) ? 3 : Math.max(1, Math.min(5, parsed));
+  }
   if (typeof obj.severity !== "number" || obj.severity < 1 || obj.severity > 5)
     obj.severity = 3;
 
+  // Risk level: coerce
   const validRisk = ["Low", "Medium", "High"];
-  if (!validRisk.includes(obj.riskLevel as string)) obj.riskLevel = "Medium";
+  if (!validRisk.includes(obj.riskLevel as string)) {
+    const rStr = String(obj.riskLevel ?? "").toLowerCase();
+    const matched = validRisk.find((r) => r.toLowerCase() === rStr);
+    obj.riskLevel = matched ?? (rStr === "none" ? "Low" : "Medium");
+  }
 
-  if (!Array.isArray(obj.acceptanceCriteria)) obj.acceptanceCriteria = [];
+  // Structured description: coerce
+  if (typeof obj.structuredDescription !== "string") {
+    obj.structuredDescription = typeof obj.description === "string" ? obj.description : "";
+  }
+
+  // Acceptance criteria: coerce objects to strings if needed
+  if (!Array.isArray(obj.acceptanceCriteria)) {
+    obj.acceptanceCriteria = [];
+  } else {
+    obj.acceptanceCriteria = (obj.acceptanceCriteria as unknown[]).map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const o = item as Record<string, unknown>;
+        return String(o.name ?? o.description ?? o.text ?? JSON.stringify(item));
+      }
+      return String(item);
+    });
+  }
+
   if (!Array.isArray(obj.labels)) obj.labels = [];
 
+  // Prompt bundle: coerce
   const pb = obj.promptBundle as Record<string, unknown> | undefined;
   if (!pb || typeof pb !== "object") {
     obj.promptBundle = {
@@ -124,11 +177,15 @@ function validateWorkItemGenOutput(parsed: unknown): WorkItemGenOutput {
       commands: [],
     };
   } else {
+    if (typeof pb.cursorPrompt !== "string") pb.cursorPrompt = "";
+    if (typeof pb.agentSystemPrompt !== "string") pb.agentSystemPrompt = "";
+    if (typeof pb.agentTaskPrompt !== "string") pb.agentTaskPrompt = "";
     if (!Array.isArray(pb.suspectedFiles)) pb.suspectedFiles = [];
     if (!Array.isArray(pb.testsToRun)) pb.testsToRun = [];
     if (!Array.isArray(pb.commands)) pb.commands = [];
   }
 
+  // Estimated effort: coerce
   const ef = obj.estimatedEffort as Record<string, unknown> | undefined;
   if (!ef || typeof ef !== "object") {
     obj.estimatedEffort = {
@@ -139,7 +196,13 @@ function validateWorkItemGenOutput(parsed: unknown): WorkItemGenOutput {
     };
   } else {
     const validSizes = ["XS", "S", "M", "L", "XL"];
-    if (!validSizes.includes(ef.tShirt as string)) ef.tShirt = "M";
+    if (!validSizes.includes(ef.tShirt as string)) {
+      const sStr = String(ef.tShirt ?? "").toUpperCase();
+      ef.tShirt = validSizes.includes(sStr) ? sStr : "M";
+    }
+    if (typeof ef.hoursMin !== "number") ef.hoursMin = 2;
+    if (typeof ef.hoursMax !== "number") ef.hoursMax = 8;
+    if (typeof ef.confidence !== "number") ef.confidence = 0.5;
   }
 
   return obj as unknown as WorkItemGenOutput;
@@ -166,12 +229,24 @@ OUTPUT FORMAT — STRICT:
 - Do NOT wrap in markdown code fences.
 - Do NOT include any text before or after the JSON.`;
 
-const WORKITEM_GEN_SYSTEM_PROMPT = `You generate work items as JSON. Respond with ONLY a JSON object. No markdown, no explanation, no code fences.
+const WORKITEM_GEN_SYSTEM_PROMPT = `You are a JSON generator. You MUST respond with ONLY a raw JSON object.
+NEVER wrap in markdown code fences. NEVER add any text before or after the JSON.
 
-EXAMPLE OUTPUT:
-{"title":"Fix login timeout","type":"Bug","structuredDescription":"Users report...","acceptanceCriteria":["Login completes in <3s","Error message shown on timeout"],"priority":"P1","severity":3,"riskLevel":"Medium","estimatedEffort":{"tShirt":"S","hoursMin":2,"hoursMax":6,"confidence":0.7},"promptBundle":{"cursorPrompt":"Fix the login timeout issue...","agentSystemPrompt":"Do not modify auth keys...","agentTaskPrompt":"Investigate the login handler...","suspectedFiles":["src/auth/login.ts"],"testsToRun":["npm test -- auth"],"commands":["npm run dev"]},"labels":["auth","bug"]}
+STRICT RULES:
+- All property names MUST be double-quoted
+- All string values MUST be double-quoted
+- "type" MUST be one of: "Bug", "Feature", "Chore", "Docs"
+- "priority" MUST be one of: "P0", "P1", "P2", "P3"
+- "severity" MUST be a number from 1 to 5
+- "riskLevel" MUST be one of: "Low", "Medium", "High"
+- "acceptanceCriteria" MUST be an array of strings (NOT objects)
+- "labels" MUST be an array of strings
+- "estimatedEffort" MUST have keys: "tShirt" (XS/S/M/L/XL), "hoursMin" (number), "hoursMax" (number), "confidence" (0-1)
+- "promptBundle" MUST have keys: "cursorPrompt" (string), "agentSystemPrompt" (string), "agentTaskPrompt" (string), "suspectedFiles" (string[]), "testsToRun" (string[]), "commands" (string[])
+- No comments, no trailing commas
 
-Rules: All keys double-quoted. All strings double-quoted. No comments. No trailing commas. Just valid JSON.`;
+EXAMPLE (copy this structure exactly):
+{"title":"Fix login timeout","type":"Bug","structuredDescription":"Users report login timing out after 30 seconds.","acceptanceCriteria":["Login completes in under 3 seconds","Error message shown on timeout"],"priority":"P1","severity":3,"riskLevel":"Medium","estimatedEffort":{"tShirt":"S","hoursMin":2,"hoursMax":6,"confidence":0.7},"promptBundle":{"cursorPrompt":"Fix the login timeout issue","agentSystemPrompt":"Do not modify auth keys","agentTaskPrompt":"Investigate the login handler","suspectedFiles":["src/auth/login.ts"],"testsToRun":["npm test -- auth"],"commands":["npm run dev"]},"labels":["auth","bug"]}`;
 
 function buildThreadStateUserPrompt(
   currentState: ThreadStateJson,
@@ -214,16 +289,21 @@ function buildWorkItemGenPrompt(
   const expected = threadState.expectedBehavior || "";
   const actual = threadState.actualBehavior || "";
 
-  return `Create a "${workItemType}" work item from this conversation:
+  const context = [
+    `Type: ${workItemType}`,
+    `Summary: ${summary}`,
+    goal ? `User goal: ${goal}` : null,
+    `Intent: ${intent}`,
+    steps ? `Repro steps: ${steps}` : null,
+    expected ? `Expected: ${expected}` : null,
+    actual ? `Actual: ${actual}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-Summary: ${summary}
-${goal ? `User goal: ${goal}` : ""}
-Intent: ${intent}
-${steps ? `Repro steps: ${steps}` : ""}
-${expected ? `Expected: ${expected}` : ""}
-${actual ? `Actual: ${actual}` : ""}
+  return `${context}
 
-Return a JSON object with these exact keys: title, type, structuredDescription, acceptanceCriteria (string array), priority (P0-P3), severity (1-5), riskLevel (Low/Medium/High), estimatedEffort ({tShirt, hoursMin, hoursMax, confidence}), promptBundle ({cursorPrompt, agentSystemPrompt, agentTaskPrompt, suspectedFiles, testsToRun, commands}), labels (string array).`;
+Respond with a single JSON object. The "type" field MUST be "${workItemType}". Do NOT use markdown fences.`;
 }
 
 // ─── Job Execution ───────────────────────────────────────────────────────────
@@ -319,9 +399,9 @@ export async function runWorkItemGenerator(
     systemPrompt: WORKITEM_GEN_SYSTEM_PROMPT,
     userPrompt: buildWorkItemGenPrompt(threadState, workItemType),
     validate: validateWorkItemGenOutput,
-    temperature: 0.3,
+    temperature: 0.2,
     maxTokens: 4096,
-    maxRetries: 2,
+    maxRetries: 3,
   });
 
   if (!result.ok) {
