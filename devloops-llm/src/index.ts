@@ -5,8 +5,17 @@
  * designed for deployment on Railway / Koyeb.
  */
 
+import dns from "node:dns";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+
+// ── Railway Private Networking Fix ────────────────────────────────────────
+// Railway's internal network (*.railway.internal) is IPv6-only.
+// Node.js dns.lookup() defaults to trying IPv4 first, which fails.
+// Setting verbatim: true preserves the OS resolver order (which on Railway
+// returns IPv6 addresses for .railway.internal domains).
+// This MUST be set before any fetch/http calls are made.
+dns.setDefaultResultOrder("verbatim");
 
 import { loadConfig } from "./config.js";
 import { createLogger } from "./utils/logger.js";
