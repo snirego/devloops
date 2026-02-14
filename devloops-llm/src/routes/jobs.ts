@@ -1,15 +1,20 @@
 /**
  * Job submission REST endpoints.
  *
- *   POST /jobs/ingest             — enqueue a full ingest pipeline job
- *   POST /jobs/generate-workitem  — enqueue a standalone WorkItem generation job
- *   GET  /jobs/:id/status         — poll job status
+ *   POST /jobs/ingest                      — enqueue a full ingest pipeline job (legacy)
+ *   POST /jobs/generate-workitem           — enqueue a standalone WorkItem generation job
+ *   GET  /jobs/:queue/:id/status           — poll BullMQ job status
+ *   GET  /pipeline/jobs/:publicId          — get pipeline job status by publicId
+ *   GET  /pipeline/stats                   — pipeline job statistics
  */
 
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { eq, sql } from "drizzle-orm";
 
 import { authMiddleware } from "../middleware/auth.js";
+import { getDb } from "../db/client.js";
+import { pipelineJobs } from "../db/schema.js";
 import {
   getIngestQueue,
   getWorkItemQueue,
@@ -160,6 +165,98 @@ export async function registerJobRoutes(app: FastifyInstance): Promise<void> {
         attemptsMade: job.attemptsMade,
         timestamp: job.timestamp,
         finishedOn: job.finishedOn,
+      });
+    },
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Pipeline Job Endpoints (DB-backed smart pipeline)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // ── GET /pipeline/jobs/:publicId ──────────────────────────────────
+  app.get(
+    "/pipeline/jobs/:publicId",
+    { preHandler: authMiddleware },
+    async (request, reply) => {
+      const { publicId } = request.params as { publicId: string };
+      const db = getDb();
+
+      const job = await db.query.pipelineJobs.findFirst({
+        where: eq(pipelineJobs.publicId, publicId),
+      });
+
+      if (!job) {
+        return reply.code(404).send({ error: "Pipeline job not found" });
+      }
+
+      return reply.send({
+        id: job.id,
+        publicId: job.publicId,
+        threadId: job.threadId,
+        status: job.status,
+        gatekeeperAction: job.gatekeeperAction,
+        resultJson: job.resultJson,
+        errorMessage: job.errorMessage,
+        attempts: job.attempts,
+        maxAttempts: job.maxAttempts,
+        claimedAt: job.claimedAt,
+        completedAt: job.completedAt,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
+      });
+    },
+  );
+
+  // ── GET /pipeline/jobs/thread/:threadId ───────────────────────────
+  app.get(
+    "/pipeline/jobs/thread/:threadId",
+    { preHandler: authMiddleware },
+    async (request, reply) => {
+      const { threadId } = request.params as { threadId: string };
+      const db = getDb();
+
+      const jobs = await db.query.pipelineJobs.findMany({
+        where: eq(pipelineJobs.threadId, Number(threadId)),
+        orderBy: (pj, { desc }) => [desc(pj.createdAt)],
+        limit: 20,
+      });
+
+      return reply.send({ jobs });
+    },
+  );
+
+  // ── GET /pipeline/stats ───────────────────────────────────────────
+  app.get(
+    "/pipeline/stats",
+    { preHandler: authMiddleware },
+    async (_request, reply) => {
+      const db = getDb();
+
+      const result = await db.execute(sql`
+        SELECT
+          status,
+          COUNT(*) as count,
+          MIN("createdAt") as oldest,
+          MAX("createdAt") as newest
+        FROM pipeline_job
+        GROUP BY status
+        ORDER BY status
+      `);
+
+      const stats = result.rows as Array<{
+        status: string;
+        count: string;
+        oldest: string;
+        newest: string;
+      }>;
+
+      return reply.send({
+        stats: stats.map((s) => ({
+          status: s.status,
+          count: Number(s.count),
+          oldest: s.oldest,
+          newest: s.newest,
+        })),
       });
     },
   );

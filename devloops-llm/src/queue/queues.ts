@@ -1,11 +1,12 @@
 /**
  * BullMQ queue definitions.
  *
- * Two queues:
- *   - llm-ingest:   Full pipeline (ThreadState → Gatekeeper → WorkItem)
+ * Three queues:
+ *   - llm-ingest:   Full pipeline (ThreadState → Gatekeeper → WorkItem) [legacy]
  *   - llm-workitem: Standalone WorkItem generation (manual trigger)
+ *   - llm-pipeline: Smart pipeline — polls pipeline_job table for pending jobs
  *
- * Both share the same Redis connection and have:
+ * All share the same Redis connection and have:
  *   - Rate limiting to protect the LLM provider
  *   - Exponential backoff retries
  *   - Dead-letter on final failure
@@ -33,6 +34,11 @@ export interface WorkItemJobData {
   workItemType: "Bug" | "Feature" | "Chore" | "Docs";
 }
 
+/** Pipeline poller job — no payload, just a trigger to poll the DB */
+export interface PipelinePollerJobData {
+  trigger: "scheduled";
+}
+
 // ─── Job result types ────────────────────────────────────────────────────────
 
 export interface IngestJobResult {
@@ -51,15 +57,23 @@ export interface WorkItemJobResult {
   id: number;
 }
 
+export interface PipelinePollerJobResult {
+  jobsClaimed: number;
+  jobsProcessed: number;
+  errors: number;
+}
+
 // ─── Queue names ─────────────────────────────────────────────────────────────
 
 export const INGEST_QUEUE = "llm-ingest";
 export const WORKITEM_QUEUE = "llm-workitem";
+export const PIPELINE_QUEUE = "llm-pipeline";
 
 // ─── Queue instances ─────────────────────────────────────────────────────────
 
 let _ingestQueue: Queue | null = null;
 let _workItemQueue: Queue | null = null;
+let _pipelineQueue: Queue | null = null;
 
 export function getIngestQueue(): Queue {
   if (_ingestQueue) return _ingestQueue;
@@ -97,6 +111,23 @@ export function getWorkItemQueue(): Queue {
   return _workItemQueue;
 }
 
+export function getPipelineQueue(): Queue {
+  if (_pipelineQueue) return _pipelineQueue;
+
+  _pipelineQueue = new Queue(PIPELINE_QUEUE, {
+    connection: getRedis() as never,
+    defaultJobOptions: {
+      // Pipeline poller jobs are lightweight — they just poll the DB.
+      // The actual heavy work happens in-process after claiming a row.
+      attempts: 1,
+      removeOnComplete: { age: 3_600, count: 1_000 },
+      removeOnFail: { age: 86_400, count: 5_000 },
+    },
+  });
+
+  return _pipelineQueue;
+}
+
 export async function closeQueues(): Promise<void> {
   if (_ingestQueue) {
     await _ingestQueue.close();
@@ -105,5 +136,9 @@ export async function closeQueues(): Promise<void> {
   if (_workItemQueue) {
     await _workItemQueue.close();
     _workItemQueue = null;
+  }
+  if (_pipelineQueue) {
+    await _pipelineQueue.close();
+    _pipelineQueue = null;
   }
 }

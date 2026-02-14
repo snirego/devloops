@@ -1,15 +1,19 @@
 /**
- * Job A: Update ThreadState cumulatively from a new message.
+ * Job A: Update ThreadState cumulatively from conversation context.
  *
- * Calls the LLM with the current thread state + new message,
+ * Two modes:
+ *   1. Single-message mode (original): receives one new message text
+ *   2. Full-context mode (smart pipeline): receives ALL messages for the thread
+ *
+ * Calls the LLM with the current thread state + messages,
  * validates the output, and persists to Postgres.
  */
 
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 import type { DbClient } from "../db/client.js";
 import type { ThreadStateJson } from "../db/schema.js";
-import { feedbackThreads, auditLogs } from "../db/schema.js";
+import { feedbackThreads, feedbackMessages, auditLogs } from "../db/schema.js";
 import { llmJsonCompletion } from "../llm/client.js";
 import { getLogger } from "../utils/logger.js";
 
@@ -88,6 +92,8 @@ CRITICAL RULES:
 - If user introduces a completely unrelated topic, set recommendation.action to "SplitIntoTwo".
 - Be conservative with CreateBugWorkItem/CreateFeatureWorkItem — only when you have enough info and confidence >= 0.7.
 - Default recommendation is NoTicket or AskQuestions.
+- When you set action to AskQuestions, populate openQuestions with specific, clear questions.
+- Consider the full conversation flow: if you previously asked questions and the user responded, evaluate whether the answers are sufficient.
 
 OUTPUT FORMAT — STRICT:
 - Respond with ONLY a valid JSON object. Nothing else.
@@ -97,7 +103,7 @@ OUTPUT FORMAT — STRICT:
 - Do NOT wrap in markdown code fences.
 - Do NOT include any text before or after the JSON.`;
 
-// ─── Build User Prompt ───────────────────────────────────────────────────────
+// ─── Build User Prompt (single message mode — backward compat) ──────────────
 
 function buildThreadStateUserPrompt(
   currentState: ThreadStateJson,
@@ -134,7 +140,76 @@ function buildThreadStateUserPrompt(
   });
 }
 
-// ─── Execute ─────────────────────────────────────────────────────────────────
+// ─── Build User Prompt (full conversation mode — smart pipeline) ────────────
+
+export interface ConversationMessage {
+  senderType: "user" | "internal";
+  senderName: string | null;
+  rawText: string;
+  createdAt: Date | string;
+}
+
+function buildFullContextUserPrompt(
+  currentState: ThreadStateJson,
+  messages: ConversationMessage[],
+): string {
+  // Format conversation as a readable history
+  const conversationHistory = messages.map((m, i) => ({
+    index: i + 1,
+    from: m.senderType === "user" ? (m.senderName ?? "User") : (m.senderName ?? "Team"),
+    role: m.senderType,
+    text: m.rawText,
+  }));
+
+  return JSON.stringify({
+    instruction:
+      "Analyze the FULL conversation history below and produce an updated ThreadState. Consider ALL messages cumulatively. If questions were asked by the AI and the user has responded, evaluate whether the information is now sufficient. Return the full updated ThreadState as JSON.",
+    currentThreadState: currentState,
+    conversationHistory,
+    messageCount: messages.length,
+    outputSchema: {
+      summary: "string — overall conversation summary",
+      userGoal: "string|null",
+      intent: "Bug|Feature|Performance|Billing|Other",
+      knownEnvironment:
+        "{ device?, os?, browser?, appVersion?, hardware?, network? }",
+      reproSteps: "string[]",
+      expectedBehavior: "string|null",
+      actualBehavior: "string|null",
+      openQuestions: "string[] — questions that still need answers",
+      resolvedQuestions: "string[] — questions that have been answered",
+      signals: "{ sentiment?, urgency?, impactGuess? }",
+      workItemCandidates:
+        "array of { type, shortTitle, reason, confidence }",
+      recommendation:
+        "{ action: NoTicket|AskQuestions|CreateBugWorkItem|CreateFeatureWorkItem|SplitIntoTwo, reason: string, confidence: 0-1 }",
+      duplicateHint:
+        "{ possibleDuplicate: boolean, matchedWorkItemId: number|null, matchedTicketUrl: string|null }",
+    },
+  });
+}
+
+// ─── Load all messages for a thread ──────────────────────────────────────────
+
+export async function loadThreadMessages(
+  db: DbClient,
+  threadId: number,
+): Promise<ConversationMessage[]> {
+  const msgs = await db
+    .select({
+      senderType: feedbackMessages.senderType,
+      senderName: feedbackMessages.senderName,
+      rawText: feedbackMessages.rawText,
+      createdAt: feedbackMessages.createdAt,
+    })
+    .from(feedbackMessages)
+    .where(eq(feedbackMessages.threadId, threadId))
+    .orderBy(asc(feedbackMessages.createdAt));
+
+  return msgs as ConversationMessage[];
+}
+
+// ─── Execute (single message mode — backward compatible) ─────────────────────
 
 export async function runThreadStateUpdate(
   db: DbClient,
@@ -190,6 +265,91 @@ export async function runThreadStateUpdate(
     entityId: threadId,
     action: "threadstate_updated",
     detailsJson: { recommendation: updatedState.recommendation },
+  });
+
+  return updatedState;
+}
+
+// ─── Execute (full-context mode — smart pipeline) ────────────────────────────
+
+/**
+ * Run ThreadState update using the FULL conversation history.
+ *
+ * This mode loads all messages from the thread and passes them to the LLM
+ * as a complete conversation, ensuring no context is lost even after
+ * page reloads or when picking up waiting_for_input threads.
+ */
+export async function runThreadStateUpdateFullContext(
+  db: DbClient,
+  threadId: number,
+  currentState: ThreadStateJson | null,
+): Promise<ThreadStateJson> {
+  const logger = getLogger();
+  const state = currentState ?? EMPTY_THREAD_STATE;
+
+  // Load ALL messages for this thread
+  const messages = await loadThreadMessages(db, threadId);
+
+  if (messages.length === 0) {
+    logger.warn({ threadId }, "[Job A] No messages found for thread — returning current state");
+    return state;
+  }
+
+  logger.info(
+    { threadId, messageCount: messages.length },
+    "[Job A] Running full-context ThreadState update",
+  );
+
+  const result = await llmJsonCompletion({
+    systemPrompt: THREAD_STATE_SYSTEM_PROMPT,
+    userPrompt: buildFullContextUserPrompt(state, messages),
+    validate: validateThreadState,
+    temperature: 0.1,
+    maxTokens: 4096,
+    maxRetries: 1,
+  });
+
+  if (!result.ok) {
+    logger.error(
+      { threadId, error: result.error },
+      "[Job A] Full-context ThreadState update failed",
+    );
+
+    await db.insert(auditLogs).values({
+      entityType: "Thread",
+      entityId: threadId,
+      action: "threadstate_update_failed",
+      detailsJson: {
+        error: result.error,
+        rawContent: result.rawContent ?? null,
+        mode: "full_context",
+        messageCount: messages.length,
+      },
+    });
+
+    return state;
+  }
+
+  const updatedState = result.data;
+
+  await db
+    .update(feedbackThreads)
+    .set({
+      threadStateJson: updatedState,
+      updatedAt: new Date(),
+      lastActivityAt: new Date(),
+    })
+    .where(eq(feedbackThreads.id, threadId));
+
+  await db.insert(auditLogs).values({
+    entityType: "Thread",
+    entityId: threadId,
+    action: "threadstate_updated",
+    detailsJson: {
+      recommendation: updatedState.recommendation,
+      mode: "full_context",
+      messageCount: messages.length,
+    },
   });
 
   return updatedState;

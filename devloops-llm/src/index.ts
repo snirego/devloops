@@ -16,8 +16,8 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerJobRoutes } from "./routes/jobs.js";
 import { getDb } from "./db/client.js";
 import { getRedis } from "./queue/connection.js";
-import { getIngestQueue, getWorkItemQueue } from "./queue/queues.js";
-import { startWorkers } from "./queue/workers.js";
+import { getIngestQueue, getWorkItemQueue, getPipelineQueue } from "./queue/queues.js";
+import { startWorkers, setupPipelinePoller } from "./queue/workers.js";
 
 async function main(): Promise<void> {
   // ── 1. Load + validate config ──────────────────────────────────────
@@ -90,9 +90,13 @@ async function main(): Promise<void> {
   getRedis();    // Connect to Redis
   getIngestQueue();   // Initialize queues
   getWorkItemQueue();
+  getPipelineQueue(); // Smart pipeline queue
 
   // ── 6. Start BullMQ workers ────────────────────────────────────────
   startWorkers();
+
+  // ── 6b. Setup pipeline poller (repeatable job every 3s) ────────────
+  await setupPipelinePoller();
 
   // ── 7. Register graceful shutdown ──────────────────────────────────
   registerShutdownHandlers(app);

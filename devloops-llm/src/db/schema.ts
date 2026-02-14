@@ -6,6 +6,7 @@
  *   - feedback_message
  *   - work_item
  *   - audit_log
+ *   - pipeline_job
  *
  * The canonical schema lives in packages/db/src/schema/feedbackThreads.ts.
  * Keep this file in sync when that schema changes.
@@ -13,6 +14,7 @@
 
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   doublePrecision,
   index,
@@ -121,6 +123,7 @@ export const feedbackThreadsRelations = relations(
   ({ many }) => ({
     messages: many(feedbackMessages),
     workItems: many(workItems),
+    pipelineJobs: many(pipelineJobs),
   }),
 );
 
@@ -208,6 +211,58 @@ export const workItemsRelations = relations(workItems, ({ one }) => ({
     fields: [workItems.threadId],
     references: [feedbackThreads.id],
     relationName: "workItemsThread",
+  }),
+}));
+
+// ─── Pipeline Job (Durable Job Ledger) ───────────────────────────────────────
+
+export const pipelineJobStatusEnum = pgEnum("pipeline_job_status", [
+  "pending",
+  "processing",
+  "waiting_for_input",
+  "completed",
+  "failed",
+  "canceled",
+]);
+
+export const pipelineJobs = pgTable(
+  "pipeline_job",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    publicId: varchar("publicId", { length: 12 }).notNull().unique(),
+    threadId: bigserial("threadId", { mode: "number" })
+      .notNull()
+      .references(() => feedbackThreads.id, { onDelete: "cascade" }),
+    triggerMessageId: bigint("triggerMessageId", { mode: "number" })
+      .references(() => feedbackMessages.id, { onDelete: "set null" }),
+    status: pipelineJobStatusEnum("status").notNull().default("pending"),
+    gatekeeperAction: varchar("gatekeeperAction", { length: 50 }),
+    resultJson: jsonb("resultJson"),
+    errorMessage: text("errorMessage"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("maxAttempts").notNull().default(3),
+    claimedAt: timestamp("claimedAt"),
+    completedAt: timestamp("completedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt"),
+  },
+  (table) => [
+    index("pipeline_job_thread_idx").on(table.threadId),
+    index("pipeline_job_status_idx").on(table.status),
+    index("pipeline_job_pending_idx").on(table.status, table.createdAt),
+  ],
+);
+
+export const pipelineJobsRelations = relations(pipelineJobs, ({ one }) => ({
+  thread: one(feedbackThreads, {
+    fields: [pipelineJobs.threadId],
+    references: [feedbackThreads.id],
+    relationName: "pipelineJobsThread",
+  }),
+  triggerMessage: one(feedbackMessages, {
+    fields: [pipelineJobs.triggerMessageId],
+    references: [feedbackMessages.id],
+    relationName: "pipelineJobsTriggerMessage",
   }),
 }));
 
@@ -317,3 +372,20 @@ export type WorkItemStatus =
   | "Done"
   | "Failed"
   | "Canceled";
+
+export type PipelineJobStatus =
+  | "pending"
+  | "processing"
+  | "waiting_for_input"
+  | "completed"
+  | "failed"
+  | "canceled";
+
+export interface PipelineJobResultJson {
+  gatekeeperAction: string;
+  reason: string;
+  workItemPublicId?: string;
+  workItemId?: number;
+  aiResponseText?: string;
+  threadStatus?: string;
+}
