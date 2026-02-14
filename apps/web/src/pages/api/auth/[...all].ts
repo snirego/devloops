@@ -4,7 +4,9 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { and, eq } from "drizzle-orm";
 
-import { db } from "@kan/db/client";
+import { createDrizzleClient } from "@kan/db/client";
+
+const db = createDrizzleClient();
 import { apikey } from "@kan/db/schema";
 
 import { createServerClient } from "@kan/auth/server";
