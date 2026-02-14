@@ -39,7 +39,7 @@ Thank you for your interest in contributing to Kan! This document provides guide
 
 - Join our [Discord server](https://discord.gg/e6ejRb6CmT) for questions
 - Check existing issues and pull requests
-- Email [henry@kan.bn](mailto:henry@kan.bn) for major concerns
+- Email [henry@Devloops](mailto:henry@Devloops) for major concerns
 
 ## Code of Conduct
 

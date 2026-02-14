@@ -24,9 +24,9 @@ export function DeleteCommentConfirmation({
   };
 
   const deleteCommentMutation = api.card.deleteComment.useMutation({
-    onMutate: async (args) => {
+    onMutate: (args) => {
       closeModal();
-      await utils.card.byId.cancel();
+      void utils.card.byId.cancel();
       const currentState = utils.card.byId.getData(queryParams);
 
       utils.card.byId.setData(queryParams, (oldCard) => {
@@ -47,8 +47,8 @@ export function DeleteCommentConfirmation({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
     },
   });
 

@@ -1513,8 +1513,8 @@ msgid "Join workspace"
 msgstr "Unirse al espacio de trabajo"
 
 #: src/views/invite/index.tsx:91
-msgid "Join workspace | kan.bn"
-msgstr "Unirse al espacio de trabajo | kan.bn"
+msgid "Join workspace | Devloops"
+msgstr "Unirse al espacio de trabajo | Devloops"
 
 #: src/views/boards/components/TemplateBoards.tsx:70
 msgid "Junior"
@@ -1626,8 +1626,8 @@ msgid "Loading..."
 msgstr "Cargando..."
 
 #: src/views/auth/login/index.tsx:33
-msgid "Login | kan.bn"
-msgstr "Iniciar sesión | kan.bn"
+msgid "Login | Devloops"
+msgstr "Iniciar sesión | Devloops"
 
 #: src/components/UserMenu.tsx:227
 msgid "Logout"
@@ -2319,8 +2319,8 @@ msgstr "Registrarse"
 
 #: src/views/auth/signup/index.tsx:34
 #: src/views/auth/signup/index.tsx:59
-msgid "Sign up | kan.bn"
-msgstr "Registrarse | kan.bn"
+msgid "Sign up | Devloops"
+msgstr "Registrarse | Devloops"
 
 #: src/views/auth/signup/index.tsx:44
 msgid "Sign up disabled"
@@ -2983,8 +2983,8 @@ msgid "You are about to change your password."
 msgstr "Estás a punto de cambiar tu contraseña."
 
 #: src/views/home/components/Faqs.tsx:67
-msgid "You can get a custom workspace URL, like <0>kan.bn/kan</0>, by going into your <1>workspace settings</1> and purchasing a pro workspace subscription. All subscriptions help fund the development of the project!"
-msgstr "Puedes obtener una URL personalizada para tu espacio de trabajo, como <0>kan.bn/kan</0>, yendo a la <1>configuración de tu espacio de trabajo</1> y comprando una suscripción pro. ¡Todas las suscripciones ayudan a financiar el desarrollo del proyecto!"
+msgid "You can get a custom workspace URL, like <0>Devloops/kan</0>, by going into your <1>workspace settings</1> and purchasing a pro workspace subscription. All subscriptions help fund the development of the project!"
+msgstr "Puedes obtener una URL personalizada para tu espacio de trabajo, como <0>Devloops/kan</0>, yendo a la <1>configuración de tu espacio de trabajo</1> y comprando una suscripción pro. ¡Todas las suscripciones ayudan a financiar el desarrollo del proyecto!"
 
 #: src/views/home/components/Faqs.tsx:111
 msgid "You can invite team members by clicking the \"Invite\" button in the top right corner of the <0>members page</0> and entering their email address. They will receive an email with a link to join the workspace."
@@ -3026,8 +3026,8 @@ msgid "You need to be an admin to manage workspace permissions."
 msgstr "Necesitas ser administrador para gestionar los permisos del espacio de trabajo."
 
 #: src/views/invite/index.tsx:134
-msgid "You've been invited to join a workspace on kan.bn."
-msgstr "Has sido invitado a unirte a un espacio de trabajo en kan.bn."
+msgid "You've been invited to join a workspace on Devloops."
+msgstr "Has sido invitado a unirte a un espacio de trabajo en Devloops."
 
 #: src/views/invite/index.tsx:135
 msgid "You've been invited to join a workspace."

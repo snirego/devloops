@@ -43,6 +43,37 @@ export default async function handler(
   try {
     switch (path) {
       // ----------------------------------------------------------------
+      // EMAIL CONFIRMATION / MAGIC-LINK VERIFICATION
+      // Supabase sends: {SITE_URL}/api/auth/confirm?token_hash=...&type=magiclink
+      // Legacy better-auth links: /api/auth/magic-link/verify?token=...
+      // ----------------------------------------------------------------
+      case "confirm":
+      case "magic-link/verify": {
+        const tokenHash = req.query.token_hash as string | undefined;
+        const type =
+          (req.query.type as string | undefined) ?? "magiclink";
+        const next =
+          (req.query.callbackURL as string) ||
+          (req.query.next as string) ||
+          "/boards";
+
+        if (tokenHash) {
+          const { error: verifyErr } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as "magiclink" | "email",
+          });
+
+          if (!verifyErr) {
+            return res.redirect(303, next);
+          }
+          console.error("Auth confirm error:", verifyErr.message);
+        }
+
+        // Redirect to login with error hint
+        return res.redirect(303, "/login?error=magic-link-expired");
+      }
+
+      // ----------------------------------------------------------------
       // SESSION
       // ----------------------------------------------------------------
       case "session":
@@ -58,9 +89,17 @@ export default async function handler(
 
       // ----------------------------------------------------------------
       // SOCIAL PROVIDERS
+      // Returns a list of provider names that have credentials configured.
       // ----------------------------------------------------------------
       case "social-providers": {
-        return res.status(200).json([]);
+        const providers: string[] = [];
+        if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+          providers.push("google");
+        if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
+          providers.push("github");
+        if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET)
+          providers.push("discord");
+        return res.status(200).json(providers);
       }
 
       // ----------------------------------------------------------------

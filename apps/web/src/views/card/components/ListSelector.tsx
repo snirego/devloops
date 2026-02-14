@@ -27,8 +27,8 @@ export default function ListSelector({
   const { showPopup } = usePopup();
 
   const updateCardList = api.card.update.useMutation({
-    onMutate: async (newList) => {
-      await utils.card.byId.cancel();
+    onMutate: (newList) => {
+      void utils.card.byId.cancel();
 
       const previousCard = utils.card.byId.getData({ cardPublicId });
 
@@ -56,8 +56,9 @@ export default function ListSelector({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
+      void utils.board.byId.invalidate();
     },
   });
 

@@ -78,12 +78,28 @@ export async function getByPublicId(db: dbClient, publicId: string) {
 
 ## Migrations
 
+### Workflow (MUST follow after every schema change)
+
 1. **Generate**: `cd packages/db && pnpm drizzle-kit generate --name "DescriptiveName"`
-2. **Run**: `pnpm db:migrate`
-3. **Never** edit migration files after they have been generated.
-4. **Never** delete or rename existing migration files.
-5. Always test migrations against a development database before pushing.
-6. Use PascalCase for migration names (e.g. `"AddDueDateToCards"`).
+2. **Apply**: `cd packages/db && pnpm migrate`
+3. Both steps are **mandatory** — the app queries against the live database, not the Drizzle schema file. If you skip step 2 the app will crash with "column does not exist" errors.
+
+### Rules
+
+1. **Never** edit migration files after they have been generated.
+2. **Never** delete or rename existing migration files.
+3. Always test migrations against a development database before pushing.
+4. Use PascalCase for migration names (e.g. `"AddDueDateToCards"`).
+
+### Non-destructive migrations only
+
+- **Never** drop a table or column, even if it appears unused. Old code, background jobs, or other services may still reference it. Leaving an unused column costs almost nothing; dropping it can break production.
+- **Never** use `DROP TABLE`, `DROP COLUMN`, `ALTER COLUMN ... DROP NOT NULL` (to remove constraints that make data required), or `DROP TYPE` in any migration.
+- If a column is no longer needed, stop reading/writing it in code but **leave it in the schema and database**.
+- If a column must be renamed, create a **new** column, migrate data, update all code, and leave the old column in place.
+- If an enum value is no longer needed, do **not** remove it — just stop using it in application code.
+- Default values and new `NOT NULL` columns must always provide a `DEFAULT` so existing rows are not broken.
+- These rules ensure **backward compatibility** — a rollback to the previous code version will still work against the new database state.
 
 ## Key Patterns
 

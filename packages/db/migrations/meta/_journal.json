@@ -183,6 +183,34 @@
       "when": 1770500457005,
       "tag": "20260207214056_AddNotificationsTable",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1771029943200,
+      "tag": "20260214004543_AddFeedbackThreadsWorkItems",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1771031580687,
+      "tag": "20260214011300_AddChatSessionsAndVisibility",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1771035600000,
+      "tag": "20260214020000_EnableRealtimeOnChatTables",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1771039200000,
+      "tag": "20260214030000_AddAiProcessingSince",
+      "breakpoints": true
     }
   ]
 }

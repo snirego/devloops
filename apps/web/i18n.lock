@@ -335,7 +335,7 @@ checksums:
     Invite%20member/singular: ade922db1be6b26bc979565ce5de2bc7
     Inviting%20members%20requires%20a%20Team%20Plan.%20You'll%20be%20redirected%20to%20upgrade%20your%20workspace./singular: 03eeed2d715e770259f722ba48a61ab3
     Join%20workspace/singular: f5d035df672b05abd760bd022309c719
-    Join%20workspace%20%7C%20kan.bn/singular: 97855216a0e00214b2dcf917e93164f2
+    Join%20workspace%20%7C%20Devloops/singular: 97855216a0e00214b2dcf917e93164f2
     Junior/singular: ed1bd2c59a824fdcdd56fc8a0660fe9f
     Kan/singular: dd1232a5a28bf47e939d3b8a199bc229
     Kan%20is%20better%20with%20a%20team.%20Perfect%20for%20small%20and%20growing%20teams%20looking%20to%20collaborate./singular: d13f4467d3dc0a0786c3843a9b50785d
@@ -362,7 +362,7 @@ checksums:
     Load%20more%20activities/singular: f32d40a739ffaa700051c4c7d70055cf
     Loading%20permissions.../singular: a5665279d4e439186825057c32d4d976
     Loading.../singular: 82b4ea7ed1439094d7c4be13aaba9a66
-    Login%20%7C%20kan.bn/singular: 42a6c8dcd73e0d46e652646dc86871eb
+    Login%20%7C%20Devloops/singular: 42a6c8dcd73e0d46e652646dc86871eb
     Logout/singular: 07948fdf20705e04a7bf68ab197512bf
     Long-term/singular: 51cb6f0b112250c5a091ca5f0866904b
     Loved%20by%20teams%20worldwide/singular: 41de5089fef56bb0bfcf7f8649a0cb93
@@ -512,7 +512,7 @@ checksums:
     Sign%20in/singular: cb8757c7450e17de1e226e82fb0fa4a2
     Sign%20In/singular: ec7b8f314fe9bc6591006707484ede61
     Sign%20Up/singular: 0dd2ae69be4618c1f9e615774a4509ca
-    Sign%20up%20%7C%20kan.bn/singular: f3de2a110c90358e6eac07d0b2f663a6
+    Sign%20up%20%7C%20Devloops/singular: f3de2a110c90358e6eac07d0b2f663a6
     Sign%20up%20disabled/singular: 9581b1f75b404ac0ecb7e603e0d4189c
     Sign%20up%20is%20currently%20disabled.%20Please%20try%20again%20later./singular: c6cb7c455ec053b351a27029158ff166
     Sign%20up%20with%20/singular: 103e5d75506e6835b471695d799ff580
@@ -665,7 +665,7 @@ checksums:
     Yearly/singular: 87f43e016c19cb25860f456549a2f431
     Yes%2C%20we%20offer%20an%20forever%20free%20plan%20for%20individual%20use.%20No%20restrictions%2C%20no%20paywalls%2C%20no%20limits./singular: 963cee303d0ff13c1719f4575e774fe3
     You%20are%20about%20to%20change%20your%20password./singular: df4783d593505766d78c5bc08d3d48ac
-    You%20can%20get%20a%20custom%20workspace%20URL%2C%20like%20%3C0%3Ekan.bn%2Fkan%3C%2F0%3E%2C%20by%20going%20into%20your%20%3C1%3Eworkspace%20settings%3C%2F1%3E%20and%20purchasing%20a%20pro%20workspace%20subscription.%20All%20subscriptions%20help%20fund%20the%20development%20of%20the%20project!/singular: 41dd145ef56f539e12dc064a9807c660
+    You%20can%20get%20a%20custom%20workspace%20URL%2C%20like%20%3C0%3EDevloops%2Fkan%3C%2F0%3E%2C%20by%20going%20into%20your%20%3C1%3Eworkspace%20settings%3C%2F1%3E%20and%20purchasing%20a%20pro%20workspace%20subscription.%20All%20subscriptions%20help%20fund%20the%20development%20of%20the%20project!/singular: 41dd145ef56f539e12dc064a9807c660
     You%20can%20invite%20team%20members%20by%20clicking%20the%20%22Invite%22%20button%20in%20the%20top%20right%20corner%20of%20the%20%3C0%3Emembers%20page%3C%2F0%3E%20and%20entering%20their%20email%20address.%20They%20will%20receive%20an%20email%20with%20a%20link%20to%20join%20the%20workspace./singular: 47e125eb9b4c11cab5a2f4b3ab08e883
     You%20can%20self-host%20by%20following%20the%20instructions%20in%20our%20%3C0%3Erepo%3C%2F0%3E./singular: a6152a41b2d8f64d5a657e5b8bc808a9
     You%20don't%20have%20permission/singular: 11d928b1993d95d54a95f85f8ae5016d
@@ -674,7 +674,7 @@ checksums:
     You%20have%20been%20unsubscribed!/singular: e0b9985faa4e7f25b71acc77750923a6
     You%20have%20unlimited%20seats%20with%20your%20Pro%20Plan.%20There%20is%20no%20additional%20charge%20for%20new%20members!/singular: e3dc59a5ba7211cd3d8516b3a79d85ca
     You%20need%20to%20be%20an%20admin%20to%20manage%20workspace%20permissions./singular: e2e816f2b7a13b1056d79e7f25088664
-    You've%20been%20invited%20to%20join%20a%20workspace%20on%20kan.bn./singular: 257b840726f972f384243a72767f880f
+    You've%20been%20invited%20to%20join%20a%20workspace%20on%20Devloops./singular: 257b840726f972f384243a72767f880f
     You've%20been%20invited%20to%20join%20a%20workspace./singular: 24fc6cdc8740f37a83df85f582f03293
     Your%20account%20has%20been%20deleted./singular: 8c8d944e07388c5877effdb2c2803dcf
     Your%20boards%20have%20been%20imported./singular: 403972e7a25afc2415762c1c2b1ec868

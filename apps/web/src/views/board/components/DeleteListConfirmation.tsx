@@ -31,9 +31,9 @@ export function DeleteListConfirmation({
         icon: "error",
       });
     },
-    onSettled: async () => {
+    onSettled: () => {
       closeModal();
-      await utils.board.byId.invalidate(queryParams);
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 

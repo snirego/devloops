@@ -38,8 +38,8 @@ export default function ChecklistItemRow({
   const [completed, setCompleted] = useState(false);
 
   const updateItem = api.checklist.updateItem.useMutation({
-    onMutate: async (vars) => {
-      await utils.card.byId.cancel({ cardPublicId });
+    onMutate: (vars) => {
+      void utils.card.byId.cancel({ cardPublicId });
       const previous = utils.card.byId.getData({ cardPublicId });
       utils.card.byId.setData({ cardPublicId }, (old) => {
         if (!old) return old as any;
@@ -70,14 +70,14 @@ export default function ChecklistItemRow({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
     },
   });
 
   const deleteItem = api.checklist.deleteItem.useMutation({
-    onMutate: async () => {
-      await utils.card.byId.cancel({ cardPublicId });
+    onMutate: () => {
+      void utils.card.byId.cancel({ cardPublicId });
       const previous = utils.card.byId.getData({ cardPublicId });
       utils.card.byId.setData({ cardPublicId }, (old) => {
         if (!old) return old as any;
@@ -98,8 +98,8 @@ export default function ChecklistItemRow({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
     },
   });
 

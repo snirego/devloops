@@ -50,10 +50,10 @@ export function AttachmentThumbnails({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const deleteAttachment = api.attachment.delete.useMutation({
-    onMutate: async (args) => {
+    onMutate: (args) => {
       if (isReadOnly) return;
 
-      await utils.card.byId.cancel({ cardPublicId });
+      void utils.card.byId.cancel({ cardPublicId });
       const currentState = utils.card.byId.getData({ cardPublicId });
 
       utils.card.byId.setData({ cardPublicId }, (oldCard) => {
@@ -80,9 +80,9 @@ export function AttachmentThumbnails({
       // Close viewer if the deleted image was being viewed
       setSelectedIndex(null);
     },
-    onSettled: async () => {
+    onSettled: () => {
       if (isReadOnly) return;
-      await invalidateCard(utils, cardPublicId);
+      void invalidateCard(utils, cardPublicId);
     },
   });
 

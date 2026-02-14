@@ -18,8 +18,8 @@ export function DeleteChecklistConfirmation({
   const utils = api.useUtils();
 
   const deleteChecklist = api.checklist.delete.useMutation({
-    onMutate: async () => {
-      await utils.card.byId.cancel({ cardPublicId });
+    onMutate: () => {
+      void utils.card.byId.cancel({ cardPublicId });
       const previous = utils.card.byId.getData({ cardPublicId });
       utils.card.byId.setData({ cardPublicId }, (old) => {
         if (!old) return old as any;
@@ -39,9 +39,9 @@ export function DeleteChecklistConfirmation({
         icon: "error",
       });
     },
-    onSettled: async () => {
+    onSettled: () => {
       closeModal();
-      await invalidateCard(utils, cardPublicId);
+      void invalidateCard(utils, cardPublicId);
     },
   });
 

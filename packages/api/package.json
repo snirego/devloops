@@ -31,6 +31,14 @@
     "./utils/permissions": {
       "types": "./dist/utils/permissions.d.ts",
       "default": "./src/utils/permissions.ts"
+    },
+    "./utils/llmJobs": {
+      "types": "./dist/utils/llmJobs.d.ts",
+      "default": "./src/utils/llmJobs.ts"
+    },
+    "./utils/llmJobsLocal": {
+      "types": "./dist/utils/llmJobsLocal.d.ts",
+      "default": "./src/utils/llmJobsLocal.ts"
     }
   },
   "license": "GPL-3.0",

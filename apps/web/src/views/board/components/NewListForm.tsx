@@ -48,8 +48,8 @@ export function NewListForm({
   const isCreateAnotherEnabled = watch("isCreateAnotherEnabled");
 
   const createList = api.list.create.useMutation({
-    onMutate: async (args) => {
-      await utils.board.byId.cancel();
+    onMutate: (args) => {
+      void utils.board.byId.cancel();
 
       const currentState = utils.board.byId.getData(queryParams);
 
@@ -80,8 +80,8 @@ export function NewListForm({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await utils.board.byId.invalidate(queryParams);
+    onSettled: () => {
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 

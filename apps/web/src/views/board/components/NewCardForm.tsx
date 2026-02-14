@@ -128,8 +128,8 @@ export function NewCardForm({
   }, [boardData?.labels, labelPublicIds, modalStates.NEW_LABEL_CREATED]);
 
   const createCard = api.card.create.useMutation({
-    onMutate: async (args) => {
-      await utils.board.byId.cancel();
+    onMutate: (args) => {
+      void utils.board.byId.cancel();
 
       const currentState = utils.board.byId.getData(queryParams);
 
@@ -205,7 +205,7 @@ export function NewCardForm({
         reset(newFormState);
         saveFormState(newFormState);
       }
-      await utils.board.byId.invalidate(queryParams);
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 

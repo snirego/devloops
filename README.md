@@ -6,11 +6,11 @@
 </div>
 
 <p align="center">
-  <a href="https://kan.bn/kan/roadmap">Roadmap</a>
+  <a href="https://Devloops/kan/roadmap">Roadmap</a>
   ·
-  <a href="https://kan.bn">Website</a>
+  <a href="https://Devloops">Website</a>
   ·
-  <a href="https://docs.kan.bn">Docs</a>
+  <a href="https://docs.Devloops">Docs</a>
   ·
   <a href="https://discord.gg/e6ejRb6CmT">Discord</a>
 </p>
@@ -30,7 +30,7 @@
 - 🎨 **Templates** : Save time with reusable custom board templates
 - ⚡️ **Integrations (coming soon)** : Connect your favourite tools
 
-See our [roadmap](https://kan.bn/kan/roadmap) for upcoming features.
+See our [roadmap](https://Devloops/kan/roadmap) for upcoming features.
 
 ## Screenshot 👁️
 
@@ -38,12 +38,12 @@ See our [roadmap](https://kan.bn/kan/roadmap) for upcoming features.
 
 ## Made With 🛠️
 
-- [Next.js](https://nextjs.org/?ref=kan.bn)
-- [tRPC](https://trpc.io/?ref=kan.bn)
-- [Better Auth](https://better-auth.com/?ref=kan.bn)
-- [Tailwind CSS](https://tailwindcss.com/?ref=kan.bn)
-- [Drizzle ORM](https://orm.drizzle.team/?ref=kan.bn)
-- [React Email](https://react.email/?ref=kan.bn)
+- [Next.js](https://nextjs.org/?ref=Devloops)
+- [tRPC](https://trpc.io/?ref=Devloops)
+- [Better Auth](https://better-auth.com/?ref=Devloops)
+- [Tailwind CSS](https://tailwindcss.com/?ref=Devloops)
+- [Drizzle ORM](https://orm.drizzle.team/?ref=Devloops)
+- [React Email](https://react.email/?ref=Devloops)
 
 ## Self Hosting 🐳
 
@@ -152,7 +152,7 @@ pnpm dev
 | ----------------------------------------- | --------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
 | `POSTGRES_URL`                            | PostgreSQL connection URL                                 | To use external database              | `postgres://user:pass@localhost:5432/db`                    |
 | `REDIS_URL`                               | Redis connection URL                                      | For rate limiting (optional)          | `redis://localhost:6379` or `redis://redis:6379` (Docker)   |
-| `EMAIL_FROM`                              | Sender email address                                      | For Email                             | `"Kan <hello@mail.kan.bn>"`                                 |
+| `EMAIL_FROM`                              | Sender email address                                      | For Email                             | `"Kan <hello@mail.Devloops>"`                                 |
 | `SMTP_HOST`                               | SMTP server hostname                                      | For Email                             | `smtp.resend.com`                                           |
 | `SMTP_PORT`                               | SMTP server port                                          | For Email                             | `465`                                                       |
 | `SMTP_USER`                               | SMTP username/email                                       | No                                    | `resend`                                                    |
@@ -188,7 +188,7 @@ pnpm dev
 | `NEXT_PUBLIC_ATTACHMENTS_BUCKET_NAME`     | S3 bucket name for attachments                            | For file uploads                      | `attachments`                                               |
 | `NEXT_PUBLIC_ALLOW_CREDENTIALS`           | Allow email & password login                              | For authentication                    | `true`                                                      |
 | `NEXT_PUBLIC_DISABLE_SIGN_UP`             | Disable sign up                                           | For authentication                    | `false`                                                     |
-| `NEXT_PUBLIC_WHITE_LABEL_HIDE_POWERED_BY` | Hide “Powered by kan.bn” on public boards (self-host)     | For white labelling                   | `true`                                                      |
+| `NEXT_PUBLIC_WHITE_LABEL_HIDE_POWERED_BY` | Hide “Powered by Devloops” on public boards (self-host)     | For white labelling                   | `true`                                                      |
 | `KAN_ADMIN_API_KEY`                       | Admin API key for stats and admin endpoints               | For admin/monitoring                  | `your-secret-admin-key`                                     |
 
 See `.env.example` for a complete list of supported environment variables.
@@ -209,4 +209,4 @@ Kan is licensed under the [AGPLv3 license](LICENSE).
 
 ## Contact 📧
 
-For support or to get in touch, please email [henry@kan.bn](mailto:henry@kan.bn) or join our [Discord server](https://discord.gg/e6ejRb6CmT).
+For support or to get in touch, please email [henry@Devloops](mailto:henry@Devloops) or join our [Discord server](https://discord.gg/e6ejRb6CmT).

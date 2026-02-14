@@ -53,8 +53,8 @@ const NewChecklistItemForm = ({
   };
 
   const addChecklistItemMutation = api.checklist.createItem.useMutation({
-    onMutate: async (vars) => {
-      await utils.card.byId.cancel({ cardPublicId });
+    onMutate: (vars) => {
+      void utils.card.byId.cancel({ cardPublicId });
       const previous = utils.card.byId.getData({ cardPublicId });
 
       utils.card.byId.setData({ cardPublicId }, (old) => {
@@ -91,8 +91,8 @@ const NewChecklistItemForm = ({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
     },
   });
 

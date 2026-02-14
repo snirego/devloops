@@ -66,6 +66,7 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
   const [isEmailSendingEnabled, setIsEmailSendingEnabled] = useState(false);
   const [isLoginWithEmailPending, setIsLoginWithEmailPending] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [enabledSocialProviders, setEnabledSocialProviders] = useState<string[]>([]);
   const { showPopup } = usePopup();
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
@@ -82,6 +83,23 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
     setIsCloudEnv(isCloud);
     setIsEmailSendingEnabled(emailSendingEnabled);
     setIsCredentialsEnabled(credentialsAllowed);
+
+    // Fetch which social providers are actually configured in Supabase
+    const supabase = getSupabaseBrowserClient();
+    supabase.auth.getSession().then(() => {
+      // Check which providers are enabled by querying the social-providers endpoint
+      fetch("/api/auth/social-providers")
+        .then((res) => res.json())
+        .then((data: string[] | unknown) => {
+          if (Array.isArray(data)) {
+            setEnabledSocialProviders(data);
+          }
+        })
+        .catch(() => {
+          // If fetch fails, don't show social providers
+          setEnabledSocialProviders([]);
+        });
+    });
   }, []);
 
   const {
@@ -93,9 +111,10 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
     resolver: zodResolver(EmailSchema),
   });
 
-  // Social providers are configured in Supabase dashboard
-  // We show the ones defined in our local config
-  const socialProviders = Object.keys(availableSocialProviders);
+  // Only show social providers that are actually configured
+  const socialProviders = enabledSocialProviders.filter(
+    (p) => p in availableSocialProviders,
+  );
 
   const handleLoginWithEmail = async (
     email: string,
@@ -150,10 +169,15 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
       } else {
         // Magic link login
         if (isCloudEnv || (isEmailSendingEnabled && !isSignUp)) {
+          // Use NEXT_PUBLIC_BASE_URL if available, otherwise fall back to
+          // window.location.origin so the redirect always points at the
+          // canonical app URL (not localhost in production).
+          const baseUrl =
+            env("NEXT_PUBLIC_BASE_URL") || window.location.origin;
           const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-              emailRedirectTo: `${window.location.origin}${callbackURL}`,
+              emailRedirectTo: `${baseUrl}${callbackURL}`,
             },
           });
 
@@ -185,10 +209,11 @@ export function Auth({ setIsMagicLinkSent, isSignUp }: AuthProps) {
 
     const supabase = getSupabaseBrowserClient();
 
+    const baseUrl = env("NEXT_PUBLIC_BASE_URL") || window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}${callbackURL}`,
+        redirectTo: `${baseUrl}${callbackURL}`,
       },
     });
 

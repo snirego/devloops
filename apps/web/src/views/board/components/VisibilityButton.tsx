@@ -58,8 +58,8 @@ const VisibilityButton = ({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await utils.board.byId.invalidate(queryParams);
+    onSettled: () => {
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 

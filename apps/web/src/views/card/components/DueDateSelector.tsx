@@ -36,8 +36,8 @@ export function DueDateSelector({
   }, [dueDate, isOpen]);
 
   const updateDueDate = api.card.update.useMutation({
-    onMutate: async (update) => {
-      await utils.card.byId.cancel();
+    onMutate: (update) => {
+      void utils.card.byId.cancel();
 
       const previousCard = utils.card.byId.getData({ cardPublicId });
 
@@ -63,9 +63,9 @@ export function DueDateSelector({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
-      await utils.board.byId.invalidate();
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
+      void utils.board.byId.invalidate();
     },
   });
 

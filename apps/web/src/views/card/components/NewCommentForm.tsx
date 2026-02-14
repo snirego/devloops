@@ -38,9 +38,9 @@ const NewCommentForm = ({
         icon: "error",
       });
     },
-    onSettled: async () => {
+    onSettled: () => {
       reset();
-      await invalidateCard(utils, cardPublicId);
+      void invalidateCard(utils, cardPublicId);
     },
   });
 

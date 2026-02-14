@@ -1,8 +1,10 @@
 import { attachmentRouter } from "./routers/attachment";
 import { boardRouter } from "./routers/board";
 import { cardRouter } from "./routers/card";
+import { chatRouter } from "./routers/chat";
 import { checklistRouter } from "./routers/checklist";
 import { feedbackRouter } from "./routers/feedback";
+import { feedbackThreadRouter } from "./routers/feedbackThread";
 import { healthRouter } from "./routers/health";
 import { importRouter } from "./routers/import";
 import { integrationRouter } from "./routers/integration";
@@ -11,6 +13,7 @@ import { listRouter } from "./routers/list";
 import { memberRouter } from "./routers/member";
 import { permissionRouter } from "./routers/permission";
 import { userRouter } from "./routers/user";
+import { workItemRouter } from "./routers/workItem";
 import { workspaceRouter } from "./routers/workspace";
 import { createTRPCRouter } from "./trpc";
 
@@ -18,8 +21,10 @@ export const appRouter = createTRPCRouter({
   attachment: attachmentRouter,
   board: boardRouter,
   card: cardRouter,
+  chat: chatRouter,
   checklist: checklistRouter,
   feedback: feedbackRouter,
+  feedbackThread: feedbackThreadRouter,
   health: healthRouter,
   label: labelRouter,
   list: listRouter,
@@ -29,6 +34,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   workspace: workspaceRouter,
   integration: integrationRouter,
+  workItem: workItemRouter,
 });
 
 export type AppRouter = typeof appRouter;

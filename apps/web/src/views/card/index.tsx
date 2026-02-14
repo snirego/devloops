@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { IoChevronForwardSharp } from "react-icons/io5";
 import { HiXMark } from "react-icons/hi2";
 
@@ -22,7 +21,6 @@ import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
-import { invalidateCard } from "~/utils/cardInvalidation";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
 import { DeleteLabelConfirmation } from "../../components/DeleteLabelConfirmation";
 import ActivityList from "./components/ActivityList";
@@ -39,12 +37,6 @@ import ListSelector from "./components/ListSelector";
 import MemberSelector from "./components/MemberSelector";
 import { NewChecklistForm } from "./components/NewChecklistForm";
 import NewCommentForm from "./components/NewCommentForm";
-
-interface FormValues {
-  cardId: string;
-  title: string;
-  description: string;
-}
 
 export function CardRightPanel({ isTemplate }: { isTemplate?: boolean }) {
   const router = useRouter();
@@ -216,16 +208,61 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
           : null,
       })) ?? [];
 
+  // ── Local-first state ──
+  const [localTitle, setLocalTitle] = useState<string | null>(null);
+  const [localDesc, setLocalDesc] = useState<string | null>(null);
+  const lastSavedTitle = useRef<string>("");
+  const lastSavedDesc = useRef<string>("");
+
+  // Seed once from server
+  useEffect(() => {
+    if (card && localTitle === null) {
+      setLocalTitle(card.title);
+      lastSavedTitle.current = card.title;
+    }
+    if (card && localDesc === null) {
+      setLocalDesc(card.description ?? "");
+      lastSavedDesc.current = card.description ?? "";
+    }
+  }, [card, localTitle, localDesc]);
+
+  const title = localTitle ?? card?.title ?? "";
+  const description = localDesc ?? card?.description ?? "";
+
   const updateCard = api.card.update.useMutation({
-    onError: () => {
+    onMutate: (args) => {
+      if (!cardId) return;
+
+      const prevCard = utils.card.byId.getData({ cardPublicId: cardId });
+
+      utils.card.byId.setData({ cardPublicId: cardId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          ...(args.title !== undefined && { title: args.title }),
+          ...(args.description !== undefined && {
+            description: args.description,
+          }),
+        };
+      });
+
+      return { prevCard };
+    },
+    onError: (_err, _args, context) => {
+      if (context?.prevCard && cardId) {
+        utils.card.byId.setData({ cardPublicId: cardId }, context.prevCard);
+      }
       showPopup({
         header: t`Unable to update card`,
         message: t`Please try again later, or contact customer support.`,
         icon: "error",
       });
     },
-    onSettled: async () => {
-      if (cardId) await invalidateCard(utils, cardId);
+    onSettled: () => {
+      if (cardId) {
+        void utils.card.byId.invalidate({ cardPublicId: cardId });
+        void utils.card.getActivities.invalidate({ cardPublicId: cardId });
+      }
     },
   });
 
@@ -237,30 +274,56 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
         icon: "error",
       });
     },
-    onSettled: async () => {
+    onSettled: () => {
       if (cardId) {
-        await utils.card.byId.invalidate({ cardPublicId: cardId });
+        void utils.card.byId.invalidate({ cardPublicId: cardId });
       }
     },
   });
 
-  const { register, handleSubmit, setValue, watch } = useForm<FormValues>({
-    values: {
-      cardId: cardId ?? "",
-      title: card?.title ?? "",
-      description: card?.description ?? "",
+  // ── Save helpers ──
+  const saveTitle = useCallback(
+    (newTitle: string) => {
+      if (!cardId || newTitle === lastSavedTitle.current) return;
+      if (newTitle.length === 0) return; // Server requires min(1)
+      lastSavedTitle.current = newTitle;
+      updateCard.mutate({ cardPublicId: cardId, title: newTitle });
     },
-  });
+    [updateCard, cardId],
+  );
 
-  const onSubmit = (values: FormValues) => {
-    updateCard.mutate({
-      cardPublicId: values.cardId,
-      title: values.title,
-      description: values.description,
-    });
-  };
+  const saveDescription = useCallback(
+    (newDesc: string) => {
+      if (!cardId || newDesc === lastSavedDesc.current) return;
+      lastSavedDesc.current = newDesc;
+      updateCard.mutate({ cardPublicId: cardId, description: newDesc });
+    },
+    [updateCard, cardId],
+  );
 
-  // this adds the new created label to selected labels
+  // Debounced description save
+  const descTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const handleDescriptionChange = useCallback(
+    (value: string) => {
+      setLocalDesc(value);
+      clearTimeout(descTimerRef.current);
+      descTimerRef.current = setTimeout(() => saveDescription(value), 800);
+    },
+    [saveDescription],
+  );
+
+  const flushDescription = useCallback(() => {
+    clearTimeout(descTimerRef.current);
+    const current = localDesc ?? "";
+    if (current !== lastSavedDesc.current) {
+      saveDescription(current);
+    }
+  }, [localDesc, saveDescription]);
+
+  // Cleanup
+  useEffect(() => () => clearTimeout(descTimerRef.current), []);
+
+  // Auto-label after creating a new label
   useEffect(() => {
     const newLabelId = modalStates.NEW_LABEL_CREATED;
     if (newLabelId && cardId) {
@@ -289,19 +352,13 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
     }
   }, [card, getModalState, clearModalState]);
 
-  // Auto-resize title textarea
+  // Focus title on load
+  const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    const titleTextarea = document.getElementById(
-      "title",
-    ) as HTMLTextAreaElement;
-    if (titleTextarea) {
-      titleTextarea.style.height = "auto";
-      titleTextarea.style.height = `${titleTextarea.scrollHeight}px`;
-    }
-  }, [card]);
+    if (card && titleRef.current) titleRef.current.focus();
+  }, [!!card]);
 
   if (!cardId) return <></>;
-
 
   return (
     <>
@@ -366,26 +423,21 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
                   </div>
                 )}
                 {card && (
-                  <form
-                    onSubmit={handleSubmit(onSubmit)}
-                    className="w-full space-y-6"
-                  >
-                    <div>
-                      <textarea
-                        id="title"
-                        {...register("title")}
-                        onBlur={canEdit ? handleSubmit(onSubmit) : undefined}
-                        rows={1}
-                        disabled={!canEdit}
-                        className={`block w-full resize-none overflow-hidden border-0 bg-transparent p-0 py-0 font-bold leading-relaxed text-neutral-900 focus:ring-0 dark:text-dark-1000 sm:text-[1.2rem] ${!canEdit ? "cursor-default" : ""}`}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = "auto";
-                          target.style.height = `${target.scrollHeight}px`;
-                        }}
-                      />
-                    </div>
-                  </form>
+                  <input
+                    ref={titleRef}
+                    type="text"
+                    value={title}
+                    onChange={(e) => setLocalTitle(e.target.value)}
+                    onBlur={() => canEdit && saveTitle(title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        titleRef.current?.blur();
+                      }
+                    }}
+                    disabled={!canEdit}
+                    className={`block w-full border-0 bg-transparent p-0 py-0 font-bold leading-relaxed text-neutral-900 focus:ring-0 dark:text-dark-1000 sm:text-[1.2rem] ${!canEdit ? "cursor-default" : ""}`}
+                  />
                 )}
                 {!card && !isLoading && (
                   <p className="block p-0 py-0 font-bold leading-[2.3rem] tracking-tight text-neutral-900 dark:text-dark-1000 sm:text-[1.2rem]">
@@ -396,26 +448,17 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
               {card && (
                 <>
                   <div className="mb-10 flex w-full max-w-2xl flex-col justify-between">
-                    <form
-                      onSubmit={handleSubmit(onSubmit)}
-                      className="w-full space-y-6"
-                    >
-                      <div className="mt-2">
-                        <Editor
-                          content={card.description}
-                          onChange={
-                            canEdit
-                              ? (e) => setValue("description", e)
-                              : undefined
-                          }
-                          onBlur={
-                            canEdit ? () => handleSubmit(onSubmit)() : undefined
-                          }
-                          workspaceMembers={workspaceMembers ?? []}
-                          readOnly={!canEdit}
-                        />
-                      </div>
-                    </form>
+                    <div className="mt-2">
+                      <Editor
+                        content={card.description}
+                        onChange={
+                          canEdit ? handleDescriptionChange : undefined
+                        }
+                        onBlur={canEdit ? flushDescription : undefined}
+                        workspaceMembers={workspaceMembers ?? []}
+                        readOnly={!canEdit}
+                      />
+                    </div>
                   </div>
                   <Checklists
                     checklists={card.checklists}

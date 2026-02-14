@@ -16,18 +16,24 @@ import type { Subscription } from "@kan/shared/utils";
 import { hasActiveSubscription } from "@kan/shared/utils";
 
 import type { KeyboardShortcut } from "~/providers/keyboard-shortcuts";
+import activityLogsIconDark from "~/assets/activity-logs-dark.json";
+import activityLogsIconLight from "~/assets/activity-logs-light.json";
 import boardsIconDark from "~/assets/boards-dark.json";
 import boardsIconLight from "~/assets/boards-light.json";
+import chatIconDark from "~/assets/chat-dark.json";
+import chatIconLight from "~/assets/chat-light.json";
 import membersIconDark from "~/assets/members-dark.json";
 import membersIconLight from "~/assets/members-light.json";
 import settingsIconDark from "~/assets/settings-dark.json";
 import settingsIconLight from "~/assets/settings-light.json";
 import templatesIconDark from "~/assets/templates-dark.json";
 import templatesIconLight from "~/assets/templates-light.json";
+import AiActivityIndicator from "~/components/AiActivityIndicator";
 import ButtonComponent from "~/components/Button";
 import ReactiveButton from "~/components/ReactiveButton";
 import UserMenu from "~/components/UserMenu";
 import WorkspaceMenu from "~/components/WorkspaceMenu";
+import { useAiActivity } from "~/providers/ai-activity";
 import { useModal } from "~/providers/modal";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
@@ -54,6 +60,10 @@ export default function SideNavigation({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isInitialised, setIsInitialised] = useState(false);
   const { openModal } = useModal();
+  const { isActive: aiIsActive } = useAiActivity();
+
+  // Nav items that should show the AI activity dot
+  const aiDotPaths = new Set(["/chat", "/work-items"]);
 
   const { data: workspaceData } = api.workspace.byId.useQuery(
     { workspacePublicId: workspace.publicId },
@@ -132,6 +142,30 @@ export default function SideNavigation({
       },
     },
     {
+      name: t`Chat`,
+      href: "/chat",
+      icon: isDarkMode ? chatIconDark : chatIconLight,
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "C" }],
+        action: () => router.push("/chat"),
+        group: "NAVIGATION",
+        description: t`Go to chat`,
+      },
+    },
+    {
+      name: t`Work Items`,
+      href: "/work-items",
+      icon: isDarkMode ? activityLogsIconDark : activityLogsIconLight,
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "W" }],
+        action: () => router.push("/work-items"),
+        group: "NAVIGATION",
+        description: t`Go to work items`,
+      },
+    },
+    {
       name: t`Settings`,
       href: "/settings",
       icon: isDarkMode ? settingsIconDark : settingsIconLight,
@@ -162,7 +196,7 @@ export default function SideNavigation({
             {!isCollapsed && (
               <Link href="/" className="block">
                 <h1 className="pl-2 text-[16px] font-bold tracking-tight text-neutral-900 dark:text-dark-1000">
-                  kan.bn
+                  Devloops
                 </h1>
               </Link>
             )}
@@ -190,23 +224,35 @@ export default function SideNavigation({
 
           <WorkspaceMenu isCollapsed={isCollapsed} />
           <ul role="list" className="space-y-1">
-            {navigation.map((item) => (
-              <li key={item.name}>
-                <ReactiveButton
-                  href={item.href}
-                  current={pathname.includes(item.href)}
-                  name={item.name}
-                  json={item.icon}
-                  isCollapsed={isCollapsed}
-                  onCloseSideNav={onCloseSideNav}
-                  keyboardShortcut={item.keyboardShortcut}
-                />
-              </li>
-            ))}
+            {navigation.map((item) => {
+              const showDot = aiIsActive && aiDotPaths.has(item.href);
+              return (
+                <li key={item.name} className="relative">
+                  <ReactiveButton
+                    href={item.href}
+                    current={pathname.includes(item.href)}
+                    name={item.name}
+                    json={item.icon}
+                    isCollapsed={isCollapsed}
+                    onCloseSideNav={onCloseSideNav}
+                    keyboardShortcut={item.keyboardShortcut}
+                  />
+                  {showDot && (
+                    <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+                      </span>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
         <div className="space-y-2">
+          <AiActivityIndicator isCollapsed={isCollapsed} />
           <UserMenu
             displayName={user.displayName ?? undefined}
             email={user.email ?? "Email not provided?"}

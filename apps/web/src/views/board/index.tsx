@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
 import { keepPreviousData } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { DragDropContext, Draggable } from "react-beautiful-dnd";
 import { useForm } from "react-hook-form";
 import {
@@ -33,7 +33,10 @@ import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import { formatToArray } from "~/utils/helpers";
+import { AddCardGap } from "./components/AddCardGap";
+import { AddListGap } from "./components/AddListGap";
 import BoardDropdown from "./components/BoardDropdown";
+import { CardModal } from "./components/CardModal";
 import Card from "./components/Card";
 import { DeleteBoardConfirmation } from "./components/DeleteBoardConfirmation";
 import { DeleteListConfirmation } from "./components/DeleteListConfirmation";
@@ -64,7 +67,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     direction: "horizontal",
   });
 
-  const { canCreateList, canEditList, canEditCard, canEditBoard } =
+  const { canCreateList, canCreateCard, canEditList, canEditCard, canEditBoard } =
     usePermissions();
 
   const { tooltipContent: createListShortcutTooltipContent } =
@@ -81,6 +84,22 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
       ? params.boardId[0]
       : params.boardId
     : null;
+
+  const activeCardId = params?.boardId
+    ? Array.isArray(params.boardId) && params.boardId.length > 1
+      ? params.boardId[1]
+      : null
+    : null;
+
+  const handleCloseCardModal = useCallback(() => {
+    void router.push(
+      `/${isTemplate ? "templates" : "boards"}/${boardId}`,
+      undefined,
+      { shallow: true },
+    );
+    // Refresh board data in case card was modified (list, labels, etc.)
+    void utils.board.byId.invalidate({ boardPublicId: boardId ?? "" });
+  }, [router, isTemplate, boardId, utils.board.byId]);
 
   const updateBoard = api.board.update.useMutation();
 
@@ -143,7 +162,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
   const updateListMutation = api.list.update.useMutation({
     onMutate: async (args) => {
-      await utils.board.byId.cancel();
+      void utils.board.byId.cancel();
 
       const currentState = utils.board.byId.getData(queryParams);
 
@@ -182,14 +201,14 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await utils.board.byId.invalidate(queryParams);
+    onSettled: () => {
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 
   const updateCardMutation = api.card.update.useMutation({
     onMutate: async (args) => {
-      await utils.board.byId.cancel();
+      void utils.board.byId.cancel();
 
       const currentState = utils.board.byId.getData(queryParams);
 
@@ -238,8 +257,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await utils.board.byId.invalidate(queryParams);
+    onSettled: () => {
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 
@@ -556,10 +575,15 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                         {...provided.droppableProps}
                       >
                         <div className="min-w-[2rem]" />
+                        <AddListGap
+                          boardPublicId={boardId ?? ""}
+                          queryParams={queryParams}
+                          canCreate={canCreateList}
+                        />
                         {boardData.lists.map((list, index) => (
+                          <React.Fragment key={list.publicId}>
                           <List
                             index={index}
-                            key={index}
                             list={list}
                             setSelectedPublicListId={(publicListId) =>
                               setSelectedPublicListId(publicListId)
@@ -573,63 +597,86 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.droppableProps}
-                                  className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
+                                  className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto px-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
                                 >
+                                  <AddCardGap
+                                    key={`gap-top-${list.publicId}`}
+                                    listPublicId={list.publicId}
+                                    insertAtIndex={0}
+                                    totalCards={list.cards.length}
+                                    queryParams={queryParams}
+                                    canCreate={canCreateCard}
+                                  />
                                   {list.cards.map((card, index) => (
-                                    <Draggable
-                                      key={card.publicId}
-                                      draggableId={card.publicId}
-                                      index={index}
-                                      isDragDisabled={!canEditCard}
-                                    >
-                                      {(provided) => (
-                                        <Link
-                                          onClick={(e) => {
-                                            if (
+                                    <React.Fragment key={card.publicId}>
+                                      <Draggable
+                                        draggableId={card.publicId}
+                                        index={index}
+                                        isDragDisabled={!canEditCard}
+                                      >
+                                        {(provided) => (
+                                          <Link
+                                            onClick={(e) => {
+                                              if (
+                                                card.publicId.startsWith(
+                                                  "PLACEHOLDER",
+                                                )
+                                              )
+                                                e.preventDefault();
+                                            }}
+                                            shallow={!isTemplate}
+                                            href={
+                                              isTemplate
+                                                ? `/templates/${boardId}/cards/${card.publicId}`
+                                                : `/boards/${boardId}/${card.publicId}`
+                                            }
+                                            className={`mb-0 flex !cursor-pointer flex-col rounded-md outline-none focus-visible:outline-none ${
                                               card.publicId.startsWith(
                                                 "PLACEHOLDER",
                                               )
-                                            )
-                                              e.preventDefault();
-                                          }}
-                                          key={card.publicId}
-                                          href={
-                                            isTemplate
-                                              ? `/templates/${boardId}/cards/${card.publicId}`
-                                              : `/cards/${card.publicId}`
-                                          }
-                                          className={`mb-2 flex !cursor-pointer flex-col ${
-                                            card.publicId.startsWith(
-                                              "PLACEHOLDER",
-                                            )
-                                              ? "pointer-events-none"
-                                              : ""
-                                          }`}
-                                          ref={provided.innerRef}
-                                          {...provided.draggableProps}
-                                          {...provided.dragHandleProps}
-                                        >
-                                          <Card
-                                            title={card.title}
-                                            labels={card.labels}
-                                            members={card.members}
-                                            checklists={card.checklists ?? []}
-                                            description={
-                                              card.description ?? null
-                                            }
-                                            comments={card.comments ?? []}
-                                            attachments={card.attachments}
-                                            dueDate={card.dueDate ?? null}
-                                          />
-                                        </Link>
-                                      )}
-                                    </Draggable>
+                                                ? "pointer-events-none"
+                                                : ""
+                                            }`}
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                          >
+                                            <Card
+                                              title={card.title}
+                                              labels={card.labels}
+                                              members={card.members}
+                                              checklists={card.checklists ?? []}
+                                              description={
+                                                card.description ?? null
+                                              }
+                                              comments={card.comments ?? []}
+                                              attachments={card.attachments}
+                                              dueDate={card.dueDate ?? null}
+                                            />
+                                          </Link>
+                                        )}
+                                      </Draggable>
+                                      <AddCardGap
+                                        key={`gap-${list.publicId}-${index + 1}`}
+                                        listPublicId={list.publicId}
+                                        insertAtIndex={index + 1}
+                                        totalCards={list.cards.length}
+                                        queryParams={queryParams}
+                                        canCreate={canCreateCard}
+                                      />
+                                    </React.Fragment>
                                   ))}
                                   {provided.placeholder}
                                 </div>
                               )}
                             </Droppable>
                           </List>
+                          <AddListGap
+                            boardPublicId={boardId ?? ""}
+                            queryParams={queryParams}
+                            canCreate={canCreateList}
+                          />
+                          </React.Fragment>
                         ))}
                         <div className="min-w-[0.75rem]" />
                         {provided.placeholder}
@@ -642,6 +689,15 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
           ) : null}
         </div>
         {renderModalContent()}
+
+        {activeCardId && (
+          <CardModal
+            cardPublicId={activeCardId}
+            boardPublicId={boardId ?? ""}
+            isTemplate={isTemplate}
+            onClose={handleCloseCardModal}
+          />
+        )}
       </div>
     </>
   );

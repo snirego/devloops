@@ -32,8 +32,8 @@ export function NewChecklistForm({ cardPublicId }: { cardPublicId: string }) {
     });
 
   const createChecklist = api.checklist.create.useMutation({
-    onMutate: async (args) => {
-      await utils.card.byId.cancel({ cardPublicId: args.cardPublicId });
+    onMutate: (args) => {
+      void utils.card.byId.cancel({ cardPublicId: args.cardPublicId });
       const previous = utils.card.byId.getData({
         cardPublicId: args.cardPublicId,
       });
@@ -72,8 +72,8 @@ export function NewChecklistForm({ cardPublicId }: { cardPublicId: string }) {
         icon: "error",
       });
     },
-    onSettled: async (_data, _error, vars) => {
-      await invalidateCard(utils, vars.cardPublicId);
+    onSettled: (_data, _error, vars) => {
+      void invalidateCard(utils, vars.cardPublicId);
     },
   });
 

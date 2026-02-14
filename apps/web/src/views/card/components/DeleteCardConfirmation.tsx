@@ -25,8 +25,8 @@ export function DeleteCardConfirmation({
   };
 
   const deleteCardMutation = api.card.delete.useMutation({
-    onMutate: async (args) => {
-      await utils.board.byId.cancel();
+    onMutate: (args) => {
+      void utils.board.byId.cancel();
 
       const currentState = utils.board.byId.getData(queryParams);
 
@@ -56,9 +56,9 @@ export function DeleteCardConfirmation({
     onSuccess: () => {
       router.push(`/boards/${boardPublicId}`);
     },
-    onSettled: async () => {
+    onSettled: () => {
       closeModal();
-      await utils.board.byId.invalidate(queryParams);
+      void utils.board.byId.invalidate(queryParams);
     },
   });
 

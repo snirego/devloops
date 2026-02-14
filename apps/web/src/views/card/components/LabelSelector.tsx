@@ -31,8 +31,8 @@ export default function LabelSelector({
   const { showPopup } = usePopup();
 
   const addOrRemoveLabel = api.card.addOrRemoveLabel.useMutation({
-    onMutate: async (update) => {
-      await utils.card.byId.cancel();
+    onMutate: (update) => {
+      void utils.card.byId.cancel();
 
       const previousCard = utils.card.byId.getData({ cardPublicId });
 
@@ -76,8 +76,9 @@ export default function LabelSelector({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await invalidateCard(utils, cardPublicId);
+    onSettled: () => {
+      void invalidateCard(utils, cardPublicId);
+      void utils.board.byId.invalidate();
     },
   });
 

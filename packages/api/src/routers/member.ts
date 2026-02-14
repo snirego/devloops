@@ -8,6 +8,7 @@ import * as permissionRepo from "@kan/db/repository/permission.repo";
 import * as subscriptionRepo from "@kan/db/repository/subscription.repo";
 import * as userRepo from "@kan/db/repository/user.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
+import { sendEmail } from "@kan/email";
 import {
   generateUID,
   getSubscriptionByPlan,
@@ -140,25 +141,29 @@ export const memberRouter = createTRPCRouter({
           code: "INTERNAL_SERVER_ERROR",
         });
 
-      // Use Supabase admin API to send invite email
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-        process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
-      );
-
+      // Send invite email via SMTP (Resend)
       const baseUrl = env("NEXT_PUBLIC_BASE_URL") ?? "http://localhost:3000";
-      const redirectTo = `${baseUrl}/boards?type=invite&memberPublicId=${invite.publicId}`;
+      const inviteUrl = `${baseUrl}/boards?type=invite&memberPublicId=${invite.publicId}`;
 
-      const { error: inviteError } =
-        await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
-          redirectTo,
-        });
+      // Get inviter name for the email template
+      const inviter = await userRepo.getById(ctx.db, userId);
+      const inviterName = inviter?.name ?? inviter?.email ?? "A team member";
 
-      if (inviteError) {
-        console.error("Failed to send Supabase invite:", {
+      try {
+        await sendEmail(
+          input.email,
+          `${inviterName} invited you to join ${workspace.name ?? "a workspace"} on Devloops`,
+          "JOIN_WORKSPACE",
+          {
+            magicLoginUrl: inviteUrl,
+            inviterName,
+            workspaceName: workspace.name ?? "a workspace",
+          },
+        );
+      } catch (emailError) {
+        console.error("Failed to send invite email:", {
           email: input.email,
-          error: inviteError.message,
+          error: emailError instanceof Error ? emailError.message : String(emailError),
         });
 
         await memberRepo.softDelete(ctx.db, {

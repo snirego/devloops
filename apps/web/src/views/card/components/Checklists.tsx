@@ -45,8 +45,8 @@ export default function Checklists({
   const utils = api.useUtils();
 
   const reorderItemMutation = api.checklist.updateItem.useMutation({
-    onMutate: async (vars) => {
-      await utils.card.byId.cancel({ cardPublicId });
+    onMutate: (vars) => {
+      void utils.card.byId.cancel({ cardPublicId });
       const previous = utils.card.byId.getData({ cardPublicId });
 
       utils.card.byId.setData({ cardPublicId }, (old) => {
@@ -82,8 +82,8 @@ export default function Checklists({
         icon: "error",
       });
     },
-    onSettled: async () => {
-      await utils.card.byId.invalidate({ cardPublicId });
+    onSettled: () => {
+      void utils.card.byId.invalidate({ cardPublicId });
     },
   });
 
