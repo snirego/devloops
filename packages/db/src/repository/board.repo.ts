@@ -251,6 +251,7 @@ export const getByPublicId = async (
               listId: true,
               index: true,
               dueDate: true,
+              createdBy: true,
             },
             with: {
               labels: {

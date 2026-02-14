@@ -13,8 +13,8 @@ import {
 
 import { ensureUtcTimestamp } from "~/hooks/useRealtimeMessages";
 import ChatAvatar from "./ChatAvatar";
-import ContextMenu from "./ContextMenu";
-import type { ContextMenuEntry } from "./ContextMenu";
+import ContextMenu from "~/components/ContextMenu";
+import type { ContextMenuEntry } from "~/components/ContextMenu";
 
 /** Render text with @mentions highlighted */
 function RenderText({

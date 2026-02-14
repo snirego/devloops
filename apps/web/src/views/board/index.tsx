@@ -38,6 +38,7 @@ import { AddListGap } from "./components/AddListGap";
 import BoardDropdown from "./components/BoardDropdown";
 import { CardModal } from "./components/CardModal";
 import Card from "./components/Card";
+import { CardContextMenu } from "./components/CardContextMenu";
 import { DeleteBoardConfirmation } from "./components/DeleteBoardConfirmation";
 import { DeleteListConfirmation } from "./components/DeleteListConfirmation";
 import Filters from "./components/Filters";
@@ -61,6 +62,17 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   const [selectedPublicListId, setSelectedPublicListId] =
     useState<PublicListId>("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Card context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    cardPublicId: string;
+    cardTitle: string;
+    listPublicId: string;
+    cardCreatedBy?: string | null;
+    memberPublicIds: string[];
+  } | null>(null);
 
   const { ref: scrollRef, onMouseDown } = useDragToScroll({
     enabled: true,
@@ -624,6 +636,19 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               )
                                                 e.preventDefault();
                                             }}
+                                            onContextMenu={(e) => {
+                                              if (card.publicId.startsWith("PLACEHOLDER")) return;
+                                              e.preventDefault();
+                                              setContextMenu({
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                                cardPublicId: card.publicId,
+                                                cardTitle: card.title,
+                                                listPublicId: list.publicId,
+                                                cardCreatedBy: card.createdBy ?? null,
+                                                memberPublicIds: card.members?.map((m) => m.publicId) ?? [],
+                                              });
+                                            }}
                                             shallow={!isTemplate}
                                             href={
                                               isTemplate
@@ -696,6 +721,41 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
             boardPublicId={boardId ?? ""}
             isTemplate={isTemplate}
             onClose={handleCloseCardModal}
+          />
+        )}
+
+        {contextMenu && boardData && (
+          <CardContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            cardPublicId={contextMenu.cardPublicId}
+            cardTitle={contextMenu.cardTitle}
+            boardQueryParams={queryParams}
+            currentListPublicId={contextMenu.listPublicId}
+            lists={boardData.lists.map((l) => ({
+              publicId: l.publicId,
+              name: l.name,
+            }))}
+            workspaceMembers={
+              boardData.workspace.members
+                .filter((m) => m.user !== null)
+                .map((m) => ({
+                  publicId: m.publicId,
+                  email: m.email,
+                  user: m.user
+                    ? {
+                        id: m.user.id,
+                        name: m.user.name,
+                        email: m.user.email,
+                        image: m.user.image,
+                      }
+                    : null,
+                }))
+            }
+            selectedMemberPublicIds={contextMenu.memberPublicIds}
+            isTemplate={isTemplate}
+            cardCreatedBy={contextMenu.cardCreatedBy}
+            onClose={() => setContextMenu(null)}
           />
         )}
       </div>
