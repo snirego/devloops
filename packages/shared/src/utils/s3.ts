@@ -70,14 +70,16 @@ export async function deleteObject(bucket: string, key: string) {
 }
 
 /**
- * Generate presigned URL for an avatar image
- * Returns the URL as-is if it's already a full URL (external provider)
- * Returns presigned URL if it's an S3 key
- * Returns null if image key is missing, bucket is not configured, or URL generation fails
+ * Generate a public URL for an avatar image.
+ * The avatars bucket is PUBLIC, so we build a direct URL instead of a
+ * presigned one — this is faster and the URL never expires.
+ *
+ * Returns the URL as-is if it's already a full URL (external OAuth provider).
+ * Returns a constructed public URL if it's an S3 key.
+ * Returns null if image key is missing or bucket is not configured.
  */
 export async function generateAvatarUrl(
   imageKey: string | null | undefined,
-  expiresIn = 86400, // 24 hours
 ): Promise<string | null> {
   if (!imageKey) {
     return null;
@@ -87,17 +89,22 @@ export async function generateAvatarUrl(
     return imageKey;
   }
 
+  const storageUrl = env("NEXT_PUBLIC_STORAGE_URL");
   const bucket = env("NEXT_PUBLIC_AVATAR_BUCKET_NAME");
-  if (!bucket) {
+  if (!storageUrl || !bucket) {
     return null;
   }
 
-  try {
-    return await generateDownloadUrl(bucket, imageKey, expiresIn);
-  } catch {
-    // If URL generation fails, return null
-    return null;
+  const useVirtualHosted =
+    env("NEXT_PUBLIC_USE_VIRTUAL_HOSTED_URLS") === "true";
+  const storageDomain = env("NEXT_PUBLIC_STORAGE_DOMAIN");
+
+  if (useVirtualHosted && storageDomain) {
+    const protocol = storageUrl.startsWith("https") ? "https" : "http";
+    return `${protocol}://${bucket}.${storageDomain}/${imageKey}`;
   }
+
+  return `${storageUrl}/${bucket}/${imageKey}`;
 }
 
 /**

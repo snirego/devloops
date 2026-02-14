@@ -1,3 +1,5 @@
+import { env } from "next-runtime-env";
+
 export const formatToArray = (
   value: string | string[] | undefined,
 ): string[] => {
@@ -46,9 +48,24 @@ export const formatMemberDisplayName = (
 export const getAvatarUrl = (imageOrKey: string | null) => {
   if (!imageOrKey) return "";
 
+  // Already a full URL (e.g. from an OAuth provider like Google/Discord)
   if (imageOrKey.startsWith("http://") || imageOrKey.startsWith("https://")) {
     return imageOrKey;
   }
 
-  return "";
+  // It's an S3 key — build the full URL from env vars
+  const storageUrl = env("NEXT_PUBLIC_STORAGE_URL");
+  const bucket = env("NEXT_PUBLIC_AVATAR_BUCKET_NAME");
+  if (!storageUrl || !bucket) return "";
+
+  const useVirtualHosted =
+    env("NEXT_PUBLIC_USE_VIRTUAL_HOSTED_URLS") === "true";
+  const storageDomain = env("NEXT_PUBLIC_STORAGE_DOMAIN");
+
+  if (useVirtualHosted && storageDomain) {
+    const protocol = storageUrl.startsWith("https") ? "https" : "http";
+    return `${protocol}://${bucket}.${storageDomain}/${imageOrKey}`;
+  }
+
+  return `${storageUrl}/${bucket}/${imageOrKey}`;
 };
