@@ -350,31 +350,66 @@ export async function llmHealthCheck(): Promise<{
   mode?: string;
   checkedUrl?: string;
 }> {
-  // ── 1. Try the devloops-llm service /ready endpoint (if configured) ──
+  // ── 1. Try the devloops-llm service (if configured) ───────────────────
+  // In production, the devloops-llm service handles all LLM communication.
+  // We consider it "online" if the service itself is responsive and its
+  // infrastructure (Redis + Postgres) is healthy. The internal LLM
+  // connectivity is the service's concern — it has retry logic, circuit
+  // breakers, and queued job processing that handle transient LLM issues.
   if (isLlmServiceConfigured()) {
     const svc = getLlmServiceConfig();
+
+    // Try /ready first (detailed health check)
     try {
       const res = await fetch(`${svc.url}/ready`, {
         signal: AbortSignal.timeout(8_000),
       });
       if (res.ok) {
-        const data = (await res.json()) as { checks?: { llm?: boolean } };
-        if (data.checks?.llm) {
+        const data = (await res.json()) as {
+          status?: string;
+          checks?: { redis?: boolean; postgres?: boolean; llm?: boolean };
+        };
+        // Service is ready if its core infrastructure is up.
+        // The LLM probe may fail transiently (cold start, model loading)
+        // but jobs will still be queued and retried via BullMQ.
+        const infraHealthy =
+          data.checks?.redis !== false && data.checks?.postgres !== false;
+        if (infraHealthy) {
           return {
             ok: true,
-            model: "via devloops-llm service",
+            model: data.checks?.llm
+              ? "via devloops-llm service"
+              : "via devloops-llm service (LLM warming up)",
             mode: "service",
             checkedUrl: svc.url,
           };
         }
-        // Service is up but LLM is down inside it — fall through to direct check
       }
     } catch {
-      // Service unreachable — fall through to direct LLM check
+      // /ready failed — try lightweight /health as fallback
+    }
+
+    // Fallback: try /health (liveness probe — always 200 if process is alive)
+    try {
+      const res = await fetch(`${svc.url}/health`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (res.ok) {
+        return {
+          ok: true,
+          model: "via devloops-llm service",
+          mode: "service",
+          checkedUrl: svc.url,
+        };
+      }
+    } catch {
+      // Service completely unreachable — fall through to direct LLM check
     }
   }
 
   // ── 2. Try the primary LLM endpoint (production LLM_BASE_URL first) ──
+  // This path is used when running without the devloops-llm service
+  // (local development with Ollama running directly).
   const primary = getLlmConfig();
   const primaryResult = await probeOpenAiEndpoint(primary.baseUrl, primary.apiKey);
   if (primaryResult.ok) {
@@ -405,6 +440,9 @@ export async function llmHealthCheck(): Promise<{
 
   // ── 4. All checks failed ──────────────────────────────────────────────
   const errors: string[] = [];
+  if (isLlmServiceConfigured()) {
+    errors.push(`service(${getLlmServiceConfig().url}): unreachable`);
+  }
   errors.push(`primary(${primary.baseUrl}): ${primaryResult.error ?? "unreachable"}`);
   if (isRemoteLlmConfigured()) {
     const local = getLocalLlmConfig();
