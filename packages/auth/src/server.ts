@@ -23,8 +23,8 @@ export const createServerClient = (
         }
         return cookies;
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: Record<string, unknown> }) => {
           res.setHeader(
             "Set-Cookie",
             serializeCookie(name, value, options),
