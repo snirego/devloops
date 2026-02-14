@@ -182,8 +182,14 @@ export const listAll = async (
     offset,
     with: {
       messages: {
+        columns: {
+          rawText: true,
+          senderType: true,
+          senderName: true,
+          createdAt: true,
+        },
         orderBy: desc(feedbackMessages.createdAt),
-        limit: 1,
+        limit: 50,
       },
       workItems: true,
     },

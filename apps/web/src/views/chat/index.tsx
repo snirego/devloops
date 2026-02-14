@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   HiOutlineChatBubbleLeftRight,
   HiOutlineGlobeAlt,
@@ -6,9 +6,11 @@ import {
   HiOutlineCodeBracket,
   HiOutlineClipboard,
   HiOutlineCheck,
+  HiOutlineXMark,
 } from "react-icons/hi2";
 
 type ThreadFilter = "all" | "external" | "internal";
+type EmbedTab = "react" | "html" | "vue" | "api";
 
 import { generateUID } from "@kan/shared/utils";
 
@@ -17,6 +19,9 @@ import { PageHead } from "~/components/PageHead";
 import { useModal } from "~/providers/modal";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
+
+import { useGlobalChatSound } from "~/hooks/useGlobalChatSound";
+import { useThreadReadStatus } from "~/hooks/useThreadReadStatus";
 
 import ChatPanel from "./components/ChatPanel";
 import { RenameThreadForm } from "./components/RenameThreadForm";
@@ -35,10 +40,14 @@ interface OptimisticThread {
 export default function ChatView() {
   const { openModal, modalContentType, isOpen: isModalOpen } = useModal();
   const { workspace } = useWorkspace();
+  const { markAsRead, getUnreadCount } = useThreadReadStatus();
+
+  // Play notification sound for ANY incoming customer message (global listener)
+  useGlobalChatSound();
+
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [showWidgetEmbed, setShowWidgetEmbed] = useState(false);
-  const [copiedWidget, setCopiedWidget] = useState(false);
   const [threadFilter, setThreadFilter] = useState<ThreadFilter>("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
@@ -47,7 +56,24 @@ export default function ChatView() {
     OptimisticThread[]
   >([]);
 
-  const widgetPopoverRef = useRef<HTMLDivElement>(null);
+  // ESC key closes the current chat / dismisses open menus
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // Close the most specific thing first, then fall through
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(null);
+      } else if (showWidgetEmbed) {
+        setShowWidgetEmbed(false);
+      } else if (showNewMenu) {
+        setShowNewMenu(false);
+      } else if (activeThreadId) {
+        setActiveThreadId(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showDeleteConfirm, showWidgetEmbed, showNewMenu, activeThreadId]);
 
   const {
     data: threads,
@@ -114,6 +140,14 @@ export default function ChatView() {
     return { all: mergedThreads.length, external: ext, internal: mergedThreads.length - ext };
   }, [mergedThreads]);
 
+  const handleSelectThread = useCallback(
+    (publicId: string) => {
+      setActiveThreadId(publicId);
+      markAsRead(publicId);
+    },
+    [markAsRead],
+  );
+
   const handleCreateThread = useCallback(
     (type: "external" | "team") => {
       const title =
@@ -178,14 +212,88 @@ export default function ChatView() {
   );
 
   // ── Widget embed code ─────────────────────────────────────────────────
+  const [embedTab, setEmbedTab] = useState<EmbedTab>("react");
+  const [copiedSnippet, setCopiedSnippet] = useState(false);
+
   const baseUrl =
     typeof window !== "undefined" ? window.location.origin : "";
-  const widgetCode = `<script src="${baseUrl}/widget/devloops-chat.js"></script>`;
+  const workspacePublicId = workspace.publicId;
 
-  const handleCopyWidget = () => {
-    navigator.clipboard.writeText(widgetCode);
-    setCopiedWidget(true);
-    setTimeout(() => setCopiedWidget(false), 2000);
+  const embedSnippets: Record<EmbedTab, { label: string; lang: string; code: string }> = {
+    react: {
+      label: "React / Next.js",
+      lang: "tsx",
+      code: `// Add to your layout or App component
+import Script from "next/script"; // Next.js — or use <script> in plain React
+
+export default function Layout({ children }) {
+  return (
+    <>
+      {children}
+      <Script
+        src="${baseUrl}/widget/devloops-chat.js"
+        data-workspace-id="${workspacePublicId}"
+        strategy="lazyOnload"
+      />
+    </>
+  );
+}`,
+    },
+    html: {
+      label: "HTML",
+      lang: "html",
+      code: `<!-- Add before </body> -->
+<script
+  src="${baseUrl}/widget/devloops-chat.js"
+  data-workspace-id="${workspacePublicId}"
+></script>`,
+    },
+    vue: {
+      label: "Vue / Nuxt",
+      lang: "html",
+      code: `<!-- Add to App.vue or your layout component -->
+<template>
+  <div id="app">
+    <router-view />
+  </div>
+</template>
+
+<script setup>
+import { onMounted } from "vue";
+
+onMounted(() => {
+  const script = document.createElement("script");
+  script.src = "${baseUrl}/widget/devloops-chat.js";
+  script.setAttribute("data-workspace-id", "${workspacePublicId}");
+  document.body.appendChild(script);
+});
+</script>`,
+    },
+    api: {
+      label: "REST API",
+      lang: "bash",
+      code: `# Create a chat session
+curl -X POST ${baseUrl}/api/chat/session \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "visitorName": "John Doe",
+    "workspacePublicId": "${workspacePublicId}"
+  }'
+
+# Send a message (use sessionId from above)
+curl -X POST ${baseUrl}/api/chat/messages \\
+  -H "Content-Type: application/json" \\
+  -H "X-Session-Id: SESSION_ID" \\
+  -d '{ "rawText": "Hello!", "senderName": "John Doe" }'`,
+    },
+  };
+
+  const activeSnippet = embedSnippets[embedTab];
+
+  const handleCopySnippet = () => {
+    navigator.clipboard.writeText(activeSnippet.code);
+    setCopiedSnippet(true);
+    setTimeout(() => setCopiedSnippet(false), 2000);
   };
 
   return (
@@ -206,54 +314,13 @@ export default function ChatView() {
 
         <div className="flex items-center gap-2">
           {/* Global widget embed button */}
-          <div className="relative" ref={widgetPopoverRef}>
-            <button
-              onClick={() => setShowWidgetEmbed(!showWidgetEmbed)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-light-300 px-3 py-1.5 text-xs font-medium text-light-900 transition-colors duration-0 hover:bg-light-100 dark:border-dark-300 dark:text-dark-900 dark:hover:bg-dark-200"
-            >
-              <HiOutlineCodeBracket className="h-3.5 w-3.5" />
-              Widget
-            </button>
-
-            {showWidgetEmbed && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowWidgetEmbed(false)}
-                />
-                <div className="absolute right-0 top-full z-50 mt-1 w-96 rounded-lg border border-light-200 bg-white p-4 shadow-lg dark:border-dark-300 dark:bg-dark-100">
-                  <div className="mb-2 flex items-center gap-2">
-                    <HiOutlineCodeBracket className="h-4 w-4 text-indigo-500" />
-                    <span className="text-sm font-semibold text-light-900 dark:text-dark-900">
-                      Embed Chat Widget
-                    </span>
-                  </div>
-                  <p className="mb-3 text-xs text-light-800 dark:text-dark-800">
-                    Add this script to any website. Each visitor gets their own
-                    conversation that appears in your inbox here.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md border border-light-200 bg-light-50 px-3 py-2 font-mono text-[11px] text-light-900 dark:border-dark-300 dark:bg-dark-200 dark:text-dark-900">
-                      {widgetCode}
-                    </code>
-                    <button
-                      onClick={handleCopyWidget}
-                      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-light-200 transition-colors duration-0 hover:bg-light-100 dark:border-dark-300 dark:hover:bg-dark-200"
-                    >
-                      {copiedWidget ? (
-                        <HiOutlineCheck className="h-3.5 w-3.5 text-green-500" />
-                      ) : (
-                        <HiOutlineClipboard className="h-3.5 w-3.5 text-light-800 dark:text-dark-800" />
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-[10px] text-light-800 dark:text-dark-800">
-                    Optional attributes: data-theme, data-position, data-color
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            onClick={() => setShowWidgetEmbed(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-light-300 px-3 py-1.5 text-xs font-medium text-light-900 transition-colors duration-0 hover:bg-light-100 dark:border-dark-300 dark:text-dark-900 dark:hover:bg-dark-200"
+          >
+            <HiOutlineCodeBracket className="h-3.5 w-3.5" />
+            Install Widget
+          </button>
 
           {/* New thread dropdown */}
           <div className="relative">
@@ -356,12 +423,13 @@ export default function ChatView() {
           <ThreadList
             threads={filteredThreads}
             activeThreadId={activeThreadId}
-            onSelectThread={setActiveThreadId}
+            onSelectThread={handleSelectThread}
             onDeleteThread={handleDeleteThread}
             onRenameThread={handleRenameThread}
             onArchiveThread={handleArchiveThread}
             onReopenThread={handleReopenThread}
             isLoading={threadsLoading}
+            getUnreadCount={getUnreadCount}
             emptyLabel={
               threadFilter === "all"
                 ? "No conversations yet"
@@ -450,6 +518,123 @@ export default function ChatView() {
               >
                 {deleteThreadMut.isPending ? "Deleting..." : "Delete"}
               </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Embed Widget Modal ────────────────────────────────────────────── */}
+      {showWidgetEmbed && (
+        <>
+          <div
+            className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowWidgetEmbed(false)}
+          />
+          <div className="fixed left-1/2 top-1/2 z-[9999] w-[600px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-light-200 bg-white shadow-2xl dark:border-dark-300 dark:bg-dark-100">
+            {/* Modal header */}
+            <div className="flex items-center justify-between border-b border-light-200 px-6 py-4 dark:border-dark-300">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                  <HiOutlineCodeBracket className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-light-900 dark:text-dark-900">
+                    Install Chat Widget
+                  </h2>
+                  <p className="text-xs text-light-800 dark:text-dark-800">
+                    Add live chat to your website in minutes
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWidgetEmbed(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-light-800 transition-colors duration-0 hover:bg-light-100 dark:text-dark-800 dark:hover:bg-dark-200"
+              >
+                <HiOutlineXMark className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Tab bar */}
+            <div className="flex border-b border-light-200 bg-light-50/50 px-6 dark:border-dark-300 dark:bg-dark-200/30">
+              {(
+                [
+                  { key: "react", label: "React / Next.js" },
+                  { key: "html", label: "HTML" },
+                  { key: "vue", label: "Vue / Nuxt" },
+                  { key: "api", label: "REST API" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => { setEmbedTab(tab.key); setCopiedSnippet(false); }}
+                  className={`relative px-4 py-2.5 text-xs font-medium transition-colors duration-0 ${
+                    embedTab === tab.key
+                      ? "text-indigo-600 dark:text-indigo-400"
+                      : "text-light-800 hover:text-light-900 dark:text-dark-800 dark:hover:text-dark-900"
+                  }`}
+                >
+                  {tab.label}
+                  {embedTab === tab.key && (
+                    <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Code snippet */}
+            <div className="px-6 py-4">
+              <div className="overflow-hidden rounded-lg border border-light-200 dark:border-dark-300">
+                {/* Snippet header */}
+                <div className="flex items-center justify-between border-b border-light-200 bg-light-50 px-4 py-2 dark:border-dark-300 dark:bg-dark-200">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-light-800 dark:text-dark-800">
+                    {activeSnippet.lang}
+                  </span>
+                  <button
+                    onClick={handleCopySnippet}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-light-800 transition-colors duration-0 hover:bg-light-200 hover:text-light-900 dark:text-dark-800 dark:hover:bg-dark-300 dark:hover:text-dark-900"
+                  >
+                    {copiedSnippet ? (
+                      <>
+                        <HiOutlineCheck className="h-3 w-3 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <HiOutlineClipboard className="h-3 w-3" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                {/* Code block */}
+                <pre className="max-h-[280px] overflow-auto bg-[#1e1e2e] p-4 text-[12px] leading-relaxed">
+                  <code className="font-mono text-[#cdd6f4]">
+                    {activeSnippet.code}
+                  </code>
+                </pre>
+              </div>
+            </div>
+
+            {/* Footer with tips */}
+            <div className="border-t border-light-200 bg-light-50/50 px-6 py-3 dark:border-dark-300 dark:bg-dark-200/30">
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 h-1 w-1 flex-shrink-0 rounded-full bg-indigo-500" />
+                <p className="text-[11px] leading-relaxed text-light-800 dark:text-dark-800">
+                  <span className="font-medium text-light-900 dark:text-dark-900">Optional attributes:</span>{" "}
+                  <code className="rounded bg-light-200/60 px-1 py-0.5 text-[10px] dark:bg-dark-300/60">data-theme</code>{" "}
+                  <code className="rounded bg-light-200/60 px-1 py-0.5 text-[10px] dark:bg-dark-300/60">data-position</code>{" "}
+                  <code className="rounded bg-light-200/60 px-1 py-0.5 text-[10px] dark:bg-dark-300/60">data-color</code>{" "}
+                  — Customize the widget&apos;s appearance and placement.
+                </p>
+              </div>
+              <div className="mt-1.5 flex items-start gap-2">
+                <div className="mt-0.5 h-1 w-1 flex-shrink-0 rounded-full bg-indigo-500" />
+                <p className="text-[11px] leading-relaxed text-light-800 dark:text-dark-800">
+                  <span className="font-medium text-light-900 dark:text-dark-900">Workspace ID:</span>{" "}
+                  <code className="rounded bg-light-200/60 px-1 py-0.5 text-[10px] dark:bg-dark-300/60">{workspacePublicId}</code>{" "}
+                  — already embedded in the snippet above.
+                </p>
+              </div>
             </div>
           </div>
         </>

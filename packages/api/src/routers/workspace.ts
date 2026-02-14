@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { env } from "next-runtime-env";
 import { z } from "zod";
 
+import * as userRepo from "@kan/db/repository/user.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 import * as workspaceSlugRepo from "@kan/db/repository/workspaceSlug.repo";
 import { generateUID } from "@kan/shared/utils";
@@ -269,6 +270,12 @@ export const workspaceRouter = createTRPCRouter({
           message: `Unable to create workspace`,
           code: "INTERNAL_SERVER_ERROR",
         });
+
+      // Set the user's display name to the workspace name if not already set
+      const user = await userRepo.getById(ctx.db, userId);
+      if (user && !user.name?.trim()) {
+        await userRepo.update(ctx.db, userId, { name: input.name });
+      }
 
       return result;
     }),

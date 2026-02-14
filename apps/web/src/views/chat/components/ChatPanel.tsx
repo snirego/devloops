@@ -12,6 +12,7 @@ import { generateUID } from "@kan/shared/utils";
 
 import type { RealtimeMessage } from "~/hooks/useRealtimeMessages";
 import { useRealtimeMessages } from "~/hooks/useRealtimeMessages";
+import { useThreadReadStatus, getLastReadTimestamp } from "~/hooks/useThreadReadStatus";
 import { api } from "~/utils/api";
 
 import InternalNoteInput from "./InternalNoteInput";
@@ -34,6 +35,18 @@ export default function ChatPanel({
   const [editTitle, setEditTitle] = useState("");
   const [workItemCreating, setWorkItemCreating] = useState<string | null>(null);
   const [showAiInsights, setShowAiInsights] = useState(false);
+
+  // Read tracking — capture last-read before marking as read
+  const { markAsRead } = useThreadReadStatus();
+  const lastReadRef = useRef<string | null>(null);
+
+  // Capture the lastRead value synchronously from localStorage when
+  // switching threads (before markAsRead overwrites it).
+  const prevThreadRef = useRef<string>("");
+  if (prevThreadRef.current !== threadPublicId) {
+    prevThreadRef.current = threadPublicId;
+    lastReadRef.current = getLastReadTimestamp(threadPublicId);
+  }
 
   // ── Thread metadata (title, status, AI insights) — can refetch freely
   const {
@@ -139,6 +152,13 @@ export default function ChatPanel({
       el.scrollTop = el.scrollHeight;
     });
   }, [messages]);
+
+  // Mark thread as read when user is viewing it and messages are loaded
+  useEffect(() => {
+    if (messages.length > 0 && isNearBottomRef.current) {
+      markAsRead(threadPublicId);
+    }
+  }, [messages, threadPublicId, markAsRead]);
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -490,38 +510,74 @@ export default function ChatPanel({
           </div>
         )}
 
-        {messages.map((msg) => {
-          // Check if it's a work item suggestion
-          if (
-            msg.metadataJson?.type === "system_workitem_suggestion" &&
-            msg.metadataJson?.workItemPublicId
-          ) {
-            return (
-              <WorkItemSuggestion
-                key={msg.publicId}
-                workItemPublicId={msg.metadataJson.workItemPublicId as string}
-                reason={msg.rawText}
-              />
-            );
-          }
+        {(() => {
+          const cutoff = lastReadRef.current;
+          let dividerRendered = false;
 
-          return (
-            <MessageBubble
-              key={msg.publicId}
-              publicId={msg.publicId}
-              senderType={msg.senderType}
-              senderName={msg.senderName}
-              visibility={msg.visibility}
-              rawText={msg.rawText}
-              createdAt={msg.createdAt}
-              metadataJson={msg.metadataJson}
-              isFailed={!!msg.metadataJson?._failed}
-              onEdit={handleEditMessage}
-              onDelete={handleDeleteMessage}
-              onCreateWorkItem={handleCreateWorkItem}
-            />
-          );
-        })}
+          // Count unread user messages for the divider label
+          const unreadUserMsgCount = messages.filter((m) => {
+            if (m.senderType !== "user") return false;
+            if (!cutoff) return true; // never read → all user msgs are unread
+            return new Date(m.createdAt) > new Date(cutoff);
+          }).length;
+
+          return messages.map((msg) => {
+            // Determine if we should render the "New messages" divider before this message.
+            // Unread = external user messages that arrived after the last-read timestamp.
+            // If cutoff is null the thread was never opened → all user msgs are unread.
+            let showDivider = false;
+            if (
+              !dividerRendered &&
+              msg.senderType === "user" &&
+              (cutoff ? new Date(msg.createdAt) > new Date(cutoff) : true) &&
+              unreadUserMsgCount > 0
+            ) {
+              showDivider = true;
+              dividerRendered = true;
+            }
+
+            // Work item suggestion
+            if (
+              msg.metadataJson?.type === "system_workitem_suggestion" &&
+              msg.metadataJson?.workItemPublicId
+            ) {
+              return (
+                <WorkItemSuggestion
+                  key={msg.publicId}
+                  workItemPublicId={msg.metadataJson.workItemPublicId as string}
+                  reason={msg.rawText}
+                />
+              );
+            }
+
+            return (
+              <div key={msg.publicId}>
+                {showDivider && (
+                  <div className="my-3 flex items-center gap-3 px-4">
+                    <div className="h-px flex-1 bg-rose-300 dark:bg-rose-700" />
+                    <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-rose-500">
+                      {unreadUserMsgCount} new {unreadUserMsgCount === 1 ? "message" : "messages"}
+                    </span>
+                    <div className="h-px flex-1 bg-rose-300 dark:bg-rose-700" />
+                  </div>
+                )}
+                <MessageBubble
+                  publicId={msg.publicId}
+                  senderType={msg.senderType}
+                  senderName={msg.senderName}
+                  visibility={msg.visibility}
+                  rawText={msg.rawText}
+                  createdAt={msg.createdAt}
+                  metadataJson={msg.metadataJson}
+                  isFailed={!!msg.metadataJson?._failed}
+                  onEdit={handleEditMessage}
+                  onDelete={handleDeleteMessage}
+                  onCreateWorkItem={handleCreateWorkItem}
+                />
+              </div>
+            );
+          });
+        })()}
       </div>
 
       {/* Input */}

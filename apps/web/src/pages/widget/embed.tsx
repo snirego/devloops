@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import { formatDistanceToNow } from "date-fns";
 import { createClient } from "@supabase/supabase-js";
 
@@ -6,7 +7,12 @@ import { createClient } from "@supabase/supabase-js";
  * Widget embed page — rendered inside an iframe on external sites.
  * No dashboard layout, no Tailwind from the host, fully isolated.
  *
- * Uses Supabase Realtime for instant message delivery (no polling).
+ * Features:
+ *  - Supabase Realtime for instant message delivery (no polling)
+ *  - Sound notification on incoming support replies
+ *  - "New messages" divider between read and unread
+ *  - Posts unread count to parent window for badge on floating button
+ *  - Requires ?workspaceId=... query parameter for data isolation
  */
 
 interface Message {
@@ -31,7 +37,44 @@ function getAnonSupabase() {
   return _anonClient;
 }
 
+// ─── Notification sound helper ─────────────────────────────────────────────
+let _notifAudio: HTMLAudioElement | null = null;
+function playNotificationSound(baseUrl: string) {
+  try {
+    if (!_notifAudio) {
+      _notifAudio = new Audio(`${baseUrl}/sounds/new-message.mp3`);
+      _notifAudio.volume = 0.5;
+    }
+    _notifAudio.currentTime = 0;
+    _notifAudio.play().catch(() => {
+      // Browser may block autoplay — silently ignore
+    });
+  } catch {
+    // Non-critical
+  }
+}
+
+// ─── Read-status localStorage helpers ──────────────────────────────────────
+const WIDGET_READ_KEY = "devloops_widget_last_read";
+function getLastReadTs(): string | null {
+  try {
+    return localStorage.getItem(WIDGET_READ_KEY);
+  } catch {
+    return null;
+  }
+}
+function setLastReadTs(iso: string) {
+  try {
+    localStorage.setItem(WIDGET_READ_KEY, iso);
+  } catch {
+    // storage blocked
+  }
+}
+
 export default function WidgetEmbedPage() {
+  const router = useRouter();
+  const workspaceId = (router.query.workspaceId as string) ?? "";
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const seenIds = useRef(new Set<string>());
@@ -42,6 +85,46 @@ export default function WidgetEmbedPage() {
   const [threadDbId, setThreadDbId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Track whether the parent modal is visible (chat is open).
+  // Starts as false — the iframe loads before the user opens the popup.
+  const widgetVisibleRef = useRef(false);
+
+  // Capture the last-read timestamp when the component first mounts.
+  // This value stays fixed during the session so the divider doesn't jump.
+  const initialLastReadRef = useRef<string | null>(null);
+  const didCaptureRef = useRef(false);
+
+  // Base URL for sound file (derived from iframe src)
+  const baseUrl =
+    typeof window !== "undefined" ? window.location.origin : "";
+
+  // ── Force light mode: safety net for any leaked global CSS ──────────
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.style.colorScheme = "light";
+
+    const style = document.createElement("style");
+    style.textContent = `
+      html, body {
+        background: #fff !important;
+        color: #111 !important;
+        color-scheme: light !important;
+      }
+      input, textarea, select {
+        background: #fff !important;
+        color: #111 !important;
+        -webkit-text-fill-color: #111 !important;
+      }
+      input::placeholder, textarea::placeholder {
+        color: #9ca3af !important;
+        -webkit-text-fill-color: #9ca3af !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => { style.remove(); };
+  }, []);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -61,29 +144,41 @@ export default function WidgetEmbedPage() {
       if (tid) setThreadDbId(parseInt(tid, 10));
       setStep("chat");
     }
+    // Capture initial last-read timestamp
+    if (!didCaptureRef.current) {
+      initialLastReadRef.current = getLastReadTs();
+      didCaptureRef.current = true;
+    }
   }, []);
 
   // Create or resume session
-  const initSession = useCallback(async (name: string) => {
-    const existingSid = localStorage.getItem("devloops_widget_session");
+  const initSession = useCallback(
+    async (name: string) => {
+      const existingSid = localStorage.getItem("devloops_widget_session");
 
-    const res = await fetch("/api/chat/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: existingSid,
-        visitorName: name,
-      }),
-    });
-    const data = await res.json();
-    setSessionId(data.sessionId);
-    setThreadDbId(data.threadId ?? null);
-    localStorage.setItem("devloops_widget_session", data.sessionId);
-    localStorage.setItem("devloops_widget_name", name);
-    if (data.threadId) {
-      localStorage.setItem("devloops_widget_threadId", String(data.threadId));
-    }
-  }, []);
+      const res = await fetch("/api/chat/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: existingSid,
+          visitorName: name,
+          workspacePublicId: workspaceId || undefined,
+        }),
+      });
+      const data = await res.json();
+      setSessionId(data.sessionId);
+      setThreadDbId(data.threadId ?? null);
+      localStorage.setItem("devloops_widget_session", data.sessionId);
+      localStorage.setItem("devloops_widget_name", name);
+      if (data.threadId) {
+        localStorage.setItem(
+          "devloops_widget_threadId",
+          String(data.threadId),
+        );
+      }
+    },
+    [workspaceId],
+  );
 
   // Fetch initial messages once when session is established
   useEffect(() => {
@@ -109,6 +204,31 @@ export default function WidgetEmbedPage() {
 
     loadOnce();
   }, [sessionId]);
+
+  // ── Compute unread count & post to parent ────────────────────────────────
+  useEffect(() => {
+    const lastRead = initialLastReadRef.current;
+    // Count incoming support replies that arrived after lastRead
+    const count = messages.filter((m) => {
+      if (m.senderType !== "internal") return false;
+      if (!lastRead) return true; // never read = all are unread
+      return new Date(m.createdAt) > new Date(lastRead);
+    }).length;
+    setUnreadCount(count);
+
+    // Post to parent so the floating button can show the badge
+    window.parent?.postMessage(
+      { type: "devloops-widget-unread", count },
+      "*",
+    );
+  }, [messages]);
+
+  // ── Mark as read when user scrolls to bottom (only if widget is open) ──
+  useEffect(() => {
+    if (widgetVisibleRef.current && isNearBottomRef.current && messages.length > 0) {
+      setLastReadTs(new Date().toISOString());
+    }
+  }, [messages]);
 
   // ── Supabase Realtime subscription ──────────────────────────────────────
   useEffect(() => {
@@ -144,6 +264,11 @@ export default function WidgetEmbedPage() {
           // Deduplicate against optimistic messages
           if (seenIds.current.has(row.publicId)) return;
           seenIds.current.add(row.publicId);
+
+          // Play sound for incoming support replies (not our own messages)
+          if (row.senderType === "internal") {
+            playNotificationSound(baseUrl);
+          }
 
           setMessages((prev) => {
             if (prev.some((m) => m.publicId === row.publicId)) return prev;
@@ -205,7 +330,7 @@ export default function WidgetEmbedPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [threadDbId]);
+  }, [threadDbId, baseUrl]);
 
   // Auto scroll (only when near bottom)
   useEffect(() => {
@@ -228,7 +353,13 @@ export default function WidgetEmbedPage() {
     if (!input.trim() || !sessionId) return;
 
     const text = input.trim();
-    const optimisticId = `opt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Generate a proper 12-char ID so the server uses the same publicId.
+    // This prevents the Realtime INSERT from creating a duplicate.
+    const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let optimisticId = "";
+    for (let i = 0; i < 12; i++) {
+      optimisticId += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
 
     seenIds.current.add(optimisticId);
     setMessages((prev) => [
@@ -243,6 +374,10 @@ export default function WidgetEmbedPage() {
     ]);
     setInput("");
 
+    // Mark as read since the user is actively chatting
+    widgetVisibleRef.current = true;
+    setLastReadTs(new Date().toISOString());
+
     try {
       await fetch("/api/chat/messages", {
         method: "POST",
@@ -250,7 +385,11 @@ export default function WidgetEmbedPage() {
           "Content-Type": "application/json",
           "X-Session-Id": sessionId,
         },
-        body: JSON.stringify({ rawText: text, senderName: visitorName }),
+        body: JSON.stringify({
+          rawText: text,
+          senderName: visitorName,
+          publicId: optimisticId,
+        }),
       });
     } catch {
       // non-critical
@@ -275,6 +414,28 @@ export default function WidgetEmbedPage() {
     const observer = new ResizeObserver(sendHeight);
     observer.observe(document.body);
     return () => observer.disconnect();
+  }, []);
+
+  // Listen for "opened" / "closed" messages from parent
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "devloops-widget-opened") {
+        widgetVisibleRef.current = true;
+        setLastReadTs(new Date().toISOString());
+        // Update the initial ref so divider logic stays coherent
+        initialLastReadRef.current = new Date().toISOString();
+        // Reset unread count
+        setUnreadCount(0);
+        window.parent?.postMessage(
+          { type: "devloops-widget-unread", count: 0 },
+          "*",
+        );
+      } else if (e.data?.type === "devloops-widget-closed") {
+        widgetVisibleRef.current = false;
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
   }, []);
 
   // ─── Name Step ──────────────────────────────────────────────────────────
@@ -318,7 +479,12 @@ export default function WidgetEmbedPage() {
           </div>
           <div style={{ textAlign: "center" }}>
             <h2
-              style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#111" }}
+              style={{
+                margin: 0,
+                fontSize: 16,
+                fontWeight: 600,
+                color: "#111",
+              }}
             >
               DevLoops Support
             </h2>
@@ -344,6 +510,9 @@ export default function WidgetEmbedPage() {
                 fontSize: 14,
                 outline: "none",
                 boxSizing: "border-box",
+                background: "#fff",
+                color: "#111",
+                WebkitTextFillColor: "#111",
               }}
             />
             <button
@@ -371,6 +540,29 @@ export default function WidgetEmbedPage() {
   }
 
   // ─── Chat Step ──────────────────────────────────────────────────────────
+
+  // Build divider placement: insert before first unread support reply
+  const lastReadCutoff = initialLastReadRef.current;
+  let dividerInsertedBefore: string | null = null;
+  if (lastReadCutoff) {
+    for (const msg of messages) {
+      if (
+        msg.senderType === "internal" &&
+        new Date(msg.createdAt) > new Date(lastReadCutoff)
+      ) {
+        dividerInsertedBefore = msg.publicId;
+        break;
+      }
+    }
+  } else if (messages.some((m) => m.senderType === "internal")) {
+    // Never read — divider before first support reply
+    for (const msg of messages) {
+      if (msg.senderType === "internal") {
+        dividerInsertedBefore = msg.publicId;
+        break;
+      }
+    }
+  }
 
   return (
     <div
@@ -410,12 +602,32 @@ export default function WidgetEmbedPage() {
         >
           D
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600 }}>DevLoops Support</div>
           <div style={{ fontSize: 11, opacity: 0.8 }}>
             We usually respond in a few minutes
           </div>
         </div>
+        {/* Unread badge in header */}
+        {unreadCount > 0 && (
+          <div
+            style={{
+              minWidth: 20,
+              height: 20,
+              borderRadius: 10,
+              background: "#f43f5e",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "0 6px",
+            }}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -449,6 +661,8 @@ export default function WidgetEmbedPage() {
           // Hide system messages from widget users
           if (isSystem) return null;
 
+          const showDivider = dividerInsertedBefore === msg.publicId;
+
           const initials = msg.senderName
             ? msg.senderName
                 .split(/\s+/)
@@ -459,71 +673,105 @@ export default function WidgetEmbedPage() {
             : "?";
 
           return (
-            <div
-              key={msg.publicId}
-              style={{
-                display: "flex",
-                flexDirection: isMe ? "row-reverse" : "row",
-                gap: 8,
-                padding: "3px 12px",
-              }}
-            >
-              {/* Avatar circle */}
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  background: isMe ? "#6366f1" : "#94a3b8",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  marginTop: 4,
-                }}
-                title={msg.senderName ?? undefined}
-              >
-                {initials}
-              </div>
+            <div key={msg.publicId}>
+              {/* ── New Messages Divider ── */}
+              {showDivider && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 16px",
+                    margin: "4px 0",
+                  }}
+                >
+                  <div
+                    style={{ flex: 1, height: 1, background: "#f43f5e40" }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#f43f5e",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {unreadCount} new{" "}
+                    {unreadCount === 1 ? "message" : "messages"}
+                  </span>
+                  <div
+                    style={{ flex: 1, height: 1, background: "#f43f5e40" }}
+                  />
+                </div>
+              )}
 
               <div
                 style={{
-                  maxWidth: "72%",
-                  background: isMe ? "#6366f1" : "#f1f5f9",
-                  color: isMe ? "#fff" : "#111",
-                  borderRadius: 12,
-                  padding: "8px 12px",
-                  fontSize: 14,
-                  lineHeight: 1.4,
+                  display: "flex",
+                  flexDirection: isMe ? "row-reverse" : "row",
+                  gap: 8,
+                  padding: "3px 12px",
                 }}
               >
-                {msg.senderName && (
+                {/* Avatar circle */}
+                <div
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    background: isMe ? "#6366f1" : "#94a3b8",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    marginTop: 4,
+                  }}
+                  title={msg.senderName ?? undefined}
+                >
+                  {initials}
+                </div>
+
+                <div
+                  style={{
+                    maxWidth: "72%",
+                    background: isMe ? "#6366f1" : "#f1f5f9",
+                    color: isMe ? "#fff" : "#111",
+                    borderRadius: 12,
+                    padding: "8px 12px",
+                    fontSize: 14,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {msg.senderName && (
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        marginBottom: 2,
+                        opacity: 0.7,
+                      }}
+                    >
+                      {msg.senderName}
+                    </div>
+                  )}
+                  <div style={{ whiteSpace: "pre-wrap" }}>{msg.rawText}</div>
                   <div
                     style={{
                       fontSize: 10,
-                      fontWeight: 600,
-                      marginBottom: 2,
-                      opacity: 0.7,
+                      textAlign: "right",
+                      marginTop: 4,
+                      opacity: 0.5,
                     }}
                   >
-                    {msg.senderName}
+                    {formatDistanceToNow(new Date(msg.createdAt), {
+                      addSuffix: true,
+                    })}
                   </div>
-                )}
-                <div style={{ whiteSpace: "pre-wrap" }}>{msg.rawText}</div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    textAlign: "right",
-                    marginTop: 4,
-                    opacity: 0.5,
-                  }}
-                >
-                  {formatDistanceToNow(new Date(msg.createdAt), {
-                    addSuffix: true,
-                  })}
                 </div>
               </div>
             </div>
@@ -551,6 +799,9 @@ export default function WidgetEmbedPage() {
               minHeight: 36,
               maxHeight: 80,
               fontFamily: "inherit",
+              background: "#fff",
+              color: "#111",
+              WebkitTextFillColor: "#111",
             }}
           />
           <button

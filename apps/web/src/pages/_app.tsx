@@ -11,6 +11,7 @@ import { ThemeProvider } from "next-themes";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
 import { useEffect } from "react";
+import { useRouter } from "next/router";
 
 import { AiActivityProvider } from "~/providers/ai-activity";
 import { KeyboardShortcutProvider } from "~/providers/keyboard-shortcuts";
@@ -46,6 +47,8 @@ type AppPropsWithLayout = AppProps & {
 };
 
 const MyApp: AppType = ({ Component, pageProps }: AppPropsWithLayout) => {
+  const router = useRouter();
+  const isWidgetEmbed = router.pathname === "/widget/embed";
   const posthogKey = env("NEXT_PUBLIC_POSTHOG_KEY");
 
   useEffect(() => {
@@ -60,6 +63,20 @@ const MyApp: AppType = ({ Component, pageProps }: AppPropsWithLayout) => {
       });
     }
   }, [posthogKey]);
+
+  // Inject the widget chat script manually so data-workspace-id is always
+  // accessible via querySelector. next/Script's dynamic injection breaks
+  // document.currentScript which the widget relies on.
+  useEffect(() => {
+    if (isWidgetEmbed) return;
+    if (document.getElementById("devloops-chat-script")) return;
+    const s = document.createElement("script");
+    s.id = "devloops-chat-script";
+    s.src = "/widget/devloops-chat.js";
+    s.setAttribute("data-workspace-id", "jxwdrfe3f2iu");
+    s.async = true;
+    document.body.appendChild(s);
+  }, [isWidgetEmbed]);
 
   const getLayout = Component.getLayout ?? ((page) => page);
 
@@ -81,27 +98,33 @@ const MyApp: AppType = ({ Component, pageProps }: AppPropsWithLayout) => {
         />
       )}
       <script src="/__ENV.js" />
-      <main className="font-sans">
-        <AiActivityProvider>
-          <KeyboardShortcutProvider>
-            <LinguiProviderWrapper>
-              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                <ModalProvider>
-                  <PopupProvider>
-                    {posthogKey ? (
-                      <PostHogProvider client={posthog}>
-                        {getLayout(<Component {...pageProps} />)}
-                      </PostHogProvider>
-                    ) : (
-                      getLayout(<Component {...pageProps} />)
-                    )}
-                  </PopupProvider>
-                </ModalProvider>
-              </ThemeProvider>
-            </LinguiProviderWrapper>
-          </KeyboardShortcutProvider>
-        </AiActivityProvider>
-      </main>
+      {isWidgetEmbed ? (
+        /* Widget embed runs in an iframe — skip all providers to avoid
+           auth errors, dark-mode leaks, and unnecessary overhead. */
+        <Component {...pageProps} />
+      ) : (
+        <main className="font-sans">
+          <AiActivityProvider>
+            <KeyboardShortcutProvider>
+              <LinguiProviderWrapper>
+                <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                  <ModalProvider>
+                    <PopupProvider>
+                      {posthogKey ? (
+                        <PostHogProvider client={posthog}>
+                          {getLayout(<Component {...pageProps} />)}
+                        </PostHogProvider>
+                      ) : (
+                        getLayout(<Component {...pageProps} />)
+                      )}
+                    </PopupProvider>
+                  </ModalProvider>
+                </ThemeProvider>
+              </LinguiProviderWrapper>
+            </KeyboardShortcutProvider>
+          </AiActivityProvider>
+        </main>
+      )}
     </>
   );
 };

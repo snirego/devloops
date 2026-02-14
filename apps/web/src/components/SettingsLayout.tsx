@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import {
   HiChevronDown,
   HiOutlineBanknotes,
+  HiOutlineBellAlert,
   HiOutlineCodeBracketSquare,
   HiOutlineRectangleGroup,
   HiOutlineShieldCheck,
@@ -38,6 +39,12 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
       key: "account",
       icon: <HiOutlineUser />,
       label: t`Account`,
+      condition: true,
+    },
+    {
+      key: "notifications",
+      icon: <HiOutlineBellAlert />,
+      label: t`Notifications`,
       condition: true,
     },
     {

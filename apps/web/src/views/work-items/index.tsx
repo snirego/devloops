@@ -61,8 +61,24 @@ export default function WorkItemsView() {
         </div>
         <div className="flex items-center gap-2">
           {/* LLM Status indicator */}
-          <div className="flex items-center gap-1.5 rounded-md border border-light-300 px-2 py-1 text-xs dark:border-dark-300">
-            <HiOutlineCpuChip className="h-3.5 w-3.5" />
+          <div
+            className="flex items-center gap-1.5 rounded-md border border-light-300 px-2 py-1 text-xs dark:border-dark-300"
+            title={
+              llmHealth
+                ? llmHealth.ok
+                  ? `Mode: ${llmHealth.mode ?? "unknown"}${llmHealth.checkedUrl ? ` | ${llmHealth.checkedUrl}` : ""}`
+                  : `Error: ${llmHealth.error ?? "unreachable"} | Mode: ${llmHealth.mode ?? "unknown"}`
+                : "Checking LLM status..."
+            }
+          >
+            <div className="relative flex items-center">
+              <HiOutlineCpuChip className="h-3.5 w-3.5" />
+              <span
+                className={`absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ${
+                  llmHealth?.ok ? "bg-emerald-500" : "bg-red-500"
+                }`}
+              />
+            </div>
             <span
               className={
                 llmHealth?.ok
@@ -70,7 +86,9 @@ export default function WorkItemsView() {
                   : "text-red-500"
               }
             >
-              {llmHealth?.ok ? "LLM Online" : "LLM Offline"}
+              {llmHealth?.ok
+                ? `LLM Online${llmHealth.mode ? ` (${llmHealth.mode})` : ""}`
+                : "LLM Offline"}
             </span>
           </div>
 

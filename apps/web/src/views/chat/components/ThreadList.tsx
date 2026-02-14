@@ -40,6 +40,10 @@ interface ThreadListProps {
   onReopenThread?: (publicId: string) => void;
   isLoading: boolean;
   emptyLabel?: string;
+  getUnreadCount?: (
+    threadPublicId: string,
+    messages: Array<{ createdAt: string | Date; senderType: string }>,
+  ) => number;
 }
 
 const STATUS_DOTS: Record<string, string> = {
@@ -59,6 +63,7 @@ export default function ThreadList({
   onReopenThread,
   isLoading,
   emptyLabel = "No conversations yet",
+  getUnreadCount,
 }: ThreadListProps) {
   const [ctxMenu, setCtxMenu] = useState<{
     x: number;
@@ -148,6 +153,19 @@ export default function ThreadList({
         const isExternal = thread.primarySource === "widget";
         const isOptimistic = !!(thread as any)._optimistic;
         const isArchived = thread.status === "Closed";
+        const unreadNum =
+          !isOptimistic && getUnreadCount && thread.messages
+            ? getUnreadCount(
+                thread.publicId,
+                thread.messages.map((m) => ({
+                  createdAt:
+                    typeof m.createdAt === "string"
+                      ? m.createdAt
+                      : (m.createdAt as Date).toISOString(),
+                  senderType: m.senderType,
+                })),
+              )
+            : 0;
 
         return (
           <button
@@ -199,13 +217,20 @@ export default function ThreadList({
                       `Thread ${thread.publicId.slice(0, 6)}`}
                   </span>
                 </div>
-                <span className="flex-shrink-0 text-[10px] text-light-800 dark:text-dark-800">
-                  {isOptimistic
-                    ? "now"
-                    : formatDistanceToNow(new Date(thread.lastActivityAt), {
-                        addSuffix: true,
-                      })}
-                </span>
+                <div className="flex flex-shrink-0 items-center gap-1.5">
+                  <span className="text-[10px] text-light-800 dark:text-dark-800">
+                    {isOptimistic
+                      ? "now"
+                      : formatDistanceToNow(new Date(thread.lastActivityAt), {
+                          addSuffix: true,
+                        })}
+                  </span>
+                  {unreadNum > 0 && (
+                    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white">
+                      {unreadNum > 99 ? "99+" : unreadNum}
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="mt-0.5 truncate text-xs text-light-800 dark:text-dark-800">
                 {isOptimistic ? (

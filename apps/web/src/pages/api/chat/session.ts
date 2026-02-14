@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createDrizzleClient } from "@kan/db/client";
 import * as chatSessionRepo from "@kan/db/repository/chatSession.repo";
 import * as feedbackThreadRepo from "@kan/db/repository/feedbackThread.repo";
+import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 
 function setCorsHeaders(res: NextApiResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -26,8 +27,15 @@ export default async function handler(
 
   try {
     const db = createDrizzleClient();
-    const { sessionId, threadPublicId, visitorName, visitorEmail, metadata } =
+    const { sessionId, threadPublicId, visitorName, visitorEmail, metadata, workspacePublicId } =
       req.body ?? {};
+
+    // Resolve workspace ID if provided
+    let workspaceId: number | undefined;
+    if (workspacePublicId) {
+      const ws = await workspaceRepo.getByPublicId(db, workspacePublicId);
+      if (ws) workspaceId = ws.id;
+    }
 
     // Resume existing session
     if (sessionId) {
@@ -80,6 +88,7 @@ export default async function handler(
     const thread = await feedbackThreadRepo.create(db, {
       primarySource: "widget",
       title: visitorName ? `Chat with ${visitorName}` : "New Chat",
+      ...(workspaceId ? { workspaceId } : {}),
     });
 
     const session = await chatSessionRepo.create(db, {

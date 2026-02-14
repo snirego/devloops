@@ -12,7 +12,18 @@ export type dbClient = NodePgDatabase<typeof schema> & {
   $client: Pool;
 };
 
+/**
+ * Singleton drizzle client.
+ *
+ * IMPORTANT: Every call to `createDrizzleClient()` returns the SAME instance.
+ * Previously each call created a new `Pool`, which exhausted Supabase's
+ * Session-mode connection limit (`MaxClientsInSessionMode`).
+ */
+let _singleton: dbClient | null = null;
+
 export const createDrizzleClient = (): dbClient => {
+  if (_singleton) return _singleton;
+
   const connectionString = process.env.POSTGRES_URL;
 
   if (!connectionString) {
@@ -26,12 +37,20 @@ export const createDrizzleClient = (): dbClient => {
 
     migrate(db, { migrationsFolder: "../../packages/db/migrations" });
 
-    return db as unknown as dbClient;
+    _singleton = db as unknown as dbClient;
+    return _singleton;
   }
 
   const pool = new Pool({
     connectionString,
+    // Keep the pool small to stay within Supabase Session-mode limits.
+    // Supabase pooler (pgBouncer session mode) counts each client connection
+    // against pool_size — a single shared pool avoids exhaustion.
+    max: 5,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
   });
 
-  return drizzlePg(pool, { schema }) as dbClient;
+  _singleton = drizzlePg(pool, { schema }) as dbClient;
+  return _singleton;
 };

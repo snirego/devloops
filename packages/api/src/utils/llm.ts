@@ -1,23 +1,49 @@
 /**
  * LLM client module.
  *
- * In production: delegates to the devloops-llm service for health checks.
- * In local dev: calls the local LLM endpoint directly.
+ * Health-checks the actual LLM endpoint (OpenAI-compatible) directly,
+ * falling back through multiple strategies.
  *
  * Environment variables:
  *   LOCAL_LLM_BASE_URL  — e.g. http://localhost:11434/v1
  *   LOCAL_LLM_MODEL     — e.g. qwen2.5-coder:7b-instruct
  *   LOCAL_LLM_API_KEY   — dummy value, defaults to "ollama"
  *
+ *   LLM_BASE_URL        — e.g. http://ollama.railway.internal:11434/v1
+ *   LLM_API_KEY         — API key for the LLM endpoint
+ *   LLM_MODEL           — model name
+ *
  *   LLM_SERVICE_URL     — e.g. https://devloops-llm.up.railway.app
  *   LLM_SERVICE_SECRET  — shared secret
  */
 
+/**
+ * Resolve the effective LLM config.
+ * Priority: production (LLM_BASE_URL) → local (LOCAL_LLM_BASE_URL) → fallback.
+ */
 const getLlmConfig = () => ({
-  baseUrl: process.env.LOCAL_LLM_BASE_URL ?? "http://localhost:11434/v1",
-  model: process.env.LOCAL_LLM_MODEL ?? "qwen2.5-coder:7b-instruct",
-  apiKey: process.env.LOCAL_LLM_API_KEY ?? "ollama",
+  baseUrl:
+    process.env.LLM_BASE_URL ??
+    process.env.LOCAL_LLM_BASE_URL ??
+    "http://localhost:11434/v1",
+  model:
+    process.env.LLM_MODEL ??
+    process.env.LOCAL_LLM_MODEL ??
+    "qwen2.5-coder:7b-instruct",
+  apiKey:
+    process.env.LLM_API_KEY ??
+    process.env.LOCAL_LLM_API_KEY ??
+    "ollama",
 });
+
+/** Local-only LLM config (used as last-resort fallback in health checks) */
+function getLocalLlmConfig() {
+  return {
+    baseUrl: process.env.LOCAL_LLM_BASE_URL ?? "http://localhost:11434/v1",
+    model: process.env.LOCAL_LLM_MODEL ?? "qwen2.5-coder:7b-instruct",
+    apiKey: process.env.LOCAL_LLM_API_KEY ?? "ollama",
+  };
+}
 
 function getLlmServiceConfig() {
   return {
@@ -29,6 +55,10 @@ function getLlmServiceConfig() {
 function isLlmServiceConfigured(): boolean {
   const config = getLlmServiceConfig();
   return !!(config.url && config.secret);
+}
+
+function isRemoteLlmConfigured(): boolean {
+  return !!process.env.LLM_BASE_URL;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -254,82 +284,139 @@ export async function llmJsonCompletion<T>(opts: {
 
 // ─── Health Check ────────────────────────────────────────────────────────────
 
-export async function llmHealthCheck(): Promise<{
-  ok: boolean;
-  model: string;
-  error?: string;
-  mode?: string;
-}> {
-  // If LLM service is configured, check its health endpoint instead
-  if (isLlmServiceConfigured()) {
-    const svc = getLlmServiceConfig();
-    try {
-      const res = await fetch(`${svc.url}/ready`, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { checks?: { llm?: boolean } };
-        return {
-          ok: data.checks?.llm ?? true,
-          model: "via devloops-llm service",
-          mode: "remote",
-        };
-      }
-      return {
-        ok: false,
-        model: "via devloops-llm service",
-        error: `Service returned ${res.status}`,
-        mode: "remote",
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        model: "via devloops-llm service",
-        error: err instanceof Error ? err.message : String(err),
-        mode: "remote",
-      };
-    }
-  }
+/**
+ * Probe an OpenAI-compatible base URL for liveness.
+ * Tries /models first (lightweight), then falls back to /chat/completions.
+ */
+async function probeOpenAiEndpoint(
+  baseUrl: string,
+  apiKey: string,
+  timeoutMs = 8_000,
+): Promise<{ ok: boolean; error?: string }> {
+  const ollamaBase = baseUrl.replace(/\/v1\/?$/, "");
 
-  // Local LLM health check (original behavior)
-  const config = getLlmConfig();
-  const ollamaBase = config.baseUrl.replace(/\/v1\/?$/, "");
-
-  const endpoints = [
-    { url: `${config.baseUrl}/models`, method: "GET" as const },
-    { url: `${ollamaBase}/api/tags`, method: "GET" as const },
+  // Strategy 1: GET /models (standard OpenAI-compatible)
+  // Strategy 2: GET /api/tags (Ollama-native)
+  const lightEndpoints = [
+    `${baseUrl}/models`,
+    `${ollamaBase}/api/tags`,
   ];
 
-  for (const ep of endpoints) {
+  for (const url of lightEndpoints) {
     try {
-      const res = await fetch(ep.url, {
-        method: ep.method,
-        headers: { Authorization: `Bearer ${config.apiKey}` },
-        signal: AbortSignal.timeout(5000),
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(timeoutMs),
       });
-      if (res.ok) return { ok: true, model: config.model, mode: "local" };
+      if (res.ok) return { ok: true };
     } catch {
       // Try next
     }
   }
 
+  // Strategy 3: minimal chat completion (heavier but definitive)
   try {
-    const res = await fetch(`${config.baseUrl}/chat/completions`, {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: config.model,
+        model: "test",
         messages: [{ role: "user", content: "ping" }],
         max_tokens: 1,
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
-    if (res.ok) return { ok: true, model: config.model, mode: "local" };
-    return { ok: false, model: config.model, error: `All endpoints failed. Last: HTTP ${res.status}`, mode: "local" };
+    // Even a 4xx model-not-found means the LLM server is alive
+    if (res.ok || res.status === 404 || res.status === 400) {
+      return { ok: true };
+    }
+    return { ok: false, error: `HTTP ${res.status}` };
   } catch (err) {
-    return { ok: false, model: config.model, error: err instanceof Error ? err.message : String(err), mode: "local" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
+}
+
+export async function llmHealthCheck(): Promise<{
+  ok: boolean;
+  model: string;
+  error?: string;
+  mode?: string;
+  checkedUrl?: string;
+}> {
+  // ── 1. Try the devloops-llm service /ready endpoint (if configured) ──
+  if (isLlmServiceConfigured()) {
+    const svc = getLlmServiceConfig();
+    try {
+      const res = await fetch(`${svc.url}/ready`, {
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { checks?: { llm?: boolean } };
+        if (data.checks?.llm) {
+          return {
+            ok: true,
+            model: "via devloops-llm service",
+            mode: "service",
+            checkedUrl: svc.url,
+          };
+        }
+        // Service is up but LLM is down inside it — fall through to direct check
+      }
+    } catch {
+      // Service unreachable — fall through to direct LLM check
+    }
+  }
+
+  // ── 2. Try the primary LLM endpoint (production LLM_BASE_URL first) ──
+  const primary = getLlmConfig();
+  const primaryResult = await probeOpenAiEndpoint(primary.baseUrl, primary.apiKey);
+  if (primaryResult.ok) {
+    return {
+      ok: true,
+      model: primary.model,
+      mode: isRemoteLlmConfigured() ? "remote" : "local",
+      checkedUrl: primary.baseUrl,
+    };
+  }
+
+  // ── 3. Try local fallback only if primary was remote ──────────────────
+  if (isRemoteLlmConfigured()) {
+    const local = getLocalLlmConfig();
+    // Only try local if it's actually different from the primary we just tried
+    if (local.baseUrl !== primary.baseUrl) {
+      const localResult = await probeOpenAiEndpoint(local.baseUrl, local.apiKey, 5_000);
+      if (localResult.ok) {
+        return {
+          ok: true,
+          model: local.model,
+          mode: "local",
+          checkedUrl: local.baseUrl,
+        };
+      }
+    }
+  }
+
+  // ── 4. All checks failed ──────────────────────────────────────────────
+  const errors: string[] = [];
+  errors.push(`primary(${primary.baseUrl}): ${primaryResult.error ?? "unreachable"}`);
+  if (isRemoteLlmConfigured()) {
+    const local = getLocalLlmConfig();
+    if (local.baseUrl !== primary.baseUrl) {
+      errors.push(`local(${local.baseUrl}): unreachable`);
+    }
+  }
+
+  return {
+    ok: false,
+    model: primary.model,
+    error: `All LLM endpoints unreachable: ${errors.join(", ")}`,
+    mode: "none",
+  };
 }
