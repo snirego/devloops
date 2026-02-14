@@ -393,6 +393,7 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
               <div className="flex items-center gap-2">
                 <Dropdown
                   cardPublicId={cardId}
+                  cardTitle={title}
                   isTemplate={isTemplate}
                   boardPublicId={boardId}
                   cardCreatedBy={card?.createdBy}

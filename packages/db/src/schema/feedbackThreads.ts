@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./users";
-import { workspaces } from "./workspaces";
+import { workspaceMembers, workspaces } from "./workspaces";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -214,6 +214,10 @@ export const workItems = pgTable(
       () => users.id,
       { onDelete: "set null" },
     ),
+    assignedMemberId: bigint("assignedMemberId", { mode: "number" }).references(
+      () => workspaceMembers.id,
+      { onDelete: "set null" },
+    ),
     labelsJson: jsonb("labelsJson"),
     estimatedEffortJson: jsonb("estimatedEffortJson"),
     promptBundleJson: jsonb("promptBundleJson"),
@@ -226,6 +230,7 @@ export const workItems = pgTable(
     index("work_item_thread_idx").on(table.threadId),
     index("work_item_status_idx").on(table.status),
     index("work_item_priority_idx").on(table.priority),
+    index("work_item_assigned_member_idx").on(table.assignedMemberId),
   ],
 );
 
@@ -244,6 +249,11 @@ export const workItemsRelations = relations(workItems, ({ one }) => ({
     fields: [workItems.suggestedOwnerUserId],
     references: [users.id],
     relationName: "workItemsSuggestedOwner",
+  }),
+  assignedMember: one(workspaceMembers, {
+    fields: [workItems.assignedMemberId],
+    references: [workspaceMembers.id],
+    relationName: "workItemsAssignedMember",
   }),
 }));
 

@@ -396,6 +396,7 @@ export function CardModal({
                       <div className="flex items-center gap-2">
                         <CardDropdown
                           cardPublicId={cardPublicId}
+                          cardTitle={title}
                           isTemplate={isTemplate}
                           boardPublicId={board?.publicId}
                           cardCreatedBy={card?.createdBy}

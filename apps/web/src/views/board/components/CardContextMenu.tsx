@@ -2,6 +2,7 @@ import { t } from "@lingui/core/macro";
 import { useRef, useState } from "react";
 import {
   HiOutlineArrowsRightLeft,
+  HiOutlineBolt,
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineUserPlus,
@@ -14,6 +15,7 @@ import ContextMenu from "~/components/ContextMenu";
 import type { ContextMenuEntry } from "~/components/ContextMenu";
 import { usePermissions } from "~/hooks/usePermissions";
 import { usePopup } from "~/providers/popup";
+import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
 
@@ -78,6 +80,7 @@ export function CardContextMenu({
   const { canEditCard, canDeleteCard } = usePermissions();
   const { data: session } = authClient.useSession();
   const { showPopup } = usePopup();
+  const { workspace } = useWorkspace();
   const utils = api.useUtils();
 
   const isCreator = cardCreatedBy && session?.user?.id === cardCreatedBy;
@@ -178,6 +181,24 @@ export function CardContextMenu({
     onSettled: () => {
       void utils.board.byId.invalidate();
       void utils.card.byId.invalidate({ cardPublicId });
+    },
+  });
+
+  const createFromCard = api.workItem.createFromCard.useMutation({
+    onSuccess: () => {
+      showPopup({
+        header: t`Work item created`,
+        message: t`The card has been converted to a work item.`,
+        icon: "success",
+      });
+      void utils.workItem.list.invalidate();
+    },
+    onError: () => {
+      showPopup({
+        header: t`Unable to create work item`,
+        message: t`Please try again later, or contact customer support.`,
+        icon: "error",
+      });
     },
   });
 
@@ -391,6 +412,62 @@ export function CardContextMenu({
             })}
           </>
         ),
+      });
+    }
+
+    // Convert to Work Item
+    if (canEdit && !isTemplate) {
+      items.push({
+        label: t`Convert to Work Item`,
+        icon: <HiOutlineBolt className="h-3.5 w-3.5" />,
+        subMenu: true,
+        children: ({ onBack }: { onBack: () => void }) => {
+          const types = ["Feature", "Bug", "Chore", "Docs"] as const;
+          return (
+            <>
+              <button
+                onClick={onBack}
+                className="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-sm font-semibold text-neutral-700 hover:bg-light-200 dark:text-dark-900 dark:hover:bg-dark-400"
+              >
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 19.5L8.25 12l7.5-7.5"
+                  />
+                </svg>
+                {t`Convert to Work Item`}
+              </button>
+              <div className="my-0.5 border-t border-light-200 dark:border-dark-500" />
+              <p className="px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-light-700 dark:text-dark-700">
+                {t`Select type`}
+              </p>
+              {types.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    createFromCard.mutate({
+                      workspacePublicId: workspace.publicId,
+                      cardTitle: cardTitle,
+                      type,
+                      priority: "P2",
+                    });
+                    onClose();
+                  }}
+                  className="flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-sm text-neutral-900 hover:bg-light-200 dark:text-dark-950 dark:hover:bg-dark-400"
+                >
+                  {type}
+                </button>
+              ))}
+            </>
+          );
+        },
       });
     }
 

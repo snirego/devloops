@@ -685,6 +685,69 @@ export const memberRouter = createTRPCRouter({
         workspaceSlug: workspace.slug,
       };
     }),
+  updateDeveloperMeta: protectedProcedure
+    .meta({
+      openapi: {
+        summary: "Update developer metadata for a member",
+        method: "PUT",
+        path: "/workspaces/{workspacePublicId}/members/{memberPublicId}/developer-meta",
+        description: "Updates developer-specific metadata (skills, capacity, role) for a workspace member",
+        tags: ["Workspaces"],
+        protect: true,
+      },
+    })
+    .input(
+      z.object({
+        workspacePublicId: z.string().min(12),
+        memberPublicId: z.string().min(12),
+        developerMeta: z.object({
+          skills: z.array(z.string()),
+          maxConcurrentItems: z.number().min(1).max(20).default(3),
+          role: z.enum(["developer", "tester", "lead", "designer"]),
+          timezone: z.string().optional(),
+        }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user?.id;
+
+      if (!userId)
+        throw new TRPCError({
+          message: "User not authenticated",
+          code: "UNAUTHORIZED",
+        });
+
+      const workspace = await workspaceRepo.getByPublicId(
+        ctx.db,
+        input.workspacePublicId,
+      );
+
+      if (!workspace)
+        throw new TRPCError({
+          message: "Workspace not found",
+          code: "NOT_FOUND",
+        });
+
+      await assertPermission(ctx.db, userId, workspace.id, "member:edit");
+
+      const member = await memberRepo.getByPublicId(
+        ctx.db,
+        input.memberPublicId,
+      );
+
+      if (!member)
+        throw new TRPCError({
+          message: "Member not found",
+          code: "NOT_FOUND",
+        });
+
+      const updated = await memberRepo.updateDeveloperMeta(ctx.db, {
+        memberId: member.id,
+        developerMeta: input.developerMeta,
+      });
+
+      return updated;
+    }),
   updateRole: protectedProcedure
     .meta({
       openapi: {

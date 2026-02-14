@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
 import type {
@@ -176,6 +176,36 @@ export const updateFields = async (
   return updated;
 };
 
+export const updateAssignedMember = async (
+  db: dbClient,
+  id: number,
+  assignedMemberId: number | null,
+) => {
+  const [updated] = await db
+    .update(workItems)
+    .set({ assignedMemberId, updatedAt: new Date() })
+    .where(eq(workItems.id, id))
+    .returning();
+  return updated;
+};
+
+export const countByStatusForMember = async (
+  db: dbClient,
+  assignedMemberId: number,
+  statuses: WorkItemStatus[],
+) => {
+  const result = await db
+    .select({ count: count() })
+    .from(workItems)
+    .where(
+      and(
+        eq(workItems.assignedMemberId, assignedMemberId),
+        inArray(workItems.status, statuses),
+      ),
+    );
+  return result[0]?.count ?? 0;
+};
+
 export const listAll = async (
   db: dbClient,
   opts?: {
@@ -227,6 +257,13 @@ export const listAll = async (
       offset: opts?.offset ?? 0,
       with: {
         thread: true,
+        assignedMember: {
+          with: {
+            user: {
+              columns: { id: true, name: true, email: true, image: true },
+            },
+          },
+        },
       },
     });
   }
@@ -238,6 +275,13 @@ export const listAll = async (
     offset: opts?.offset ?? 0,
     with: {
       thread: true,
+      assignedMember: {
+        with: {
+          user: {
+            columns: { id: true, name: true, email: true, image: true },
+          },
+        },
+      },
     },
   });
 };

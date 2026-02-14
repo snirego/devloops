@@ -191,6 +191,7 @@ export const workItems = pgTable(
     reason: text("reason"),
     ownerUserId: uuid("ownerUserId"),
     suggestedOwnerUserId: uuid("suggestedOwnerUserId"),
+    assignedMemberId: bigint("assignedMemberId", { mode: "number" }),
     labelsJson: jsonb("labelsJson"),
     estimatedEffortJson: jsonb("estimatedEffortJson"),
     promptBundleJson: jsonb("promptBundleJson"),
@@ -203,6 +204,7 @@ export const workItems = pgTable(
     index("work_item_thread_idx").on(table.threadId),
     index("work_item_status_idx").on(table.status),
     index("work_item_priority_idx").on(table.priority),
+    index("work_item_assigned_member_idx").on(table.assignedMemberId),
   ],
 );
 

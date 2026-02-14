@@ -3,6 +3,7 @@ import {
   bigint,
   bigserial,
   boolean,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -96,7 +97,17 @@ export const workspaceMembers = pgTable("workspace_members", {
     { onDelete: "restrict" },
   ),
   status: memberStatusEnum("status").default("invited").notNull(),
+  developerMetaJson: jsonb("developerMetaJson"),
 }).enableRLS();
+
+// ─── Developer Meta TypeScript interface ──────────────────────────────────────
+
+export interface DeveloperMeta {
+  skills: string[];
+  maxConcurrentItems: number;
+  role: "developer" | "tester" | "lead" | "designer";
+  timezone?: string;
+}
 
 export const workspaceMembersRelations = relations(
   workspaceMembers,

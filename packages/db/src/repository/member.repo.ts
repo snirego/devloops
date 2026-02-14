@@ -1,7 +1,7 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
-import type { MemberRole, MemberStatus } from "@kan/db/schema";
+import type { DeveloperMeta, MemberRole, MemberStatus } from "@kan/db/schema";
 import { workspaceMembers } from "@kan/db/schema";
 import { generateUID } from "@kan/shared/utils";
 
@@ -195,4 +195,50 @@ export const updateRole = async (
     });
 
   return result;
+};
+
+export const updateDeveloperMeta = async (
+  db: dbClient,
+  args: {
+    memberId: number;
+    developerMeta: DeveloperMeta;
+  },
+) => {
+  const [result] = await db
+    .update(workspaceMembers)
+    .set({
+      developerMetaJson: args.developerMeta,
+      updatedAt: new Date(),
+    })
+    .where(eq(workspaceMembers.id, args.memberId))
+    .returning({
+      id: workspaceMembers.id,
+      publicId: workspaceMembers.publicId,
+      developerMetaJson: workspaceMembers.developerMetaJson,
+    });
+
+  return result;
+};
+
+export const getActiveMembersWithMeta = async (
+  db: dbClient,
+  workspaceId: number,
+) => {
+  return db.query.workspaceMembers.findMany({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.status, "active"),
+      isNull(workspaceMembers.deletedAt),
+    ),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
+  });
 };

@@ -8,10 +8,16 @@ import type {
   ThreadStateJson,
   WorkItemStatus,
 } from "@kan/db/schema";
+import { feedbackMessages, feedbackThreads } from "@kan/db/schema";
 import * as auditLogRepo from "@kan/db/repository/auditLog.repo";
+import * as feedbackThreadRepo from "@kan/db/repository/feedbackThread.repo";
+import * as memberRepo from "@kan/db/repository/member.repo";
 import * as workItemRepo from "@kan/db/repository/workItem.repo";
+import { generateUID } from "@kan/shared/utils";
+import { eq } from "drizzle-orm";
 
 import { createTRPCRouter, publicProcedure } from "../trpc";
+import { autoAssignWorkItem } from "../utils/autoAssign";
 import { createGitHubIssue, isGitHubConfigured } from "../utils/github";
 
 // ── Status transition validation ─────────────────────────────────────────────
@@ -147,6 +153,36 @@ export const workItemRouter = createTRPCRouter({
         entityId: item.id,
         action: "approved",
       });
+
+      // Auto-assign if no one is already assigned
+      if (!item.assignedMemberId) {
+        try {
+          const thread = item.thread ?? await feedbackThreadRepo.getById(ctx.db, item.threadId);
+          const workspaceId = (thread as { workspaceId?: number | null })?.workspaceId;
+          if (workspaceId) {
+            const assignment = await autoAssignWorkItem(ctx.db, workspaceId, {
+              type: item.type,
+              labelsJson: item.labelsJson,
+            });
+            if (assignment) {
+              await workItemRepo.updateAssignedMember(ctx.db, item.id, assignment.memberId);
+              await auditLogRepo.create(ctx.db, {
+                entityType: "WorkItem",
+                entityId: item.id,
+                action: "auto_assigned",
+                detailsJson: {
+                  memberId: assignment.memberId,
+                  memberPublicId: assignment.memberPublicId,
+                  reason: assignment.reason,
+                  score: assignment.score,
+                },
+              });
+            }
+          }
+        } catch {
+          // Auto-assignment is best-effort; don't fail the approve action
+        }
+      }
 
       return updated;
     }),
@@ -313,6 +349,50 @@ export const workItemRouter = createTRPCRouter({
         action: "done",
       });
 
+      // ── Tester notification: post message back to feedback thread ──
+      try {
+        const thread = await feedbackThreadRepo.getById(ctx.db, item.threadId);
+        if (thread && thread.primarySource !== "board_card") {
+          // This work item originated from a real user/tester — notify them
+          await ctx.db.insert(feedbackMessages).values({
+            publicId: generateUID(),
+            threadId: item.threadId,
+            source: "api",
+            senderType: "internal",
+            senderName: "DevLoops",
+            visibility: "public",
+            rawText: `The work item "${item.title}" has been completed and is ready for testing. Please verify and let us know if the issue is resolved.`,
+            metadataJson: {
+              type: "work_item_done_notification",
+              workItemPublicId: item.publicId,
+              workItemId: item.id,
+            },
+          });
+
+          // Update thread status to WaitingOnUser so the tester sees it
+          await ctx.db
+            .update(feedbackThreads)
+            .set({
+              status: "WaitingOnUser",
+              lastActivityAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(feedbackThreads.id, item.threadId));
+
+          await auditLogRepo.create(ctx.db, {
+            entityType: "Thread",
+            entityId: item.threadId,
+            action: "tester_notified_on_done",
+            detailsJson: {
+              workItemPublicId: item.publicId,
+              workItemTitle: item.title,
+            },
+          });
+        }
+      } catch {
+        // Notification is best-effort — don't fail the markDone action
+      }
+
       return updated;
     }),
 
@@ -380,6 +460,72 @@ export const workItemRouter = createTRPCRouter({
         entityType: "WorkItem",
         entityId: item.id,
         action: "canceled",
+      });
+
+      return updated;
+    }),
+
+  // ── Assignment Endpoints ─────────────────────────────────────────────────
+
+  assign: publicProcedure
+    .meta({
+      openapi: {
+        summary: "Assign a work item to a member",
+        method: "POST",
+        path: "/workitems/{publicId}/assign",
+        tags: ["WorkItems"],
+        protect: true,
+      },
+    })
+    .input(
+      z.object({
+        publicId: z.string().min(12),
+        memberPublicId: z.string().min(12),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const item = await workItemRepo.getByPublicId(ctx.db, input.publicId);
+      if (!item) throw new TRPCError({ message: "Not found", code: "NOT_FOUND" });
+
+      const member = await memberRepo.getByPublicId(ctx.db, input.memberPublicId);
+      if (!member) throw new TRPCError({ message: "Member not found", code: "NOT_FOUND" });
+
+      const updated = await workItemRepo.updateAssignedMember(ctx.db, item.id, member.id);
+
+      await auditLogRepo.create(ctx.db, {
+        entityType: "WorkItem",
+        entityId: item.id,
+        action: "assigned",
+        detailsJson: {
+          memberId: member.id,
+          memberPublicId: member.publicId,
+        },
+      });
+
+      return updated;
+    }),
+
+  unassign: publicProcedure
+    .meta({
+      openapi: {
+        summary: "Unassign a work item",
+        method: "POST",
+        path: "/workitems/{publicId}/unassign",
+        tags: ["WorkItems"],
+        protect: true,
+      },
+    })
+    .input(z.object({ publicId: z.string().min(12) }))
+    .mutation(async ({ ctx, input }) => {
+      const item = await workItemRepo.getByPublicId(ctx.db, input.publicId);
+      if (!item) throw new TRPCError({ message: "Not found", code: "NOT_FOUND" });
+
+      const updated = await workItemRepo.updateAssignedMember(ctx.db, item.id, null);
+
+      await auditLogRepo.create(ctx.db, {
+        entityType: "WorkItem",
+        entityId: item.id,
+        action: "unassigned",
       });
 
       return updated;
@@ -478,6 +624,72 @@ export const workItemRouter = createTRPCRouter({
       });
 
       return updated;
+    }),
+
+  // ── Create from Board Card ──────────────────────────────────────────────
+  createFromCard: publicProcedure
+    .meta({
+      openapi: {
+        summary: "Create a work item from a board card",
+        method: "POST",
+        path: "/workitems/create-from-card",
+        tags: ["WorkItems"],
+        protect: true,
+      },
+    })
+    .input(
+      z.object({
+        workspacePublicId: z.string().min(1),
+        cardTitle: z.string().min(1).max(500),
+        cardDescription: z.string().nullable().optional(),
+        type: z.enum(["Bug", "Feature", "Chore", "Docs"]).default("Feature"),
+        priority: z.enum(["P0", "P1", "P2", "P3"]).default("P2"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Resolve workspace numeric ID
+      const workspaceRepo = await import(
+        "@kan/db/repository/workspace.repo"
+      );
+      const ws = await workspaceRepo.getByPublicId(
+        ctx.db,
+        input.workspacePublicId,
+      );
+      if (!ws) {
+        throw new TRPCError({
+          message: "Workspace not found",
+          code: "NOT_FOUND",
+        });
+      }
+
+      // Create a lightweight feedback thread as the parent
+      const thread = await feedbackThreadRepo.create(ctx.db, {
+        workspaceId: ws.id,
+        title: input.cardTitle,
+        primarySource: "board_card",
+      });
+
+      // Create the work item linked to the thread
+      const item = await workItemRepo.create(ctx.db, {
+        threadId: thread.id,
+        type: input.type,
+        title: input.cardTitle,
+        structuredDescription: input.cardDescription ?? undefined,
+        priority: input.priority,
+        severity: input.priority === "P0" ? 4 : input.priority === "P1" ? 3 : input.priority === "P2" ? 2 : 1,
+        confidenceScore: 0.8,
+        riskLevel: input.priority === "P0" || input.priority === "P1" ? "High" : "Medium",
+        status: "PendingApproval",
+      });
+
+      await auditLogRepo.create(ctx.db, {
+        entityType: "WorkItem",
+        entityId: item.id,
+        action: "created_from_card",
+        detailsJson: { source: "board_card" },
+      });
+
+      return item;
     }),
 
   // ── GitHub Issue Creation ─────────────────────────────────────────────────
