@@ -189,9 +189,8 @@ export const listAll = async (
           createdAt: true,
         },
         orderBy: desc(feedbackMessages.createdAt),
-        limit: 50,
+        limit: 1, // Only need the latest message for sidebar preview
       },
-      workItems: true,
     },
   });
 };

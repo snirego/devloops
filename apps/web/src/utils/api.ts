@@ -43,7 +43,16 @@ const getBaseUrl = () => {
   return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 };
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,          // Data considered fresh for 30s — prevents refetch storms on navigation
+      gcTime: 5 * 60 * 1000,      // Keep unused data in cache for 5 min after unmount
+      refetchOnWindowFocus: false, // Disable automatic refetch on tab focus (Realtime handles freshness)
+      retry: 1,
+    },
+  },
+});
 
 // @ts-expect-error
 export const api = createTRPCNext<AppRouter>({

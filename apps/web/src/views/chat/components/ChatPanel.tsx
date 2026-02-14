@@ -13,6 +13,7 @@ import { generateUID } from "@kan/shared/utils";
 import type { RealtimeMessage } from "~/hooks/useRealtimeMessages";
 import { useRealtimeMessages } from "~/hooks/useRealtimeMessages";
 import { useThreadReadStatus, getLastReadTimestamp } from "~/hooks/useThreadReadStatus";
+import { useAiActivity } from "~/providers/ai-activity";
 import { api } from "~/utils/api";
 
 import InternalNoteInput from "./InternalNoteInput";
@@ -48,28 +49,43 @@ export default function ChatPanel({
     lastReadRef.current = getLastReadTimestamp(threadPublicId);
   }
 
-  // ── Thread metadata (title, status, AI insights) — can refetch freely
+  // ── Thread metadata (title, status, AI insights) — cache-first, revalidate in background
+  // NOTE: Do NOT use keepPreviousData here — threadData.id drives the Realtime
+  // subscription, so stale data from a previous thread would subscribe to the
+  // wrong channel when switching threads.
   const {
     data: threadData,
     isLoading: threadLoading,
+    isFetching: threadFetching,
     error: threadError,
     refetch: refetchThread,
   } = api.chat.getThread.useQuery(
     { threadPublicId },
-    { refetchOnWindowFocus: true },
+    {
+      staleTime: 60_000,
+    },
   );
 
   // ── Messages — fetched per thread switch, then Realtime takes over.
-  // NOT staleTime: Infinity because switching away and back must show
-  // messages that arrived while viewing another thread.
+  // Keep staleTime low: when the user revisits a thread, we need a fresh fetch
+  // to pick up messages that arrived while the Realtime subscription was inactive
+  // (i.e. while viewing a different thread). The non-blocking loading check below
+  // ensures stale cached data is shown instantly while the refetch runs silently.
   const {
     data: messagesData,
     isLoading: messagesLoading,
   } = api.chat.getMessages.useQuery(
     { threadPublicId },
     {
+      staleTime: 5_000, // Considered stale after 5s — revalidates on revisit
       refetchOnWindowFocus: false,
     },
+  );
+
+  // ── AI processing indicator (non-blocking) ──────────────────────────
+  const { activeJobs } = useAiActivity();
+  const isProcessingAI = activeJobs.some(
+    (j) => j.threadPublicId === threadPublicId,
   );
 
   // Title mutation
@@ -314,7 +330,9 @@ export default function ChatPanel({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  if (threadLoading || messagesLoading) {
+  // Only block rendering on true first load when no cached data is available.
+  // If we have stale data, render it immediately while revalidating in the background.
+  if ((threadLoading && !threadData) || (messagesLoading && !messagesData)) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
@@ -363,6 +381,17 @@ export default function ChatPanel({
           <div className="flex items-center gap-2 text-xs text-light-800 dark:text-dark-800">
             <span className="capitalize">{thread?.status}</span>
             {thread?.customerId && <span>- {thread.customerId}</span>}
+            {isProcessingAI && (
+              <span className="flex items-center gap-1.5 text-indigo-500">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
+                AI analyzing...
+              </span>
+            )}
+            {threadFetching && !threadLoading && (
+              <span className="text-[10px] text-light-700 dark:text-dark-700">
+                syncing...
+              </span>
+            )}
           </div>
         </div>
 

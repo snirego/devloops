@@ -306,6 +306,33 @@ function buildWorkItemGenPrompt(
 Respond with a single JSON object. The "type" field MUST be "${workItemType}". Do NOT use markdown fences.`;
 }
 
+// ─── LLM Classification Cache ─────────────────────────────────────────────────
+// Avoids duplicate LLM calls when identical message text is processed against
+// the same thread state. Simple LRU eviction via insertion order.
+
+const classificationCache = new Map<string, ThreadStateJson>();
+const MAX_CLASSIFICATION_CACHE = 200;
+
+function getClassificationCacheKey(
+  messageText: string,
+  stateSummary: string,
+): string {
+  // Use first 100 chars of each for a lightweight composite key
+  return `${messageText.slice(0, 100)}::${stateSummary.slice(0, 100)}`;
+}
+
+function putClassificationCache(
+  key: string,
+  value: ThreadStateJson,
+): void {
+  // LRU eviction: delete oldest entries when at capacity
+  if (classificationCache.size >= MAX_CLASSIFICATION_CACHE) {
+    const firstKey = classificationCache.keys().next().value;
+    if (firstKey) classificationCache.delete(firstKey);
+  }
+  classificationCache.set(key, value);
+}
+
 // ─── Job Execution ───────────────────────────────────────────────────────────
 
 async function runThreadStateUpdate(
@@ -316,6 +343,18 @@ async function runThreadStateUpdate(
   metadata?: Record<string, unknown>,
 ): Promise<ThreadStateJson> {
   const state = currentState ?? EMPTY_THREAD_STATE;
+
+  // Check classification cache — skip LLM if identical input was already processed
+  const cacheKey = getClassificationCacheKey(
+    newMessageText,
+    state.summary,
+  );
+  const cached = classificationCache.get(cacheKey);
+  if (cached) {
+    console.log(`[LLM Cache] Hit for thread ${threadId}, skipping LLM call`);
+    await feedbackThreadRepo.updateThreadState(db, threadId, cached);
+    return cached;
+  }
 
   const result = await llmJsonCompletion({
     systemPrompt: THREAD_STATE_SYSTEM_PROMPT,
@@ -338,6 +377,10 @@ async function runThreadStateUpdate(
   }
 
   const updatedState = result.data;
+
+  // Store in cache for future deduplication
+  putClassificationCache(cacheKey, updatedState);
+
   await feedbackThreadRepo.updateThreadState(db, threadId, updatedState);
 
   await auditLogRepo.create(db, {

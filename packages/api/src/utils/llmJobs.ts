@@ -73,6 +73,21 @@ async function enqueueJob(
   }
 }
 
+// ─── Per-Thread Debounce ──────────────────────────────────────────────────────
+// When a user sends multiple messages rapidly (e.g. 3 messages in 5 seconds),
+// we debounce the LLM pipeline call so that only the last message triggers
+// analysis. This prevents redundant LLM calls and wasted compute.
+
+interface PendingPipeline {
+  timer: ReturnType<typeof setTimeout>;
+  latestText: string;
+  latestState: ThreadStateJson | null;
+  latestMetadata?: Record<string, unknown>;
+}
+
+const pendingPipelines = new Map<number, PendingPipeline>();
+const DEBOUNCE_MS = 3_000; // 3 seconds after last message
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -80,8 +95,41 @@ async function enqueueJob(
  *
  * If LLM_SERVICE_URL is not set, falls back to local in-process execution
  * (for local dev without the separate service running).
+ *
+ * Includes a per-thread debounce: if multiple messages arrive within 3s,
+ * only the last one triggers the LLM pipeline.
  */
 export function runIngestPipelineAsync(
+  db: dbClient,
+  threadId: number,
+  currentState: ThreadStateJson | null,
+  newMessageText: string,
+  metadata?: Record<string, unknown>,
+): void {
+  // Clear any pending debounced call for this thread
+  const existing = pendingPipelines.get(threadId);
+  if (existing) {
+    clearTimeout(existing.timer);
+  }
+
+  // Debounce: wait DEBOUNCE_MS after last message before triggering LLM
+  const timer = setTimeout(() => {
+    pendingPipelines.delete(threadId);
+    executeIngestPipeline(db, threadId, currentState, newMessageText, metadata);
+  }, DEBOUNCE_MS);
+
+  pendingPipelines.set(threadId, {
+    timer,
+    latestText: newMessageText,
+    latestState: currentState,
+    latestMetadata: metadata,
+  });
+}
+
+/**
+ * Actual pipeline execution (called after debounce).
+ */
+function executeIngestPipeline(
   db: dbClient,
   threadId: number,
   currentState: ThreadStateJson | null,

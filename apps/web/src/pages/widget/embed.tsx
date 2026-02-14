@@ -108,12 +108,14 @@ export default function WidgetEmbedPage() {
     const style = document.createElement("style");
     style.textContent = `
       html, body {
+        margin: 0;
+        padding: 0;
         background: #fff !important;
         color: #111 !important;
         color-scheme: light !important;
+        overflow: hidden;
       }
       input, textarea, select {
-        background: #fff !important;
         color: #111 !important;
         -webkit-text-fill-color: #111 !important;
       }
@@ -573,18 +575,19 @@ export default function WidgetEmbedPage() {
         flexDirection: "column",
         height: "100vh",
         background: "#fff",
+        overflow: "hidden",
       }}
     >
       {/* Header */}
       <div
         style={{
-          padding: "12px 16px",
-          borderBottom: "1px solid #e2e8f0",
+          padding: "14px 16px",
           display: "flex",
           alignItems: "center",
           gap: 10,
           background: "#6366f1",
           color: "#fff",
+          flexShrink: 0,
         }}
       >
         <div
@@ -636,7 +639,8 @@ export default function WidgetEmbedPage() {
         onScroll={handleScroll}
         style={{
           flex: 1,
-          overflow: "auto",
+          overflowY: "auto",
+          overflowX: "hidden",
           padding: "12px 0",
         }}
       >
@@ -712,7 +716,8 @@ export default function WidgetEmbedPage() {
                   display: "flex",
                   flexDirection: isMe ? "row-reverse" : "row",
                   gap: 8,
-                  padding: "3px 12px",
+                  padding: "4px 12px",
+                  alignItems: "flex-end",
                 }}
               >
                 {/* Avatar circle */}
@@ -721,15 +726,14 @@ export default function WidgetEmbedPage() {
                     width: 26,
                     height: 26,
                     borderRadius: "50%",
-                    background: isMe ? "#6366f1" : "#94a3b8",
-                    color: "#fff",
+                    background: isMe ? "#6366f1" : "#e2e8f0",
+                    color: isMe ? "#fff" : "#475569",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: 10,
                     fontWeight: 700,
                     flexShrink: 0,
-                    marginTop: 4,
                   }}
                   title={msg.senderName ?? undefined}
                 >
@@ -739,12 +743,14 @@ export default function WidgetEmbedPage() {
                 <div
                   style={{
                     maxWidth: "72%",
+                    minWidth: 0,
                     background: isMe ? "#6366f1" : "#f1f5f9",
                     color: isMe ? "#fff" : "#111",
                     borderRadius: 12,
                     padding: "8px 12px",
                     fontSize: 14,
                     lineHeight: 1.4,
+                    overflow: "hidden",
                   }}
                 >
                   {msg.senderName && (
@@ -759,7 +765,15 @@ export default function WidgetEmbedPage() {
                       {msg.senderName}
                     </div>
                   )}
-                  <div style={{ whiteSpace: "pre-wrap" }}>{msg.rawText}</div>
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {msg.rawText}
+                  </div>
                   <div
                     style={{
                       fontSize: 10,
@@ -780,8 +794,15 @@ export default function WidgetEmbedPage() {
       </div>
 
       {/* Input */}
-      <div style={{ padding: "8px 12px", borderTop: "1px solid #e2e8f0" }}>
-        <div style={{ display: "flex", gap: 8 }}>
+      <div
+        style={{
+          padding: "10px 12px",
+          borderTop: "1px solid #e2e8f0",
+          background: "#fff",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -792,25 +813,26 @@ export default function WidgetEmbedPage() {
               flex: 1,
               resize: "none",
               border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              padding: "8px 12px",
+              borderRadius: 20,
+              padding: "9px 14px",
               fontSize: 14,
               outline: "none",
-              minHeight: 36,
+              minHeight: 38,
               maxHeight: 80,
               fontFamily: "inherit",
-              background: "#fff",
+              background: "#f8fafc",
               color: "#111",
               WebkitTextFillColor: "#111",
+              boxSizing: "border-box",
             }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim()}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
               border: "none",
               background: input.trim() ? "#6366f1" : "#c7d2fe",
               color: "#fff",
@@ -819,6 +841,7 @@ export default function WidgetEmbedPage() {
               alignItems: "center",
               justifyContent: "center",
               fontSize: 16,
+              flexShrink: 0,
             }}
           >
             &rarr;

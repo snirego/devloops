@@ -6,6 +6,7 @@ import {
 } from "react-icons/hi2";
 
 import { PageHead } from "~/components/PageHead";
+import { useRealtimeWorkItems } from "~/hooks/useRealtimeWorkItems";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import WorkItemCard from "./components/WorkItemCard";
@@ -30,13 +31,19 @@ export default function WorkItemsView() {
   );
   const [showIngest, setShowIngest] = useState(false);
 
-  const { data: workItems, refetch, isLoading } = api.workItem.list.useQuery(
+  const { data: workItems, refetch, isLoading, isFetching } = api.workItem.list.useQuery(
     { workspacePublicId: workspace.publicId },
     {
       enabled: !!workspace.publicId && workspace.publicId.length >= 12,
-      refetchInterval: 10000,
+      staleTime: 60_000, // Fresh for 60s — Realtime handles updates
     },
   );
+
+  // Replace polling with Realtime subscription for instant updates
+  useRealtimeWorkItems({
+    enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+    onInvalidate: refetch,
+  });
 
   const { data: llmHealth } = api.feedbackThread.llmHealth.useQuery(undefined, {
     refetchInterval: 30000,
@@ -58,6 +65,11 @@ export default function WorkItemsView() {
           <span className="rounded-full bg-light-200 px-2.5 py-0.5 text-xs font-medium text-light-900 dark:bg-dark-200 dark:text-dark-900">
             {workItems?.length ?? 0}
           </span>
+          {isFetching && !isLoading && (
+            <span className="text-[10px] text-light-700 dark:text-dark-700">
+              syncing...
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {/* LLM Status indicator */}

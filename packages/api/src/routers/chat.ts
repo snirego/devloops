@@ -244,6 +244,37 @@ export const chatRouter = createTRPCRouter({
       };
     }),
 
+  // ── Get messages since timestamp (incremental sync) ─────────────────
+  getMessagesSince: protectedProcedure
+    .input(
+      z.object({
+        threadPublicId: z.string(),
+        since: z.string(), // ISO timestamp
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const thread = await feedbackThreadRepo.getByPublicId(
+        ctx.db,
+        input.threadPublicId,
+      );
+      if (!thread) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Thread not found: ${input.threadPublicId}`,
+        });
+      }
+
+      await assertThreadAccess(ctx.db, ctx.user!.id, thread);
+
+      const messages = await feedbackMessageRepo.getByThreadIdSince(
+        ctx.db,
+        thread.id,
+        new Date(input.since),
+      );
+
+      return { messages };
+    }),
+
   // ── Get thread metadata only (no messages — lightweight for refetch) ──
   getThread: protectedProcedure
     .input(z.object({ threadPublicId: z.string() }))

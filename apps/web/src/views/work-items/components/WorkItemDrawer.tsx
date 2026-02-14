@@ -25,6 +25,8 @@ import {
   HiOutlineArrowTopRightOnSquare,
 } from "react-icons/hi2";
 
+import { createOptimisticStatusMutation } from "~/hooks/useOptimisticWorkItemStatus";
+import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -79,28 +81,43 @@ export default function WorkItemDrawer({
   onClose,
   onRefresh,
 }: DrawerProps) {
+  const { workspace } = useWorkspace();
+  const utils = api.useUtils();
+
   // ── Data fetching ──────────────────────────────────────────────────────
   const {
     data: item,
     isLoading,
     refetch,
-  } = api.workItem.byPublicId.useQuery({ publicId });
+  } = api.workItem.byPublicId.useQuery({ publicId }, { staleTime: 60_000 });
 
   const invalidate = useCallback(() => {
     refetch();
     onRefresh();
   }, [refetch, onRefresh]);
 
-  // ── Mutations ──────────────────────────────────────────────────────────
+  // ── Shared optimistic mutation builder ─────────────────────────────────
+  const optimistic = useCallback(
+    (newStatus: string) =>
+      createOptimisticStatusMutation(
+        utils,
+        newStatus as "Approved" | "Rejected" | "OnHold" | "InProgress" | "NeedsReview" | "Done" | "Failed" | "Canceled",
+        workspace.publicId,
+        { onSuccess: invalidate },
+      ),
+    [utils, workspace.publicId, invalidate],
+  );
+
+  // ── Mutations (optimistic for status changes, simple for field edits) ──
   const updateFields = api.workItem.updateFields.useMutation({ onSuccess: invalidate });
   const updatePrompt = api.workItem.updatePromptBundle.useMutation({ onSuccess: invalidate });
-  const approve = api.workItem.approve.useMutation({ onSuccess: invalidate });
-  const reject = api.workItem.reject.useMutation({ onSuccess: invalidate });
-  const hold = api.workItem.hold.useMutation({ onSuccess: invalidate });
-  const start = api.workItem.start.useMutation({ onSuccess: invalidate });
-  const needsReview = api.workItem.markNeedsReview.useMutation({ onSuccess: invalidate });
-  const markDone = api.workItem.markDone.useMutation({ onSuccess: invalidate });
-  const markFailed = api.workItem.markFailed.useMutation({ onSuccess: invalidate });
+  const approve = api.workItem.approve.useMutation(optimistic("Approved"));
+  const reject = api.workItem.reject.useMutation(optimistic("Rejected"));
+  const hold = api.workItem.hold.useMutation(optimistic("OnHold"));
+  const start = api.workItem.start.useMutation(optimistic("InProgress"));
+  const needsReview = api.workItem.markNeedsReview.useMutation(optimistic("NeedsReview"));
+  const markDone = api.workItem.markDone.useMutation(optimistic("Done"));
+  const markFailed = api.workItem.markFailed.useMutation(optimistic("Failed"));
   const createIssue = api.workItem.createGithubIssue.useMutation({ onSuccess: invalidate });
   const { data: ghStatus } = api.workItem.githubStatus.useQuery();
 

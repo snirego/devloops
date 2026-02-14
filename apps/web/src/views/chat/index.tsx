@@ -21,6 +21,7 @@ import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 
 import { useGlobalChatSound } from "~/hooks/useGlobalChatSound";
+import { useRealtimeThreadList } from "~/hooks/useRealtimeThreadList";
 import { useThreadReadStatus } from "~/hooks/useThreadReadStatus";
 
 import ChatPanel from "./components/ChatPanel";
@@ -79,13 +80,20 @@ export default function ChatView() {
     data: threads,
     refetch: refetchThreads,
     isLoading: threadsLoading,
+    isFetching: threadsFetching,
   } = api.chat.listThreads.useQuery(
     { workspacePublicId: workspace.publicId },
     {
       enabled: !!workspace.publicId && workspace.publicId.length >= 12,
-      refetchInterval: 15000,
+      staleTime: 60_000, // Fresh for 60s — Realtime handles updates
     },
   );
+
+  // Replace polling with Realtime subscription for instant updates
+  useRealtimeThreadList({
+    enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+    onInvalidate: refetchThreads,
+  });
 
   const createThread = api.chat.createThread.useMutation({
     onSuccess: (data, variables) => {
@@ -310,6 +318,11 @@ curl -X POST ${baseUrl}/api/chat/messages \\
           <span className="text-xs text-light-800 dark:text-dark-800">
             {filteredThreads.length} conversations
           </span>
+          {threadsFetching && !threadsLoading && (
+            <span className="text-[10px] text-light-700 dark:text-dark-700">
+              syncing...
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

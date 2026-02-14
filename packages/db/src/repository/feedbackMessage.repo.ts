@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
 import type { MessageVisibility } from "@kan/db/schema";
@@ -75,6 +75,21 @@ export const getById = async (db: dbClient, id: number) => {
 export const getByPublicId = async (db: dbClient, publicId: string) => {
   return db.query.feedbackMessages.findFirst({
     where: eq(feedbackMessages.publicId, publicId),
+  });
+};
+
+/** Get messages for a thread created after a given timestamp (incremental sync) */
+export const getByThreadIdSince = async (
+  db: dbClient,
+  threadId: number,
+  since: Date,
+) => {
+  return db.query.feedbackMessages.findMany({
+    where: and(
+      eq(feedbackMessages.threadId, threadId),
+      gte(feedbackMessages.createdAt, since),
+    ),
+    orderBy: asc(feedbackMessages.createdAt),
   });
 };
 
