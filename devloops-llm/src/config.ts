@@ -7,12 +7,12 @@ const envSchema = z.object({
   API_SECRET: z.string().min(16, "API_SECRET must be at least 16 characters"),
 
   // ── LLM Provider ───────────────────────────────────────────────────────
-  LLM_BASE_URL: z.string().url().default("https://api.openai.com/v1"),
-  LLM_MODEL: z.string().default("gpt-4o-mini"),
-  LLM_API_KEY: z.string().min(1, "LLM_API_KEY is required"),
+  LLM_BASE_URL: z.string().default("http://localhost:11434/v1"),
+  LLM_MODEL: z.string().default("qwen2.5-coder:7b-instruct"),
+  LLM_API_KEY: z.string().default("ollama"),
 
   // ── Tuning ─────────────────────────────────────────────────────────────
-  PORT: z.coerce.number().int().positive().default(3001),
+  PORT: z.coerce.number().int().positive().default(3000),
   LLM_MAX_CONCURRENCY: z.coerce.number().int().positive().default(5),
   LLM_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
   JOB_MAX_RETRIES: z.coerce.number().int().min(0).default(3),
