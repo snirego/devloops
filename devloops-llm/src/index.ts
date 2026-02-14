@@ -27,6 +27,7 @@ import { getDb } from "./db/client.js";
 import { getRedis } from "./queue/connection.js";
 import { getIngestQueue, getWorkItemQueue, getPipelineQueue } from "./queue/queues.js";
 import { startWorkers, setupPipelinePoller } from "./queue/workers.js";
+import { testConnectivity, testDns } from "./llm/httpClient.js";
 
 async function main(): Promise<void> {
   // ── 1. Load + validate config ──────────────────────────────────────
@@ -42,6 +43,79 @@ async function main(): Promise<void> {
     },
     "Starting devloops-llm service",
   );
+
+  // ── 1b. Startup LLM connectivity test ──────────────────────────────
+  // Run immediately so config errors show up in the first few lines of logs
+  {
+    const llmUrl = config.LLM_BASE_URL;
+    const hostname = new URL(llmUrl).hostname;
+
+    logger.info(
+      { llmBaseUrl: llmUrl, hostname, model: config.LLM_MODEL },
+      "╔══════════════════════════════════════════════════════════╗\n" +
+      "║              LLM CONNECTIVITY TEST                      ║\n" +
+      "╚══════════════════════════════════════════════════════════╝",
+    );
+
+    // Quick DNS test first
+    const dnsResult = await testDns(hostname);
+    logger.info(
+      {
+        hostname,
+        ipv4: dnsResult.ipv4 ?? dnsResult.ipv4Error,
+        ipv6: dnsResult.ipv6 ?? dnsResult.ipv6Error,
+        lookup: dnsResult.lookup ?? dnsResult.lookupError,
+      },
+      `[LLM DNS] Resolving "${hostname}"`,
+    );
+
+    if (!dnsResult.ipv4 && !dnsResult.ipv6 && !dnsResult.lookup) {
+      logger.error(
+        { hostname },
+        "╔══════════════════════════════════════════════════════════╗\n" +
+        "║  ❌ LLM DNS RESOLUTION FAILED                           ║\n" +
+        "╠══════════════════════════════════════════════════════════╣\n" +
+        `║  Hostname: ${hostname.padEnd(44)}║\n` +
+        "║                                                          ║\n" +
+        (hostname.endsWith(".railway.internal")
+          ? "║  This is a Railway private networking domain.             ║\n" +
+            "║  POSSIBLE CAUSES:                                        ║\n" +
+            "║  1. The Ollama service name doesn't match the hostname.  ║\n" +
+            "║     Go to Railway → Ollama service → Settings →          ║\n" +
+            "║     Networking → Private Networking to find the          ║\n" +
+            "║     correct private domain.                              ║\n" +
+            "║  2. Private networking is not enabled on Ollama service. ║\n" +
+            "║  3. Services are in different projects/environments.     ║\n"
+          : "║  Check that LLM_BASE_URL points to a reachable host.     ║\n") +
+        "╚══════════════════════════════════════════════════════════╝",
+      );
+    } else {
+      // DNS resolved — try full connectivity
+      const connResult = await testConnectivity(llmUrl);
+      if (connResult.httpResult?.ok) {
+        logger.info(
+          { url: connResult.url, status: connResult.httpResult.status },
+          "╔══════════════════════════════════════════════════════════╗\n" +
+          "║  ✅ LLM ENDPOINT REACHABLE                              ║\n" +
+          "╚══════════════════════════════════════════════════════════╝",
+        );
+      } else {
+        logger.warn(
+          {
+            url: connResult.url,
+            httpError: connResult.httpError,
+            nativeFetchError: connResult.nativeFetchError,
+            recommendation: connResult.recommendation,
+          },
+          "╔══════════════════════════════════════════════════════════╗\n" +
+          "║  ⚠️  LLM ENDPOINT DNS OK BUT CONNECTION FAILED          ║\n" +
+          "╠══════════════════════════════════════════════════════════╣\n" +
+          `║  ${connResult.recommendation.slice(0, 56).padEnd(56)}║\n` +
+          "╚══════════════════════════════════════════════════════════╝",
+        );
+      }
+    }
+  }
 
   // ── 2. Create Fastify instance ─────────────────────────────────────
   const app = Fastify({

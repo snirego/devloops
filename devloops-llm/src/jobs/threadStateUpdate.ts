@@ -15,6 +15,7 @@ import type { DbClient } from "../db/client.js";
 import type { ThreadStateJson } from "../db/schema.js";
 import { feedbackThreads, feedbackMessages, auditLogs } from "../db/schema.js";
 import { llmJsonCompletion } from "../llm/client.js";
+import { getConfig } from "../config.js";
 import { getLogger } from "../utils/logger.js";
 
 // ─── Error type for network-level LLM failures ──────────────────────────────
@@ -262,8 +263,9 @@ export async function runThreadStateUpdate(
   });
 
   if (!result.ok) {
+    const cfg = getConfig();
     logger.error(
-      { threadId, error: result.error },
+      { threadId, error: result.error, llmBaseUrl: cfg.LLM_BASE_URL, llmModel: cfg.LLM_MODEL },
       "[Job A] ThreadState update failed",
     );
 
@@ -274,6 +276,9 @@ export async function runThreadStateUpdate(
       detailsJson: {
         error: result.error,
         rawContent: result.rawContent ?? null,
+        llmBaseUrl: cfg.LLM_BASE_URL,
+        llmModel: cfg.LLM_MODEL,
+        mode: "single_message",
       },
     });
 
@@ -283,7 +288,8 @@ export async function runThreadStateUpdate(
       result.error.includes("Circuit breaker") ||
       result.error.includes("timed out") ||
       result.error.includes("ECONNREFUSED") ||
-      result.error.includes("ENOTFOUND");
+      result.error.includes("ENOTFOUND") ||
+      result.error.includes("DNS resolution failed");
 
     if (isNetworkError) {
       throw new LlmUnavailableError(result.error);
@@ -353,8 +359,15 @@ export async function runThreadStateUpdateFullContext(
   });
 
   if (!result.ok) {
+    const cfg = getConfig();
     logger.error(
-      { threadId, error: result.error },
+      {
+        threadId,
+        error: result.error,
+        llmBaseUrl: cfg.LLM_BASE_URL,
+        llmModel: cfg.LLM_MODEL,
+        messageCount: messages.length,
+      },
       "[Job A] Full-context ThreadState update failed",
     );
 
@@ -367,6 +380,17 @@ export async function runThreadStateUpdateFullContext(
         rawContent: result.rawContent ?? null,
         mode: "full_context",
         messageCount: messages.length,
+        llmBaseUrl: cfg.LLM_BASE_URL,
+        llmModel: cfg.LLM_MODEL,
+        hint: result.error.includes("ENOTFOUND")
+          ? "DNS resolution failed. Check that the LLM_BASE_URL hostname is correct and the target service has private networking enabled in Railway."
+          : result.error.includes("fetch failed") || result.error.includes("ECONNREFUSED")
+            ? "Network connection failed. The LLM service may not be running or the port is wrong."
+            : result.error.includes("Circuit breaker")
+              ? "Circuit breaker is open due to repeated failures. Will auto-reset in 15 seconds."
+              : result.error.includes("timed out")
+                ? "Request timed out. The LLM may be overloaded or the model too large for available resources."
+                : "LLM returned an invalid response. Check model configuration.",
       },
     });
 
@@ -377,7 +401,8 @@ export async function runThreadStateUpdateFullContext(
       result.error.includes("Circuit breaker") ||
       result.error.includes("timed out") ||
       result.error.includes("ECONNREFUSED") ||
-      result.error.includes("ENOTFOUND");
+      result.error.includes("ENOTFOUND") ||
+      result.error.includes("DNS resolution failed");
 
     if (isNetworkError) {
       throw new LlmUnavailableError(result.error);

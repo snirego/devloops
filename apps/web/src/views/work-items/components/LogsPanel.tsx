@@ -185,6 +185,13 @@ function LogEntry({ log }: LogEntryProps) {
             </p>
           )}
 
+          {/* Show hint prominently for errors */}
+          {isError && details?.hint && (
+            <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-[11px] leading-relaxed text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+              💡 {String(details.hint)}
+            </p>
+          )}
+
           {/* Expandable details */}
           {hasDetails && (
             <button
@@ -229,7 +236,11 @@ function renderSummary(
   if (action === "smart_pipeline_completed") {
     const ga = details.gatekeeperAction as string | undefined;
     const wc = details.workItemCreated as boolean | undefined;
-    return `${ga ?? "Unknown action"}${wc ? " — Work item created" : " — No work item"}`;
+    const rec = details.llmRecommendation as { action?: string; confidence?: number } | undefined;
+    const intent = details.llmIntent as string | undefined;
+    const confStr = rec?.confidence != null ? ` (confidence: ${Number(rec.confidence).toFixed(2)})` : "";
+    const intentStr = intent ? ` [${intent}]` : "";
+    return `${ga ?? "Unknown action"}${confStr}${intentStr}${wc ? " — Work item created" : " — No work item"}`;
   }
 
   if (action === "ai_asked_questions") {
@@ -245,7 +256,9 @@ function renderSummary(
     action === "threadstate_update_failed" ||
     action === "workitem_generation_failed"
   ) {
-    return String(details.error ?? "Unknown error");
+    const error = String(details.error ?? "Unknown error");
+    const url = details.llmBaseUrl ? ` → ${String(details.llmBaseUrl)}` : "";
+    return `${error}${url}`;
   }
 
   if (action === "created" && details.type) {
