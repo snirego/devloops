@@ -15,6 +15,7 @@ import { generateUID } from "@kan/shared/utils";
 import Modal from "~/components/modal";
 import { PageHead } from "~/components/PageHead";
 import { useModal } from "~/providers/modal";
+import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 
 import ChatPanel from "./components/ChatPanel";
@@ -33,6 +34,7 @@ interface OptimisticThread {
 
 export default function ChatView() {
   const { openModal, modalContentType, isOpen: isModalOpen } = useModal();
+  const { workspace } = useWorkspace();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [showWidgetEmbed, setShowWidgetEmbed] = useState(false);
@@ -51,9 +53,13 @@ export default function ChatView() {
     data: threads,
     refetch: refetchThreads,
     isLoading: threadsLoading,
-  } = api.chat.listThreads.useQuery(undefined, {
-    refetchInterval: 15000,
-  });
+  } = api.chat.listThreads.useQuery(
+    { workspacePublicId: workspace.publicId },
+    {
+      enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+      refetchInterval: 15000,
+    },
+  );
 
   const createThread = api.chat.createThread.useMutation({
     onSuccess: (data, variables) => {
@@ -127,7 +133,7 @@ export default function ChatView() {
       setActiveThreadId(tempId);
       setShowNewMenu(false);
 
-      createThread.mutate({ title, type });
+      createThread.mutate({ workspacePublicId: workspace.publicId, title, type });
     },
     [createThread],
   );

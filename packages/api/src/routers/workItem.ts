@@ -83,6 +83,7 @@ export const workItemRouter = createTRPCRouter({
     .input(
       z
         .object({
+          workspacePublicId: z.string().optional(),
           statuses: z
             .array(
               z.enum([
@@ -105,7 +106,16 @@ export const workItemRouter = createTRPCRouter({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      return workItemRepo.listAll(ctx.db, input);
+      let workspaceId: number | undefined;
+      if (input?.workspacePublicId) {
+        const workspaceRepo = await import("@kan/db/repository/workspace.repo");
+        const ws = await workspaceRepo.getByPublicId(ctx.db, input.workspacePublicId);
+        if (ws) workspaceId = ws.id;
+      }
+      return workItemRepo.listAll(ctx.db, {
+        ...input,
+        workspaceId,
+      });
     }),
 
   // ── Status Workflow Endpoints ─────────────────────────────────────────────

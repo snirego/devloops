@@ -8,7 +8,7 @@ import type {
   PromptBundleJson,
   WorkItemStatus,
 } from "@kan/db/schema";
-import { workItems } from "@kan/db/schema";
+import { feedbackThreads, workItems } from "@kan/db/schema";
 import { generateUID } from "@kan/shared/utils";
 
 export const create = async (
@@ -181,6 +181,7 @@ export const listAll = async (
   opts?: {
     statuses?: WorkItemStatus[];
     threadId?: number;
+    workspaceId?: number;
     limit?: number;
     offset?: number;
   },
@@ -191,6 +192,43 @@ export const listAll = async (
   }
   if (opts?.threadId) {
     conditions.push(eq(workItems.threadId, opts.threadId));
+  }
+  if (opts?.workspaceId) {
+    // Filter by workspace through the thread relationship
+    conditions.push(
+      eq(workItems.threadId, feedbackThreads.id),
+    );
+  }
+
+  // If workspace filtering is needed, use a subquery approach
+  if (opts?.workspaceId) {
+    const baseConditions = [];
+    if (opts.statuses && opts.statuses.length > 0) {
+      baseConditions.push(inArray(workItems.status, opts.statuses));
+    }
+    if (opts.threadId) {
+      baseConditions.push(eq(workItems.threadId, opts.threadId));
+    }
+
+    // Get thread IDs belonging to this workspace, then filter work items
+    const workspaceThreads = await db.query.feedbackThreads.findMany({
+      where: eq(feedbackThreads.workspaceId, opts.workspaceId),
+      columns: { id: true },
+    });
+    const threadIds = workspaceThreads.map((t) => t.id);
+    if (threadIds.length === 0) return [];
+
+    baseConditions.push(inArray(workItems.threadId, threadIds));
+
+    return db.query.workItems.findMany({
+      where: baseConditions.length > 0 ? and(...baseConditions) : undefined,
+      orderBy: desc(workItems.createdAt),
+      limit: opts?.limit ?? 100,
+      offset: opts?.offset ?? 0,
+      with: {
+        thread: true,
+      },
+    });
   }
 
   return db.query.workItems.findMany({

@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   doublePrecision,
   index,
@@ -14,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./users";
+import { workspaces } from "./workspaces";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -85,6 +87,10 @@ export const feedbackThreads = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     publicId: varchar("publicId", { length: 12 }).notNull().unique(),
+    workspaceId: bigint("workspaceId", { mode: "number" }).references(
+      () => workspaces.id,
+      { onDelete: "cascade" },
+    ),
     title: varchar("title", { length: 500 }),
     primarySource: varchar("primarySource", { length: 50 }),
     customerId: varchar("customerId", { length: 255 }),
@@ -96,6 +102,7 @@ export const feedbackThreads = pgTable(
     updatedAt: timestamp("updatedAt"),
   },
   (table) => [
+    index("feedback_thread_workspace_idx").on(table.workspaceId),
     index("feedback_thread_customer_idx").on(table.customerId),
     index("feedback_thread_status_idx").on(table.status),
     index("feedback_thread_last_activity_idx").on(table.lastActivityAt),

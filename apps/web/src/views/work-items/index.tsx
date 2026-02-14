@@ -6,6 +6,7 @@ import {
 } from "react-icons/hi2";
 
 import { PageHead } from "~/components/PageHead";
+import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import WorkItemCard from "./components/WorkItemCard";
 import WorkItemDrawer from "./components/WorkItemDrawer";
@@ -23,14 +24,18 @@ const KANBAN_COLUMNS = [
 ] as const;
 
 export default function WorkItemsView() {
+  const { workspace } = useWorkspace();
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(
     null,
   );
   const [showIngest, setShowIngest] = useState(false);
 
   const { data: workItems, refetch, isLoading } = api.workItem.list.useQuery(
-    undefined,
-    { refetchInterval: 10000 },
+    { workspacePublicId: workspace.publicId },
+    {
+      enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+      refetchInterval: 10000,
+    },
   );
 
   const { data: llmHealth } = api.feedbackThread.llmHealth.useQuery(undefined, {

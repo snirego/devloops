@@ -5,6 +5,7 @@ import type { ThreadStateJson } from "@kan/db/schema";
 import * as auditLogRepo from "@kan/db/repository/auditLog.repo";
 import * as feedbackMessageRepo from "@kan/db/repository/feedbackMessage.repo";
 import * as feedbackThreadRepo from "@kan/db/repository/feedbackThread.repo";
+import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { llmHealthCheck } from "../utils/llm";
@@ -28,6 +29,7 @@ export const feedbackThreadRouter = createTRPCRouter({
         source: z
           .enum(["widget", "email", "whatsapp", "slack", "api"])
           .default("api"),
+        workspacePublicId: z.string().optional(),
         customerId: z.string().optional(),
         customerHandle: z.string().optional(),
         externalMessageId: z.string().optional(),
@@ -39,10 +41,18 @@ export const feedbackThreadRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const effectiveCustomerId = input.customerId ?? input.customerHandle;
 
+      // Resolve workspace ID if provided
+      let workspaceId: number | undefined;
+      if (input.workspacePublicId) {
+        const ws = await workspaceRepo.getByPublicId(ctx.db, input.workspacePublicId);
+        if (ws) workspaceId = ws.id;
+      }
+
       // ── Threading logic ──────────────────────────────────────────────
       let thread = await feedbackThreadRepo.findExistingThread(ctx.db, {
         customerId: effectiveCustomerId,
         externalThreadId: input.externalThreadId,
+        workspaceId,
       });
 
       let isNewThread = false;
@@ -50,6 +60,7 @@ export const feedbackThreadRouter = createTRPCRouter({
         thread = await feedbackThreadRepo.create(ctx.db, {
           primarySource: input.source,
           customerId: effectiveCustomerId,
+          workspaceId,
         });
         isNewThread = true;
 
@@ -112,6 +123,7 @@ export const feedbackThreadRouter = createTRPCRouter({
         source: z
           .enum(["widget", "email", "whatsapp", "slack", "api"])
           .default("widget"),
+        workspacePublicId: z.string().optional(),
         customerId: z.string().optional(),
         threadPublicId: z.string().optional(),
         senderType: z.enum(["user", "internal"]).default("user"),
@@ -123,6 +135,13 @@ export const feedbackThreadRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Resolve workspace ID if provided
+      let workspaceId: number | undefined;
+      if (input.workspacePublicId) {
+        const ws = await workspaceRepo.getByPublicId(ctx.db, input.workspacePublicId);
+        if (ws) workspaceId = ws.id;
+      }
+
       // Find or create thread
       let thread = input.threadPublicId
         ? await feedbackThreadRepo.getByPublicId(ctx.db, input.threadPublicId)
@@ -133,6 +152,7 @@ export const feedbackThreadRouter = createTRPCRouter({
         if (input.customerId) {
           thread = await feedbackThreadRepo.findExistingThread(ctx.db, {
             customerId: input.customerId,
+            workspaceId,
           }) ?? undefined;
         }
         if (!thread) {
@@ -140,6 +160,7 @@ export const feedbackThreadRouter = createTRPCRouter({
             primarySource: input.source,
             customerId: input.customerId,
             title: input.rawText.slice(0, 100),
+            workspaceId,
           });
           isNewThread = true;
         }
@@ -226,6 +247,7 @@ export const feedbackThreadRouter = createTRPCRouter({
     .input(
       z
         .object({
+          workspacePublicId: z.string().optional(),
           status: z.string().optional(),
           limit: z.number().min(1).max(100).optional(),
           offset: z.number().min(0).optional(),
@@ -233,7 +255,15 @@ export const feedbackThreadRouter = createTRPCRouter({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      return feedbackThreadRepo.listAll(ctx.db, input);
+      let workspaceId: number | undefined;
+      if (input?.workspacePublicId) {
+        const ws = await workspaceRepo.getByPublicId(ctx.db, input.workspacePublicId);
+        if (ws) workspaceId = ws.id;
+      }
+      return feedbackThreadRepo.listAll(ctx.db, {
+        ...input,
+        workspaceId,
+      });
     }),
 
   // ── LLM Health Check ─────────────────────────────────────────────────────

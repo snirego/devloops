@@ -11,12 +11,14 @@ export const create = async (
     primarySource?: string;
     customerId?: string;
     title?: string;
+    workspaceId?: number;
   },
 ) => {
   const [thread] = await db
     .insert(feedbackThreads)
     .values({
       publicId: generateUID(),
+      workspaceId: input.workspaceId ?? null,
       title: input.title ?? null,
       primarySource: input.primarySource ?? null,
       customerId: input.customerId ?? null,
@@ -77,6 +79,7 @@ export const findExistingThread = async (
   input: {
     customerId?: string;
     externalThreadId?: string;
+    workspaceId?: number;
   },
 ) => {
   // Strategy 1: external thread ID match
@@ -85,19 +88,30 @@ export const findExistingThread = async (
       where: eq(feedbackMessages.externalThreadId, input.externalThreadId),
       with: { thread: true },
     });
-    if (msg?.thread) return msg.thread;
+    if (msg?.thread) {
+      // Verify workspace match if provided
+      if (input.workspaceId && msg.thread.workspaceId !== input.workspaceId) {
+        return undefined;
+      }
+      return msg.thread;
+    }
   }
 
   // Strategy 2: same customer, open thread, activity within 24h
   if (input.customerId) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    const conditions = [
+      eq(feedbackThreads.customerId, input.customerId),
+      inArray(feedbackThreads.status, ["Open", "WaitingOnUser"]),
+      gte(feedbackThreads.lastActivityAt, twentyFourHoursAgo),
+    ];
+    if (input.workspaceId) {
+      conditions.push(eq(feedbackThreads.workspaceId, input.workspaceId));
+    }
+
     return db.query.feedbackThreads.findFirst({
-      where: and(
-        eq(feedbackThreads.customerId, input.customerId),
-        inArray(feedbackThreads.status, ["Open", "WaitingOnUser"]),
-        gte(feedbackThreads.lastActivityAt, twentyFourHoursAgo),
-      ),
+      where: and(...conditions),
       orderBy: desc(feedbackThreads.lastActivityAt),
     });
   }
@@ -143,12 +157,15 @@ export const updateStatus = async (
 
 export const listAll = async (
   db: dbClient,
-  opts?: { status?: string; limit?: number; offset?: number },
+  opts?: { status?: string; limit?: number; offset?: number; workspaceId?: number },
 ) => {
   const limit = opts?.limit ?? 50;
   const offset = opts?.offset ?? 0;
 
   const conditions = [];
+  if (opts?.workspaceId) {
+    conditions.push(eq(feedbackThreads.workspaceId, opts.workspaceId));
+  }
   if (opts?.status) {
     conditions.push(
       eq(
@@ -174,9 +191,14 @@ export const listAll = async (
 };
 
 /** List threads where AI is currently processing */
-export const listAiProcessing = async (db: dbClient) => {
+export const listAiProcessing = async (db: dbClient, workspaceId?: number) => {
+  const conditions = [isNotNull(feedbackThreads.aiProcessingSince)];
+  if (workspaceId) {
+    conditions.push(eq(feedbackThreads.workspaceId, workspaceId));
+  }
+
   return db.query.feedbackThreads.findMany({
-    where: isNotNull(feedbackThreads.aiProcessingSince),
+    where: and(...conditions),
     columns: {
       id: true,
       publicId: true,
@@ -218,13 +240,20 @@ export const deleteById = async (db: dbClient, id: number) => {
 /** List threads with preview message (for chat thread list) */
 export const listForChat = async (
   db: dbClient,
-  opts?: { limit?: number; offset?: number },
+  opts?: { limit?: number; offset?: number; workspaceId?: number },
 ) => {
   const limit = opts?.limit ?? 50;
   const offset = opts?.offset ?? 0;
 
+  const conditions = [
+    inArray(feedbackThreads.status, ["Open", "WaitingOnUser"]),
+  ];
+  if (opts?.workspaceId) {
+    conditions.push(eq(feedbackThreads.workspaceId, opts.workspaceId));
+  }
+
   return db.query.feedbackThreads.findMany({
-    where: inArray(feedbackThreads.status, ["Open", "WaitingOnUser"]),
+    where: and(...conditions),
     orderBy: desc(feedbackThreads.lastActivityAt),
     limit,
     offset,

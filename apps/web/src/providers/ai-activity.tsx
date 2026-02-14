@@ -11,6 +11,7 @@ import { authClient } from "@kan/auth/client";
 import { getSupabaseBrowserClient } from "@kan/auth/client";
 
 import { api } from "~/utils/api";
+import { WorkspaceContext } from "~/providers/workspace";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -57,27 +58,35 @@ export function AiActivityProvider({
   const { data: session } = authClient.useSession();
   const isAuthenticated = !!session?.user;
 
+  // Get workspace context (may be undefined if not yet loaded)
+  const workspaceCtx = useContext(WorkspaceContext);
+  const workspacePublicId = workspaceCtx?.workspace?.publicId;
+  const hasWorkspace = !!workspacePublicId && workspacePublicId.length >= 12;
+
   // Track whether we currently have active jobs — drives polling
   const [hasActiveJobs, setHasActiveJobs] = useState(false);
 
   // Track consecutive errors so we can back off
   const errorCountRef = useRef(0);
 
-  // Only query when authenticated — the endpoint uses protectedProcedure
-  const { data, refetch } = api.chat.aiProcessing.useQuery(undefined, {
-    enabled: isAuthenticated,
-    // Only poll while there are active jobs (5s), otherwise don't poll at all.
-    // Supabase Realtime handles the "AI just started" notification.
-    refetchInterval: () => {
-      if (!isAuthenticated) return false;
-      if (errorCountRef.current >= 3) return false; // stop on repeated errors
-      if (hasActiveJobs) return 5_000; // poll while active
-      return false; // idle — no polling, Realtime will trigger refetch
+  // Only query when authenticated and workspace is resolved
+  const { data, refetch } = api.chat.aiProcessing.useQuery(
+    hasWorkspace ? { workspacePublicId } : undefined,
+    {
+      enabled: isAuthenticated && hasWorkspace,
+      // Only poll while there are active jobs (5s), otherwise don't poll at all.
+      // Supabase Realtime handles the "AI just started" notification.
+      refetchInterval: () => {
+        if (!isAuthenticated || !hasWorkspace) return false;
+        if (errorCountRef.current >= 3) return false; // stop on repeated errors
+        if (hasActiveJobs) return 5_000; // poll while active
+        return false; // idle — no polling, Realtime will trigger refetch
+      },
+      refetchOnWindowFocus: true,
+      retry: 1,
+      retryDelay: 5_000,
     },
-    refetchOnWindowFocus: true,
-    retry: 1,
-    retryDelay: 5_000,
-  });
+  );
 
   // Stable ref so the Realtime callback always calls the latest refetch
   const refetchRef = useRef(refetch);
