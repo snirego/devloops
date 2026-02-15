@@ -45,7 +45,7 @@ const demoTickets = [
   { id: 3, source: "Email", sourceColor: "#ea4335", title: "Checkout flow confusing", type: "Improvement", priority: "Low" },
 ];
 
-const ease = [0.25, 0.46, 0.45, 0.94];
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
 /* Fixed dimensions – thin frame, never change */
 const PHONE_WIDTH = 224;
