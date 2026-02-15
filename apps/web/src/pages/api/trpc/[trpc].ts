@@ -3,14 +3,13 @@ import { createNextApiHandler } from "@trpc/server/adapters/next";
 
 import { appRouter } from "@kan/api/root";
 import { createTRPCContext } from "@kan/api/trpc";
-import { env } from "~/env";
 import { withRateLimit } from "@kan/api/utils/rateLimit";
 
 const nextApiHandler = createNextApiHandler({
   router: appRouter,
   createContext: createTRPCContext,
   onError:
-    env.NODE_ENV === "development"
+    process.env.NODE_ENV === "development"
       ? ({ path, error }) => {
           console.error(
             `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,

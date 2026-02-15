@@ -5,7 +5,6 @@ import { createOpenApiNextHandler } from "trpc-to-openapi";
 import { appRouter } from "@kan/api";
 import { createRESTContext } from "@kan/api/trpc";
 
-import { env } from "~/env";
 import { withRateLimit } from "@kan/api/utils/rateLimit";
 
 export default withRateLimit(
@@ -17,7 +16,7 @@ export default withRateLimit(
       router: appRouter,
       createContext: createRESTContext,
       onError:
-        env.NODE_ENV === "development"
+        process.env.NODE_ENV === "development"
           ? ({ path, error }) => {
               console.error(
                 `❌ REST failed on ${path ?? "<no-path>"}: ${error.message}`,

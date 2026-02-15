@@ -152,5 +152,7 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_WHITE_LABEL_HIDE_POWERED_BY,
   },
   skipValidation:
-    !!process.env.CI || process.env.npm_lifecycle_event === "lint",
+    !!process.env.CI ||
+    !!process.env.SKIP_ENV_VALIDATION ||
+    process.env.npm_lifecycle_event === "lint",
 });
