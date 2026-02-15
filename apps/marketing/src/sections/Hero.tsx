@@ -408,7 +408,7 @@ export default function Hero() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Badge className="mb-6">
               <HiSparkles className="h-3.5 w-3.5 text-brand-500" />
-              <span>AI agents for product teams</span>
+              <span>AI agents for fast startups</span>
             </Badge>
           </motion.div>
 
