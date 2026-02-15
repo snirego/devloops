@@ -101,7 +101,7 @@ function IdlePlaceholder() {
   );
 }
 
-/** Compact "done" chip shown in passed cards -- single line, never wraps */
+/** Compact "done" chip shown in passed cards, single line, never wraps */
 function DoneChip({ text }: { text: string }) {
   return (
     <motion.div
@@ -367,7 +367,7 @@ function PipelineAnimation() {
           ))}
         </div>
 
-        {/* Desktop: flex row -- active card animates wider */}
+        {/* Desktop: flex row, active card animates wider */}
         <div className="hidden items-stretch gap-1.5 sm:flex lg:gap-2">
           <FeedbackStage feedback={feedback} isActive={step === 0} />
           <StageArrow lit={step > 0} />
@@ -432,7 +432,7 @@ export default function Hero() {
             className="mt-5 max-w-xl text-base text-light-900 dark:text-dark-900 sm:text-lg"
           >
             Devloops turns customer feedback into tickets, generates agent-ready prompts,
-            and lets AI do the work -- so you ship features while others are still analyzing.
+            and lets AI do the work so you ship features while others are still analyzing.
           </motion.p>
 
           {/* CTAs */}
@@ -456,7 +456,7 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="mt-4 text-xs text-light-800 dark:text-dark-800"
           >
-            Set up in 2 minutes. No credit card required.
+            Set up in 2 minutes.
           </motion.p>
 
           {/* Pipeline Animation */}

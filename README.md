@@ -12,7 +12,7 @@
   ·
   <a href="https://docs.Devloops">Docs</a>
   ·
-  <a href="https://discord.gg/e6ejRb6CmT">Discord</a>
+  <a href="https://discord.gg/ZxjnjfqYSZ">Discord</a>
 </p>
 
 <div align="center">
@@ -209,4 +209,4 @@ Kan is licensed under the [AGPLv3 license](LICENSE).
 
 ## Contact 📧
 
-For support or to get in touch, please email [henry@Devloops](mailto:henry@Devloops) or join our [Discord server](https://discord.gg/e6ejRb6CmT).
+For support or to get in touch, please email [henry@Devloops](mailto:henry@Devloops) or join our [Discord server](https://discord.gg/ZxjnjfqYSZ).

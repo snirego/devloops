@@ -246,7 +246,7 @@ export default function ProductShowcase() {
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
             From customer feedback
             <br />
-            to shipped code. Automatically.
+            <span className="gradient-text">to shipped code. Automatically.</span>
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-base text-light-900 dark:text-dark-900">
             Devloops replaces the manual grind of analyzing feedback, spec-writing, and task creation
@@ -275,7 +275,7 @@ export default function ProductShowcase() {
         {/* Content area */}
         <div className="mx-auto mt-10 max-w-4xl">
           <div className="overflow-hidden rounded-2xl border border-light-200 bg-white/80 shadow-xl backdrop-blur-sm dark:border-dark-300 dark:bg-dark-100/80">
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="grid min-h-[320px] grid-cols-1 md:grid-cols-2">
               {/* Left: Description */}
               <div className="flex flex-col justify-center p-6 sm:p-8">
                 <AnimatePresence mode="wait">
@@ -285,6 +285,7 @@ export default function ProductShowcase() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
+                    className="min-h-[120px]"
                   >
                     <h3 className="text-2xl font-bold text-light-1000 dark:text-dark-1000">
                       {currentTab.title}
@@ -305,6 +306,7 @@ export default function ProductShowcase() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ duration: 0.3 }}
+                    className="min-h-[200px]"
                   >
                     <PreviewComponent />
                   </motion.div>

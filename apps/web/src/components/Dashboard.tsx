@@ -49,6 +49,7 @@ export default function Dashboard({
     undefined,
     {
       enabled: !!session?.user,
+      staleTime: 2 * 60_000, // User profile rarely changes — fresh for 2 min
     },
   );
 

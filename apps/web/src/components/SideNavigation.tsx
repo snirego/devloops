@@ -69,7 +69,10 @@ export default function SideNavigation({
 
   const { data: workspaceData } = api.workspace.byId.useQuery(
     { workspacePublicId: workspace.publicId },
-    { enabled: !!workspace.publicId && workspace.publicId.length >= 12 },
+    {
+      enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+      staleTime: 2 * 60_000, // Workspace metadata rarely changes
+    },
   );
 
   const subscriptions = workspaceData?.subscriptions as

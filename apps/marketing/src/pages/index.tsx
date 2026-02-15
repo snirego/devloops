@@ -4,6 +4,7 @@ import Header from "~/sections/Header";
 import Hero from "~/sections/Hero";
 import ProblemStrip from "~/sections/ProblemStrip";
 import ProductShowcase from "~/sections/ProductShowcase";
+import OnTheGo from "~/sections/OnTheGo";
 import Logos from "~/sections/Logos";
 import Metrics from "~/sections/Metrics";
 import Testimonials from "~/sections/Testimonials";
@@ -24,6 +25,7 @@ export default function Home() {
         <Logos />
         <ProblemStrip />
         <ProductShowcase />
+        <OnTheGo />
         <Metrics />
         <Testimonials />
         <Pricing />

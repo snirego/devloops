@@ -158,6 +158,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   } = api.board.byId.useQuery(queryParams, {
     enabled: !!boardId,
     placeholderData: keepPreviousData,
+    staleTime: 30_000, // Board data cached for 30s — mutations invalidate explicitly
   });
 
   const refetchBoard = async () => {

@@ -5,6 +5,7 @@ import { HiOutlineEnvelope } from "react-icons/hi2";
 const navigation = {
   product: [
     { name: "How it works", href: "#features" },
+    { name: "On the go", href: "#on-the-go" },
     { name: "Pricing", href: "#pricing" },
     { name: "Changelog", href: "https://docs.devloops.io/changelog" },
   ],
@@ -14,12 +15,12 @@ const navigation = {
     { name: "FAQ", href: "#faq" },
   ],
   company: [
-    { name: "Discord", href: "https://discord.gg/e6ejRb6CmT" },
+    { name: "Discord", href: "https://discord.gg/ZxjnjfqYSZ" },
     { name: "Contact", href: "mailto:support@devloops.io" },
   ],
   legal: [
-    { name: "Terms", href: "https://app.devloops.io/terms" },
-    { name: "Privacy", href: "https://app.devloops.io/privacy" },
+    { name: "Terms", href: "/tos" },
+    { name: "Privacy", href: "/privacy" },
   ],
 };
 
@@ -38,7 +39,7 @@ export default function Footer() {
             </p>
             <div className="mt-4 flex items-center gap-2">
               <a
-                href="https://discord.gg/e6ejRb6CmT"
+                href="https://discord.gg/ZxjnjfqYSZ"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-light-300 text-light-900 transition-colors hover:bg-light-200 dark:border-dark-400 dark:text-dark-900 dark:hover:bg-dark-200"

@@ -27,7 +27,10 @@ export function BoardsList({ isTemplate }: { isTemplate?: boolean }) {
       workspacePublicId: workspace.publicId,
       type: isTemplate ? "template" : "regular",
     },
-    { enabled: workspace.publicId ? true : false },
+    {
+      enabled: workspace.publicId ? true : false,
+      staleTime: 30_000,
+    },
   );
 
   const handleToggleFavorite = (

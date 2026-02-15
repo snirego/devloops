@@ -4,10 +4,10 @@ import {
   HiOutlineExclamationTriangle,
   HiOutlineArrowPath,
   HiOutlineBanknotes,
-  HiArrowLongRight,
 } from "react-icons/hi2";
 
 import SectionWrapper from "~/components/SectionWrapper";
+import Badge from "~/components/Badge";
 
 const painPoints = [
   {
@@ -38,45 +38,52 @@ const painPoints = [
 
 export default function ProblemStrip() {
   return (
-    <SectionWrapper className="py-20 sm:py-28" id="problem">
-      <div className="mx-auto max-w-6xl px-5">
+    <SectionWrapper className="relative py-20 sm:py-28" id="problem">
+      {/* Subtle background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-purple-500/5 to-[#00DFFF]/5 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-6xl px-5">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
+          <Badge className="mb-5">The problem</Badge>
+          <h2 className="text-3xl font-extrabold tracking-tight text-light-1000 dark:text-dark-1000 sm:text-4xl lg:text-5xl">
             Your team is fast.
             <br />
-            <span className="text-light-800 dark:text-dark-800">Your process is the bottleneck.</span>
+            <span className="gradient-text">Your process is the bottleneck.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-base text-light-900 dark:text-dark-900">
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-light-700 dark:text-dark-700 sm:text-lg">
             Every hour spent analyzing feedback, writing specs, and context-switching is an hour
-            you&apos;re not shipping. Devloops eliminates the busywork.
+            you&apos;re not shipping.
           </p>
         </div>
 
         {/* Pain points grid */}
-        <div className="mx-auto mt-14 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mx-auto mt-16 grid max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2">
           {painPoints.map((point, idx) => (
             <motion.div
               key={idx}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: idx * 0.1, duration: 0.5 }}
-              className="group rounded-xl border border-light-200 bg-white/60 p-5 backdrop-blur-sm transition-all duration-200 hover:shadow-md dark:border-dark-300 dark:bg-dark-100/60"
+              transition={{ delay: idx * 0.08, duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="relative overflow-hidden rounded-2xl border border-light-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-dark-300 dark:bg-dark-100/80"
             >
-              <div className="mb-3 flex items-center gap-2.5">
+              <div
+                className="absolute left-0 top-0 h-full w-1 rounded-l-2xl"
+                style={{ backgroundColor: point.color }}
+              />
+              <div className="pl-4">
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: point.color + "15" }}
+                  className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: point.color + "18" }}
                 >
-                  <point.icon className="h-4 w-4" style={{ color: point.color }} />
+                  <point.icon className="h-5 w-5" style={{ color: point.color }} />
                 </div>
-              </div>
-              <p className="text-xs font-medium text-red-500/80 line-through decoration-red-300/50">
-                {point.before}
-              </p>
-              <div className="my-2 flex items-center gap-1.5">
-                <HiArrowLongRight className="h-3 w-3 text-brand-500" />
-                <p className="text-sm font-semibold text-light-1000 dark:text-dark-1000">
+                <p className="text-base font-medium text-light-800 line-through decoration-1 decoration-light-400/50 dark:text-dark-300 dark:decoration-dark-500/40">
+                  {point.before}
+                </p>
+                <p className="mt-3 text-sm font-semibold text-light-1000 dark:text-dark-1000 sm:text-base">
                   {point.after}
                 </p>
               </div>

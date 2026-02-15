@@ -19,7 +19,9 @@ export default function IntegrationsSettings() {
     data: integrations,
     refetch: refetchIntegrations,
     isLoading: integrationsLoading,
-  } = api.integration.providers.useQuery();
+  } = api.integration.providers.useQuery(undefined, {
+    staleTime: 60_000,
+  });
 
   const { data: trelloUrl, refetch: refetchTrelloUrl } =
     api.integration.getAuthorizationUrl.useQuery(

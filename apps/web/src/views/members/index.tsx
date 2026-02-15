@@ -37,7 +37,10 @@ export default function MembersPage() {
 
   const { data, isLoading } = api.workspace.byId.useQuery(
     { workspacePublicId: workspace.publicId },
-    { enabled: !!workspace.publicId && workspace.publicId.length >= 12 },
+    {
+      enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+      staleTime: 60_000,
+    },
   );
 
   const { data: session } = authClient.useSession();

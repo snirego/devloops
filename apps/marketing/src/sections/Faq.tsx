@@ -14,12 +14,17 @@ const faqs: FaqItem[] = [
   {
     question: "What exactly does Devloops do?",
     answer:
-      "Devloops takes customer feedback from any source (Intercom, Slack, email, support tickets), uses AI to automatically analyze and categorize it, generates detailed agent-ready prompts, and lets you send those prompts to AI coding agents. It replaces the manual grind of analyzing feedback, writing specs, and creating tasks -- so your team ships faster.",
+      "Devloops takes customer feedback from any source (Intercom, Slack, email, support tickets), uses AI to automatically analyze and categorize it, generates detailed agent-ready prompts, and lets you send those prompts to AI coding agents. It replaces the manual grind of analyzing feedback, writing specs, and creating tasks so your team ships faster.",
+  },
+  {
+    question: "Which platforms can I connect to receive feedback?",
+    answer:
+      "We support popular platforms like Intercom, Slack, Zendesk, email, and more out of the box. Beyond that, you can connect any platform that exposes API endpoints for retrieving feedback or messages. If the platform you need isn't in our system yet, reach out to us and we'll help you implement the integration, usually within a few days.",
   },
   {
     question: "Is there a free trial?",
     answer:
-      "We don't do free trials. Our plans start at $8/mo per member (billed yearly) and include everything from day one. No feature gates, no surprises. You get the full power of the platform immediately -- because we want you shipping fast from minute one.",
+      "We don't do free trials. Our plans start at $8/mo per member (billed yearly) and include everything from day one. No feature gates, no surprises. You get the full power of the platform immediately, because we want you shipping fast from minute one.",
   },
   {
     question: "Can I switch plans or cancel anytime?",
@@ -34,7 +39,17 @@ const faqs: FaqItem[] = [
   {
     question: "Which AI agents does Devloops work with?",
     answer:
-      "Devloops generates agent-ready prompts that work with any AI coding agent -- Cursor, Devin, Claude, GPT-based agents, and more. The prompts include full context, acceptance criteria, and technical details so agents can start working immediately.",
+      "Devloops generates agent-ready prompts that work with any AI coding agent: Cursor, Devin, Claude, GPT-based agents, and more. The prompts include full context, acceptance criteria, and technical details so agents can start working immediately.",
+  },
+  {
+    question: "How long does it take to set up?",
+    answer:
+      "Most teams are up and running in under 2 minutes. Connect your feedback source, and Devloops starts analyzing immediately. There's no complex configuration, no onboarding calls, and no migration needed.",
+  },
+  {
+    question: "Do I need to change my existing workflow?",
+    answer:
+      "No. Devloops plugs into the tools you already use. Your feedback keeps coming in through the same channels. Devloops just makes sure it gets analyzed, turned into tickets, and shipped instead of sitting in a queue.",
   },
   {
     question: "Is my data secure?",
@@ -85,7 +100,8 @@ export default function Faq() {
         <div className="text-center">
           <Badge>FAQ</Badge>
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
-            Questions? Answers.
+            Questions?{" "}
+            <span className="gradient-text">Answers.</span>
           </h2>
         </div>
 

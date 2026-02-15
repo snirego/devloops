@@ -48,7 +48,10 @@ export function CardRightPanel({ isTemplate }: { isTemplate?: boolean }) {
 
   const { data: card } = api.card.byId.useQuery(
     { cardPublicId: cardId ?? "" },
-    { enabled: !!cardId && cardId.length >= 12 },
+    {
+      enabled: !!cardId && cardId.length >= 12,
+      staleTime: 30_000,
+    },
   );
 
   const isCreator = card?.createdBy && session?.user.id === card.createdBy;
@@ -179,7 +182,10 @@ export default function CardPage({ isTemplate }: { isTemplate?: boolean }) {
 
   const { data: card, isLoading } = api.card.byId.useQuery(
     { cardPublicId: cardId ?? "" },
-    { enabled: !!cardId && cardId.length >= 12 },
+    {
+      enabled: !!cardId && cardId.length >= 12,
+      staleTime: 30_000,
+    },
   );
 
   const isCreator = card?.createdBy && session?.user.id === card.createdBy;

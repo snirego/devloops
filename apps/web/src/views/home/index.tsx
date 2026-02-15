@@ -81,9 +81,6 @@ export default function HomeView() {
                 {t`Self host with Github`}
               </Button>
             </div>
-            <p className="mt-4 text-center text-sm text-light-950 dark:text-dark-900">
-              {t`No credit card required`}
-            </p>
           </div>
         </div>
         <div className="px-4 pb-10">

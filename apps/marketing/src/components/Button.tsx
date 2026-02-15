@@ -26,7 +26,7 @@ export default function Button({
     size === "md" && "px-6 py-2.5 text-sm",
     size === "lg" && "px-8 py-3.5 text-base",
     variant === "primary" &&
-      "bg-light-1000 text-light-50 hover:bg-light-900 dark:bg-dark-1000 dark:text-dark-50 dark:hover:bg-dark-950 shadow-lg shadow-black/10 dark:shadow-white/5",
+      "bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-lg shadow-[#6366f1]/20",
     variant === "secondary" &&
       "border border-light-400 text-light-1000 hover:bg-light-200 dark:border-dark-400 dark:text-dark-1000 dark:hover:bg-dark-200",
     variant === "ghost" &&

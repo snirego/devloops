@@ -27,7 +27,7 @@ const testimonials: Testimonial[] = [
     name: "JR Raphael",
     handle: "@JRRaphael",
     image: "/testimonials/avatars/jrraphael.png",
-    text: "The interesting thing about signing into Devloops for the first time is that it feels new and electrifying -- and yet simultaneously quite familiar. The way it turns messy customer feedback into structured, agent-ready work items is staggering.",
+    text: "The interesting thing about signing into Devloops for the first time is that it feels new and electrifying, and yet simultaneously quite familiar. The way it turns messy customer feedback into structured, agent-ready work items is staggering.",
     link: "https://www.fastcompany.com/91376028/trello-alternative-kan",
     featured: true,
   },
@@ -50,7 +50,7 @@ const testimonials: Testimonial[] = [
     handle: "@dscfox",
     image: "/testimonials/avatars/fox.png",
     text: "I've been looking at tools for months, but everything came up short. Devloops is the first platform that actually closes the loop from customer feedback to shipped code. Our velocity doubled in the first month.",
-    link: "https://discord.gg/e6ejRb6CmT",
+    link: "https://discord.gg/ZxjnjfqYSZ",
     featured: true,
   },
   {
@@ -58,7 +58,7 @@ const testimonials: Testimonial[] = [
     handle: "@hannobraun",
     image: "/testimonials/avatars/hanno_braun.webp",
     text: "The AI-generated prompts are shockingly good. They include context, acceptance criteria, everything the agent needs. No more writing specs by hand.",
-    link: "https://discord.gg/e6ejRb6CmT",
+    link: "https://discord.gg/ZxjnjfqYSZ",
   },
   {
     name: "headlessdev_",
@@ -79,7 +79,7 @@ const testimonials: Testimonial[] = [
     handle: "@bravo68web",
     image: "/testimonials/avatars/bravo68web.jpeg",
     text: "I have fallen in love with the product. Our team ships faster now than we ever thought possible.",
-    link: "https://discord.gg/e6ejRb6CmT",
+    link: "https://discord.gg/ZxjnjfqYSZ",
   },
 ];
 
@@ -119,25 +119,9 @@ function TestimonialCard({ testimonial, index }: { testimonial: Testimonial; ind
             {initials}
           </div>
         )}
-        <div>
-          <p className="text-sm font-semibold text-light-1000 dark:text-dark-1000">
-            {testimonial.name}
-          </p>
-          {testimonial.link ? (
-            <a
-              href={testimonial.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-light-700 hover:text-light-900 dark:text-dark-700 dark:hover:text-dark-900"
-            >
-              {testimonial.handle}
-            </a>
-          ) : (
-            <p className="text-xs text-light-700 dark:text-dark-700">
-              {testimonial.handle}
-            </p>
-          )}
-        </div>
+        <p className="text-sm font-semibold text-light-1000 dark:text-dark-1000">
+          {testimonial.name}
+        </p>
       </div>
       <p className="mt-3 text-sm leading-relaxed text-light-900 dark:text-dark-900">
         &ldquo;{testimonial.text}&rdquo;
@@ -153,7 +137,8 @@ export default function Testimonials() {
         <div className="text-center">
           <Badge>Testimonials</Badge>
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
-            Teams are shipping faster with Devloops
+            Teams are shipping faster{" "}
+            <span className="gradient-text">with Devloops</span>
           </h2>
           <p className="mx-auto mt-3 max-w-md text-base text-light-900 dark:text-dark-900">
             Startups and product teams use Devloops to eliminate busywork and focus on what matters.

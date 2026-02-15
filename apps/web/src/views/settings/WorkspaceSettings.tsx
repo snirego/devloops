@@ -29,12 +29,17 @@ export default function WorkspaceSettings() {
   const { workspace } = useWorkspace();
   const { canEditWorkspace } = usePermissions();
   const router = useRouter();
-  const { data } = api.user.getUser.useQuery();
+  const { data } = api.user.getUser.useQuery(undefined, {
+    staleTime: 2 * 60_000,
+  });
   const [hasOpenedUpgradeModal, setHasOpenedUpgradeModal] = useState(false);
 
   const { data: workspaceData } = api.workspace.byId.useQuery(
     { workspacePublicId: workspace.publicId },
-    { enabled: !!workspace.publicId && workspace.publicId.length >= 12 },
+    {
+      enabled: !!workspace.publicId && workspace.publicId.length >= 12,
+      staleTime: 2 * 60_000,
+    },
   );
 
   const subscriptions = workspaceData?.subscriptions as

@@ -28,7 +28,7 @@ export default function FinalCta() {
           </h2>
 
           <p className="mx-auto mt-5 max-w-lg text-base text-light-900 dark:text-dark-900 sm:text-lg">
-            Let AI handle the busywork. Your team focuses on what matters --
+            Let AI handle the busywork. Your team focuses on what matters.
             building the product your customers are asking for.
           </p>
 
@@ -36,18 +36,10 @@ export default function FinalCta() {
             <Button href="https://app.devloops.io/signup" size="lg">
               Start Shipping Faster
             </Button>
-            <Button
-              href="https://docs.devloops.io"
-              variant="secondary"
-              size="lg"
-              openInNewTab
-            >
-              Read the Docs
-            </Button>
           </div>
 
           <p className="mt-4 text-xs text-light-700 dark:text-dark-700">
-            Set up in 2 minutes. No credit card required.
+            Set up in 2 minutes.
           </p>
         </motion.div>
       </div>

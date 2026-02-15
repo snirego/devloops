@@ -28,7 +28,45 @@ interface Workspace {
   brandColor: string | null | undefined;
 }
 
-const initialWorkspace: Workspace = {
+// ── localStorage cache for instant workspace hydration ──────────────────
+const WORKSPACE_CACHE_KEY = "devloops_workspace_cache";
+const WORKSPACES_LIST_CACHE_KEY = "devloops_workspaces_list_cache";
+
+function getCachedWorkspace(): Workspace | null {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedWorkspace(ws: Workspace) {
+  try {
+    localStorage.setItem(WORKSPACE_CACHE_KEY, JSON.stringify(ws));
+  } catch {
+    // storage blocked
+  }
+}
+
+function getCachedWorkspaces(): Workspace[] | null {
+  try {
+    const raw = localStorage.getItem(WORKSPACES_LIST_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedWorkspaces(list: Workspace[]) {
+  try {
+    localStorage.setItem(WORKSPACES_LIST_CACHE_KEY, JSON.stringify(list));
+  } catch {
+    // storage blocked
+  }
+}
+
+const initialWorkspace: Workspace = getCachedWorkspace() ?? {
   name: "",
   description: null,
   publicId: "",
@@ -38,7 +76,7 @@ const initialWorkspace: Workspace = {
   brandColor: DEFAULT_BRAND_COLOR,
 };
 
-const initialAvailableWorkspaces: Workspace[] = [];
+const initialAvailableWorkspaces: Workspace[] = getCachedWorkspaces() ?? [];
 
 export const WorkspaceContext = createContext<WorkspaceContextProps | undefined>(
   undefined,
@@ -52,15 +90,19 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>(
     initialAvailableWorkspaces,
   );
-  const [hasLoaded, setHasLoaded] = useState(false);
+  // If we have cached data, consider it "loaded" immediately
+  const [hasLoaded, setHasLoaded] = useState(initialWorkspace.publicId !== "");
 
   const workspacePublicId = useSearchParams().get("workspacePublicId");
 
-  const { data, isLoading } = api.workspace.all.useQuery();
+  const { data, isLoading } = api.workspace.all.useQuery(undefined, {
+    staleTime: 2 * 60_000, // Workspace data rarely changes — fresh for 2 min
+  });
   const utils = api.useUtils();
 
   const switchWorkspace = (_workspace: Workspace) => {
     localStorage.setItem("workspacePublicId", _workspace.publicId);
+    setCachedWorkspace(_workspace);
 
     setWorkspace(_workspace);
 
@@ -91,7 +133,10 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
         hasLoaded: true,
       })) as Workspace[];
 
-      if (workspaces.length) setAvailableWorkspaces(workspaces);
+      if (workspaces.length) {
+        setAvailableWorkspaces(workspaces);
+        setCachedWorkspaces(workspaces);
+      }
     }
 
     if (storedWorkspaceId !== null) {
@@ -102,7 +147,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
 
       if (!selectedWorkspace?.workspace) return;
 
-      setWorkspace({
+      const ws: Workspace = {
         publicId: selectedWorkspace.workspace.publicId,
         name: selectedWorkspace.workspace.name,
         slug: selectedWorkspace.workspace.slug,
@@ -110,7 +155,9 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
         description: selectedWorkspace.workspace.description,
         role: selectedWorkspace.role,
         brandColor: selectedWorkspace.workspace.brandColor,
-      });
+      };
+      setWorkspace(ws);
+      setCachedWorkspace(ws);
 
       if (workspacePublicId) {
         router.push(`/boards`);
@@ -122,7 +169,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
 
       if (!primaryWorkspace || !primaryWorkspaceRole) return;
       localStorage.setItem("workspacePublicId", primaryWorkspace.publicId);
-      setWorkspace({
+      const ws: Workspace = {
         publicId: primaryWorkspace.publicId,
         name: primaryWorkspace.name,
         slug: primaryWorkspace.slug,
@@ -130,7 +177,9 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
         description: primaryWorkspace.description,
         role: primaryWorkspaceRole,
         brandColor: primaryWorkspace.brandColor,
-      });
+      };
+      setWorkspace(ws);
+      setCachedWorkspace(ws);
     }
   }, [data, isLoading, workspacePublicId, router]);
 

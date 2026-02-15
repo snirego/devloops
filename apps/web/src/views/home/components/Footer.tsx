@@ -62,7 +62,7 @@ const Footer = () => {
               <Link href="https://github.com/kanbn/kan" target="_blank">
                 <FaGithub className="h-8 w-8 rounded-lg border border-light-300 p-1.5 text-light-1000 hover:bg-light-100 dark:border-dark-300 dark:text-dark-1000 dark:hover:bg-dark-100" />
               </Link>
-              <Link href="https://discord.gg/e6ejRb6CmT" target="_blank">
+              <Link href="https://discord.gg/ZxjnjfqYSZ" target="_blank">
                 <FaDiscord className="h-8 w-8 rounded-lg border border-light-300 p-1.5 text-light-1000 hover:bg-light-100 dark:border-dark-300 dark:text-dark-1000 dark:hover:bg-dark-100" />
               </Link>
             </div>

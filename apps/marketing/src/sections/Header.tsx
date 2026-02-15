@@ -7,6 +7,7 @@ import Button from "~/components/Button";
 
 const navItems = [
   { label: "How it works", href: "#features" },
+  { label: "On the go", href: "#on-the-go" },
   { label: "Pricing", href: "#pricing" },
   { label: "Testimonials", href: "#testimonials" },
   { label: "FAQ", href: "#faq" },
@@ -35,7 +36,7 @@ export default function Header() {
         className={twMerge(
           "fixed top-0 z-50 w-full transition-all duration-300",
           scrolled
-            ? "border-b border-light-300/60 bg-light-50/80 shadow-sm backdrop-blur-xl dark:border-dark-300/60 dark:bg-dark-50/80"
+            ? "bg-light-50/80 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.06)] backdrop-blur-xl dark:bg-dark-50/80 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.06)]"
             : "bg-transparent"
         )}
       >

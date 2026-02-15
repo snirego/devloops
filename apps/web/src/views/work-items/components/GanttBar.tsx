@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // ── Status color mapping ────────────────────────────────────────────────────
 
@@ -17,13 +18,30 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }
 
 // ── T-shirt size → days mapping ──────────────────────────────────────────────
 
-const TSHIRT_DAYS: Record<string, number> = {
+export const TSHIRT_DAYS: Record<string, number> = {
   XS: 0.5,
   S: 1,
   M: 2,
   L: 4,
   XL: 8,
 };
+
+// ── Duration helper (exported for use by GanttRow scheduling) ────────────────
+
+export function getEstimatedDays(estimatedEffortJson?: unknown): number {
+  const effort = estimatedEffortJson as {
+    tShirt?: string;
+    hours?: number;
+    hoursMin?: number;
+    hoursMax?: number;
+  } | null;
+
+  if (effort?.hoursMax) return Math.max(0.5, effort.hoursMax / 8);
+  if (effort?.hours) return Math.max(0.5, effort.hours / 8);
+  if (effort?.hoursMin) return Math.max(0.5, effort.hoursMin / 8);
+  if (effort?.tShirt) return TSHIRT_DAYS[effort.tShirt] ?? 2;
+  return 2; // default
+}
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -34,73 +52,82 @@ interface GanttBarProps {
     status: string;
     type: string;
     priority: string;
-    createdAt: string | Date;
-    estimatedEffortJson?: unknown;
   };
-  dayWidth: number;
-  startDate: Date;
+  /** Pre-computed pixel offset from the left edge of the timeline */
+  left: number;
+  /** Pre-computed pixel width of the bar */
+  width: number;
   onClick: () => void;
 }
 
-export default function GanttBar({ item, dayWidth, startDate, onClick }: GanttBarProps) {
+// ── Component ────────────────────────────────────────────────────────────────
+
+export default function GanttBar({
+  item,
+  left,
+  width,
+  onClick,
+}: GanttBarProps) {
   const [hovered, setHovered] = useState(false);
-
-  const { left, width } = useMemo(() => {
-    const created = new Date(item.createdAt);
-    const diffMs = created.getTime() - startDate.getTime();
-    const diffDays = Math.max(0, diffMs / (1000 * 60 * 60 * 24));
-
-    const effort = item.estimatedEffortJson as {
-      tShirt?: string;
-      hoursMin?: number;
-      hoursMax?: number;
-    } | null;
-
-    let durationDays = 2; // default
-    if (effort?.hoursMax) {
-      durationDays = Math.max(0.5, effort.hoursMax / 8);
-    } else if (effort?.hoursMin) {
-      durationDays = Math.max(0.5, effort.hoursMin / 8);
-    } else if (effort?.tShirt) {
-      durationDays = TSHIRT_DAYS[effort.tShirt] ?? 2;
-    }
-
-    return {
-      left: diffDays * dayWidth,
-      width: Math.max(dayWidth * 0.5, durationDays * dayWidth),
-    };
-  }, [item.createdAt, item.estimatedEffortJson, dayWidth, startDate]);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const barRef = useRef<HTMLButtonElement>(null);
 
   const colors = STATUS_COLORS[item.status] ?? STATUS_COLORS.Draft!;
 
+  // Position the tooltip relative to the viewport (using a portal)
+  useEffect(() => {
+    if (hovered && barRef.current) {
+      const rect = barRef.current.getBoundingClientRect();
+      setTooltipPos({
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+      });
+    } else {
+      setTooltipPos(null);
+    }
+  }, [hovered]);
+
   return (
-    <div
-      className="absolute top-1 bottom-1"
-      style={{ left: `${left}px`, width: `${width}px` }}
-    >
+    <>
       <button
+        ref={barRef}
         onClick={onClick}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`flex h-full w-full items-center overflow-hidden rounded-md border px-2 text-[11px] font-medium leading-tight transition-shadow hover:shadow-md ${colors.bg} ${colors.border} ${colors.text}`}
-        title={item.title}
+        className={`flex h-7 items-center overflow-hidden rounded-md border px-2 text-[11px] font-medium leading-tight transition-shadow hover:shadow-md ${colors.bg} ${colors.border} ${colors.text}`}
+        style={{
+          width: `${width}px`,
+          minWidth: `${width}px`,
+        }}
       >
         <span className="truncate">{item.title}</span>
       </button>
 
-      {/* Tooltip */}
-      {hovered && (
-        <div className="pointer-events-none absolute left-1/2 bottom-full z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-light-200 bg-white px-3 py-2 text-xs shadow-xl dark:border-dark-300 dark:bg-dark-100">
-          <p className="font-semibold text-light-900 dark:text-dark-900">{item.title}</p>
-          <div className="mt-1 flex items-center gap-2 text-light-800 dark:text-dark-800">
-            <span>{item.type}</span>
-            <span>&middot;</span>
-            <span>{item.priority}</span>
-            <span>&middot;</span>
-            <span>{item.status.replace(/([A-Z])/g, " $1").trim()}</span>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* Tooltip — rendered via portal to escape overflow/stacking constraints */}
+      {hovered &&
+        tooltipPos &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[9999] whitespace-nowrap rounded-lg border border-light-200 bg-white px-3 py-2 text-xs shadow-xl dark:border-dark-300 dark:bg-dark-100"
+            style={{
+              left: `${tooltipPos.x}px`,
+              top: `${tooltipPos.y - 8}px`,
+              transform: "translate(-50%, -100%)",
+            }}
+          >
+            <p className="max-w-xs truncate font-semibold text-light-900 dark:text-dark-900">
+              {item.title}
+            </p>
+            <div className="mt-1 flex items-center gap-2 text-light-800 dark:text-dark-800">
+              <span>{item.type}</span>
+              <span>&middot;</span>
+              <span>{item.priority}</span>
+              <span>&middot;</span>
+              <span>{item.status.replace(/([A-Z])/g, " $1").trim()}</span>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

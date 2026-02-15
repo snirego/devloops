@@ -71,7 +71,7 @@ const Header = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
           "fixed z-50 flex w-full transition-all duration-500",
         )}
       >
-        <div className="flex h-[4rem] min-h-[4rem] w-full border-b border-light-300 bg-light-50/80 px-5 py-2 align-middle opacity-100 shadow-sm backdrop-blur-[10px] transition-all duration-500 dark:border-dark-300 dark:bg-dark-50/90">
+        <div className="flex h-[4rem] min-h-[4rem] w-full border-b border-black/[0.08] bg-light-50/80 px-5 py-2 align-middle opacity-100 shadow-sm backdrop-blur-[10px] transition-all duration-500 dark:border-white/[0.08] dark:bg-dark-50/90">
           <div className="mx-auto flex w-full max-w-[1100px] items-center justify-between lg:px-4">
             <div className="my-auto flex items-center justify-between">
               <Link href="/">

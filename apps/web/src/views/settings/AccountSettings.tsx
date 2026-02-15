@@ -18,7 +18,9 @@ export default function AccountSettings() {
   const { modalContentType, openModal, isOpen } = useModal();
   const isCredentialsEnabled =
     env("NEXT_PUBLIC_ALLOW_CREDENTIALS")?.toLowerCase() === "true";
-  const { data } = api.user.getUser.useQuery();
+  const { data } = api.user.getUser.useQuery(undefined, {
+    staleTime: 2 * 60_000,
+  });
 
   return (
     <>

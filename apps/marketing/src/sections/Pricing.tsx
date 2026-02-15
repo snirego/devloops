@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiCheckCircle } from "react-icons/hi2";
 import { twMerge } from "tailwind-merge";
@@ -80,14 +81,9 @@ function PriceDisplay({ amount, cycle }: { amount: number; cycle: BillingCycle }
           {amount}
         </motion.span>
       </AnimatePresence>
-      <div className="flex flex-col">
-        <span className="text-sm font-medium text-light-800 dark:text-dark-800">
-          /mo
-        </span>
-        <span className="text-xs text-light-700 dark:text-dark-700">
-          per member
-        </span>
-      </div>
+      <span className="text-sm font-medium text-light-800 dark:text-dark-800">
+        /mo / member
+      </span>
     </div>
   );
 }
@@ -101,7 +97,8 @@ export default function Pricing() {
         <div className="text-center">
           <Badge>Pricing</Badge>
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
-            Simple pricing. Massive time saved.
+            Simple pricing.{" "}
+            <span className="gradient-text">Massive time saved.</span>
           </h2>
           <p className="mx-auto mt-3 max-w-md text-base text-light-900 dark:text-dark-900">
             No hidden fees. No per-feature charges. Pick a plan and start shipping faster today.
@@ -113,10 +110,10 @@ export default function Pricing() {
           <button
             onClick={() => setCycle("monthly")}
             className={twMerge(
-              "rounded-full px-5 py-2 text-sm font-semibold transition-all",
+              "rounded-full px-5 py-2 text-sm font-semibold transition-all duration-150",
               cycle === "monthly"
-                ? "bg-light-1000 text-light-50 shadow-lg dark:bg-dark-1000 dark:text-dark-50"
-                : "text-light-800 hover:text-light-1000 dark:text-dark-800 dark:hover:text-dark-1000"
+                ? "bg-[#6366f1] text-white shadow-lg shadow-[#6366f1]/25"
+                : "bg-light-200 text-light-700 hover:bg-light-300 hover:text-light-1000 dark:bg-dark-200 dark:text-dark-700 dark:hover:bg-dark-300 dark:hover:text-dark-1000"
             )}
           >
             Monthly
@@ -124,15 +121,15 @@ export default function Pricing() {
           <button
             onClick={() => setCycle("yearly")}
             className={twMerge(
-              "relative rounded-full px-5 py-2 text-sm font-semibold transition-all",
+              "flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-150",
               cycle === "yearly"
-                ? "bg-light-1000 text-light-50 shadow-lg dark:bg-dark-1000 dark:text-dark-50"
-                : "text-light-800 hover:text-light-1000 dark:text-dark-800 dark:hover:text-dark-1000"
+                ? "bg-[#6366f1] text-white shadow-lg shadow-[#6366f1]/25"
+                : "bg-light-200 text-light-700 hover:bg-light-300 hover:text-light-1000 dark:bg-dark-200 dark:text-dark-700 dark:hover:bg-dark-300 dark:hover:text-dark-1000"
             )}
           >
             Yearly
-            <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-500/10 dark:text-green-400">
-              Save 50%
+            <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-500/20 dark:text-green-400">
+              -50%
             </span>
           </button>
         </div>
@@ -178,15 +175,6 @@ export default function Pricing() {
                     amount={cycle === "monthly" ? tier.monthly : tier.yearly}
                     cycle={cycle}
                   />
-                  {cycle === "yearly" && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-1 text-xs text-green-600 dark:text-green-400"
-                    >
-                      Billed ${tier.yearly * 12}/year per member
-                    </motion.p>
-                  )}
                 </div>
 
                 {/* CTA */}
@@ -225,8 +213,16 @@ export default function Pricing() {
         </div>
 
         {/* Footnote */}
-        <p className="mt-8 text-center text-xs text-light-700 dark:text-dark-700">
-          All plans include SSL, 99.9% uptime SLA, and GDPR compliance. Cancel anytime.
+        <p className="mt-8 text-center text-sm text-light-700 dark:text-dark-700">
+          By subscribing, you agree to our{" "}
+          <Link href="/tos" className="underline hover:text-light-1000 dark:hover:text-dark-1000">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline hover:text-light-1000 dark:hover:text-dark-1000">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
     </SectionWrapper>

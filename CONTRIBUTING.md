@@ -37,7 +37,7 @@ Thank you for your interest in contributing to Kan! This document provides guide
 
 ## Need Help?
 
-- Join our [Discord server](https://discord.gg/e6ejRb6CmT) for questions
+- Join our [Discord server](https://discord.gg/ZxjnjfqYSZ) for questions
 - Check existing issues and pull requests
 - Email [henry@Devloops](mailto:henry@Devloops) for major concerns
 
