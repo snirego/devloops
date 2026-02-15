@@ -22,11 +22,200 @@ const feedbackItems: FeedbackItem[] = [
   { id: 5, text: "Dark mode looks broken", source: "Twitter", sourceColor: "#1d9bf0" },
 ];
 
+/* ─── Individual Stage Cards (all use fixed inner height) ─── */
+
+function StageHeader({ color, label, pulse }: { color: string; label: string; pulse?: boolean }) {
+  return (
+    <div className="mb-2 flex items-center gap-1.5 sm:mb-2.5">
+      <div className={`h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2 ${pulse ? "animate-pulse" : ""}`} style={{ backgroundColor: color }} />
+      <span className="text-[8px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700 sm:text-[9px]">{label}</span>
+    </div>
+  );
+}
+
+function FeedbackStage({ feedback, isActive }: { feedback: FeedbackItem; isActive: boolean }) {
+  return (
+    <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 lg:p-4 ${isActive ? "bg-brand-50/60 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
+      <StageHeader color="#3b82f6" label="Feedback" />
+      {/* Fixed-height container prevents layout shift */}
+      <div className="h-[72px] sm:h-[80px]">
+        <div className="h-full rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100 sm:p-2.5">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={feedback.id}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 12 }}
+              transition={{ duration: 0.25 }}
+              className="flex h-full flex-col justify-center"
+            >
+              <div className="mb-1 flex items-center gap-1">
+                <span className="rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white sm:text-[8px]" style={{ backgroundColor: feedback.sourceColor }}>{feedback.source}</span>
+              </div>
+              <p className="line-clamp-2 text-[9px] leading-snug text-light-900 dark:text-dark-900 sm:text-[10px]">{feedback.text}</p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TriageStage({ isActive }: { isActive: boolean }) {
+  return (
+    <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 lg:p-4 ${isActive ? "bg-purple-50/60 ring-1 ring-purple-200 dark:bg-purple-500/10 dark:ring-purple-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
+      <StageHeader color="#a855f7" label="AI Triage" />
+      <div className="h-[72px] sm:h-[80px]">
+        <div className="flex h-full flex-col justify-center rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100 sm:p-2.5">
+          <AnimatePresence mode="wait">
+            {isActive ? (
+              <motion.div
+                key="active"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <div className="mb-1.5 flex items-center gap-1">
+                  <HiSparkles className="h-2.5 w-2.5 text-purple-500 sm:h-3 sm:w-3" />
+                  <span className="text-[8px] font-semibold text-purple-600 dark:text-purple-400 sm:text-[9px]">Analyzing...</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Type</span>
+                    <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[7px] font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400 sm:text-[8px]">Bug</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Priority</span>
+                    <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[7px] font-bold text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 sm:text-[8px]">High</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex items-center justify-center"
+              >
+                <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TicketStage({ isActive }: { isActive: boolean }) {
+  return (
+    <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 lg:p-4 ${isActive ? "bg-green-50/60 ring-1 ring-green-200 dark:bg-green-500/10 dark:ring-green-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
+      <StageHeader color="#22c55e" label="Ticket" />
+      <div className="h-[72px] sm:h-[80px]">
+        <div className="flex h-full flex-col justify-center rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100 sm:p-2.5">
+          <AnimatePresence mode="wait">
+            {isActive ? (
+              <motion.div
+                key="active"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <p className="text-[9px] font-semibold text-light-1000 dark:text-dark-1000 sm:text-[10px]">BUG-347</p>
+                <p className="mt-0.5 text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Auto-generated prompt</p>
+                <div className="mt-1 rounded-md bg-light-100 p-1 dark:bg-dark-200">
+                  <p className="truncate text-[7px] font-mono text-brand-600 dark:text-brand-400 sm:text-[8px]">Fix mobile crash on login view...</p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex items-center justify-center"
+              >
+                <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgentStage({ isActive }: { isActive: boolean }) {
+  return (
+    <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 lg:p-4 ${isActive ? "bg-brand-50/60 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
+      <StageHeader color={isActive ? "#6366f1" : "#a5b4fc"} label="Agent" pulse={isActive} />
+      <div className="h-[72px] sm:h-[80px]">
+        <div className="flex h-full flex-col justify-center rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100 sm:p-2.5">
+          <AnimatePresence mode="wait">
+            {isActive ? (
+              <motion.div
+                key="active"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <div className="mb-1 flex items-center gap-1">
+                  <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500 sm:h-3 sm:w-3" />
+                  </span>
+                  <span className="text-[8px] font-semibold text-green-600 dark:text-green-400 sm:text-[9px]">Running</span>
+                </div>
+                <p className="text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Agent fixing bug...</p>
+                <p className="mt-0.5 text-[8px] text-brand-500 sm:text-[9px]">Awaiting approval</p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex items-center justify-center"
+              >
+                <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Connecting Arrow (hidden on mobile 2x2 layout, shown on sm+ row layout) ─── */
+
+function StageArrow({ lit }: { lit: boolean }) {
+  return (
+    <motion.div
+      className="hidden items-center sm:flex"
+      animate={{ opacity: lit ? 1 : 0.2 }}
+      transition={{ duration: 0.3 }}
+    >
+      <svg width="28" height="10" viewBox="0 0 28 10" className="text-brand-500">
+        <path d="M0 5h22M18 1.5l5 3.5-5 3.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    </motion.div>
+  );
+}
+
+/* ─── Main Pipeline ─── */
+
 function PipelineAnimation() {
   const [step, setStep] = useState(0);
   const [currentFeedback, setCurrentFeedback] = useState(0);
 
-  // Cycle through: 0=feedback arrives, 1=AI processes, 2=ticket created, 3=agent runs
   useEffect(() => {
     const interval = setInterval(() => {
       setStep((prev) => {
@@ -43,149 +232,57 @@ function PipelineAnimation() {
   const feedback = feedbackItems[currentFeedback]!;
 
   return (
-    <div className="relative mx-auto w-full max-w-2xl">
+    <div className="relative mx-auto w-full max-w-3xl lg:max-w-4xl">
       {/* Glow behind pipeline */}
       <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-brand-500/10 via-purple-500/5 to-pink-500/10 blur-2xl dark:from-brand-500/20 dark:via-purple-500/10 dark:to-pink-500/20" />
 
-      <div className="relative rounded-2xl border border-light-200 bg-light-50/90 p-4 shadow-2xl backdrop-blur-sm dark:border-dark-300 dark:bg-dark-100/90 sm:p-6">
+      <div className="relative rounded-2xl border border-light-200 bg-light-50/90 p-3 shadow-2xl backdrop-blur-sm dark:border-dark-300 dark:bg-dark-100/90 sm:p-5 lg:p-6">
         {/* Window chrome */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
-            <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-            <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+        <div className="mb-3 flex items-center justify-between sm:mb-4">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="h-2 w-2 rounded-full bg-red-400 sm:h-2.5 sm:w-2.5" />
+            <div className="h-2 w-2 rounded-full bg-yellow-400 sm:h-2.5 sm:w-2.5" />
+            <div className="h-2 w-2 rounded-full bg-green-400 sm:h-2.5 sm:w-2.5" />
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-light-200 px-3 py-0.5 dark:bg-dark-300">
+          <div className="flex items-center gap-1.5 rounded-full bg-light-200 px-2.5 py-0.5 dark:bg-dark-300 sm:px-3">
             <HiSparkles className="h-2.5 w-2.5 text-brand-500" />
-            <span className="text-[9px] font-medium text-light-800 dark:text-dark-800">Devloops AI Pipeline</span>
+            <span className="text-[8px] font-medium text-light-800 dark:text-dark-800 sm:text-[9px]">Devloops AI Pipeline</span>
           </div>
-          <div className="w-16" />
+          <div className="w-10 sm:w-16" />
         </div>
 
-        {/* Pipeline stages */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {/* Stage 1: Feedback In */}
-          <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 ${step === 0 ? "bg-brand-50/60 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
-            <div className="mb-2 flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-              <span className="text-[8px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700">Feedback</span>
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={feedback.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100"
-              >
-                <div className="mb-1 flex items-center gap-1">
-                  <span className="rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white" style={{ backgroundColor: feedback.sourceColor }}>{feedback.source}</span>
-                </div>
-                <p className="text-[9px] leading-snug text-light-900 dark:text-dark-900">{feedback.text}</p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Stage 2: AI Processing */}
-          <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 ${step === 1 ? "bg-purple-50/60 ring-1 ring-purple-200 dark:bg-purple-500/10 dark:ring-purple-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
-            <div className="mb-2 flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-              <span className="text-[8px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700">AI Triage</span>
-            </div>
-            <div className="rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100">
-              {step >= 1 ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-                  <div className="mb-1.5 flex items-center gap-1">
-                    <HiSparkles className="h-2.5 w-2.5 text-purple-500" />
-                    <span className="text-[8px] font-semibold text-purple-600 dark:text-purple-400">Analyzing...</span>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[8px] text-light-700 dark:text-dark-700">Type</span>
-                      <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[7px] font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">Bug</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[8px] text-light-700 dark:text-dark-700">Priority</span>
-                      <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[7px] font-bold text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">High</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="flex h-12 items-center justify-center">
-                  <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Stage 3: Ticket + Prompt */}
-          <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 ${step === 2 ? "bg-green-50/60 ring-1 ring-green-200 dark:bg-green-500/10 dark:ring-green-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
-            <div className="mb-2 flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-              <span className="text-[8px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700">Ticket</span>
-            </div>
-            <div className="rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100">
-              {step >= 2 ? (
-                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                  <p className="text-[9px] font-semibold text-light-1000 dark:text-dark-1000">BUG-347</p>
-                  <p className="mt-0.5 text-[8px] text-light-700 dark:text-dark-700">Auto-generated prompt</p>
-                  <div className="mt-1.5 rounded-md bg-light-100 p-1 dark:bg-dark-200">
-                    <p className="text-[7px] font-mono text-brand-600 dark:text-brand-400">Fix mobile crash on login view...</p>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="flex h-12 items-center justify-center">
-                  <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Stage 4: Agent Running */}
-          <div className={`rounded-xl p-2.5 transition-all duration-500 sm:p-3 ${step === 3 ? "bg-brand-50/60 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20" : "bg-light-100 dark:bg-dark-200/50"}`}>
-            <div className="mb-2 flex items-center gap-1.5">
-              <div className={`h-1.5 w-1.5 rounded-full ${step === 3 ? "animate-pulse bg-brand-500" : "bg-brand-300"}`} />
-              <span className="text-[8px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700">Agent</span>
-            </div>
-            <div className="rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100">
-              {step >= 3 ? (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
-                  <div className="mb-1 flex items-center gap-1">
-                    <span className="relative flex h-3 w-3">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
-                    </span>
-                    <span className="text-[8px] font-semibold text-green-600 dark:text-green-400">Running</span>
-                  </div>
-                  <p className="text-[8px] text-light-700 dark:text-dark-700">Agent fixing bug...</p>
-                  <div className="mt-1 flex items-center gap-1">
-                    <span className="text-[8px] text-light-700 dark:text-dark-700">Awaiting approval</span>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="flex h-12 items-center justify-center">
-                  <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Mobile: 2×2 grid with center arrows */}
+        <div className="grid grid-cols-2 gap-2 sm:hidden">
+          <FeedbackStage feedback={feedback} isActive={step === 0} />
+          <TriageStage isActive={step >= 1} />
+          <TicketStage isActive={step >= 2} />
+          <AgentStage isActive={step >= 3} />
         </div>
 
-        {/* Connection arrows between stages */}
-        <div className="mt-2 flex items-center justify-around px-8">
+        {/* Mobile flow arrows (between the 2x2 grid) */}
+        <div className="mt-2 flex items-center justify-center gap-3 sm:hidden">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="flex items-center"
               animate={{ opacity: step > i ? 1 : 0.2 }}
               transition={{ duration: 0.3 }}
             >
-              <svg width="24" height="8" viewBox="0 0 24 8" className="text-brand-500">
-                <path d="M0 4h20M16 1l4 3-4 3" fill="none" stroke="currentColor" strokeWidth="1" />
+              <svg width="20" height="8" viewBox="0 0 20 8" className="text-brand-500">
+                <path d="M0 4h14M11 1l4 3-4 3" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
               </svg>
             </motion.div>
           ))}
+        </div>
+
+        {/* Desktop: single row with arrows between */}
+        <div className="hidden items-stretch gap-1.5 sm:flex lg:gap-2">
+          <div className="flex-1"><FeedbackStage feedback={feedback} isActive={step === 0} /></div>
+          <StageArrow lit={step > 0} />
+          <div className="flex-1"><TriageStage isActive={step >= 1} /></div>
+          <StageArrow lit={step > 1} />
+          <div className="flex-1"><TicketStage isActive={step >= 2} /></div>
+          <StageArrow lit={step > 2} />
+          <div className="flex-1"><AgentStage isActive={step >= 3} /></div>
         </div>
       </div>
     </div>
@@ -274,7 +371,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="mt-12 w-full pb-20 sm:mt-16"
+            className="mt-10 w-full pb-16 sm:mt-14 sm:pb-20"
           >
             <PipelineAnimation />
           </motion.div>

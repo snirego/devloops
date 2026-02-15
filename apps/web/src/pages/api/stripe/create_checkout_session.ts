@@ -72,6 +72,29 @@ export default withRateLimit(
       });
     }
 
+    // Dev accounts bypass Stripe — directly create an active subscription and upgrade workspace
+    if (user.isDevAccount) {
+      const devSubscription = await subscriptionRepo.create(db, {
+        plan: "pro",
+        referenceId: workspacePublicId,
+        userId: user.id,
+        stripeCustomerId: "dev_account",
+        status: "active",
+      });
+
+      if (!devSubscription?.id) {
+        return res.status(500).json({ error: "Error creating subscription" });
+      }
+
+      await workspaceRepo.update(db, workspacePublicId, { plan: "pro" });
+
+      if (slug) {
+        await workspaceRepo.update(db, workspacePublicId, { slug });
+      }
+
+      return res.status(200).json({ url: `${env("NEXT_PUBLIC_BASE_URL")}${successUrl}` });
+    }
+
     const subscription = await subscriptionRepo.create(db, {
       plan: "pro",
       referenceId: workspacePublicId,

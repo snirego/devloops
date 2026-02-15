@@ -20,6 +20,7 @@ export interface User {
   updatedAt: Date;
   image?: string | null | undefined;
   stripeCustomerId?: string | null | undefined;
+  isDevAccount: boolean;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -98,6 +99,7 @@ async function getUserFromRequest(
       updatedAt: newUser.updatedAt,
       image: null,
       stripeCustomerId: newUser.stripeCustomerId,
+      isDevAccount: newUser.isDevAccount,
     };
   }
 
@@ -110,6 +112,7 @@ async function getUserFromRequest(
     updatedAt: new Date(),
     image: dbUser.image,
     stripeCustomerId: dbUser.stripeCustomerId,
+    isDevAccount: dbUser.isDevAccount,
   };
 }
 

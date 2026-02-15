@@ -27,6 +27,7 @@ export const userRouter = createTRPCRouter({
         name: z.string().nullable(),
         image: z.string().nullable(),
         stripeCustomerId: z.string().nullable(),
+        isDevAccount: z.boolean(),
         apiKey: z
           .object({
             id: z.number(),
@@ -60,8 +61,12 @@ export const userRouter = createTRPCRouter({
       const imageUrl = await generateAvatarUrl(result.image);
 
       return {
-        ...result,
+        id: result.id,
+        email: result.email,
+        name: result.name,
         image: imageUrl,
+        stripeCustomerId: result.stripeCustomerId,
+        isDevAccount: result.isDevAccount,
         apiKey: apiKey ?? null,
       };
     }),

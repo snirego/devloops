@@ -17,7 +17,16 @@ export default withRateLimit(
   try {
     const { user } = await createNextApiContext(req);
 
-    if (!user?.stripeCustomerId) {
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Dev accounts don't have real Stripe customers — redirect back to settings
+    if (user.isDevAccount) {
+      return res.status(200).json({ url: `${env("NEXT_PUBLIC_BASE_URL")}/settings` });
+    }
+
+    if (!user.stripeCustomerId) {
       return res.status(404).json({ error: "No billing account found" });
     }
 

@@ -224,8 +224,8 @@ export const workspaceRouter = createTRPCRouter({
           code: "UNAUTHORIZED",
         });
 
-      // Check if slug is provided in cloud environment
-      if (input.slug && env("NEXT_PUBLIC_KAN_ENV") === "cloud") {
+      // Check if slug is provided in cloud environment (dev accounts bypass)
+      if (input.slug && env("NEXT_PUBLIC_KAN_ENV") === "cloud" && !ctx.user?.isDevAccount) {
         throw new TRPCError({
           message: "Custom URLs are only available for Pro workspaces",
           code: "BAD_REQUEST",
@@ -336,6 +336,7 @@ export const workspaceRouter = createTRPCRouter({
 
         if (
           env("NEXT_PUBLIC_KAN_ENV") === "cloud" &&
+          !ctx.user?.isDevAccount &&
           workspace.plan !== "pro" &&
           input.slug !== workspace.publicId
         ) {

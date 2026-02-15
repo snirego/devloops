@@ -239,6 +239,13 @@
       "when": 1771089370664,
       "tag": "20260214171610_AddBrandColorToWorkspace",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1771153200000,
+      "tag": "20260215100000_AddDevAccountsSupport",
+      "breakpoints": true
     }
   ]
 }
