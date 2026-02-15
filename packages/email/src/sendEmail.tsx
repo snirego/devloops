@@ -15,7 +15,19 @@ const emailTemplates: Record<Templates, React.ComponentType<any>> = {
   MENTION: MentionTemplate,
 };
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error(
+        "RESEND_API_KEY is not set. Email sending is unavailable.",
+      );
+    }
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 export const sendEmail = async (
   to: string,
@@ -24,6 +36,7 @@ export const sendEmail = async (
   data: Record<string, string>,
 ) => {
   try {
+    const resend = getResendClient();
     const EmailTemplate = emailTemplates[template];
 
     const html = await render(<EmailTemplate {...data} />, { pretty: true });
