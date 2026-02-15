@@ -13,6 +13,7 @@ import { useClickOutside } from "~/hooks/useClickOutside";
 import { useModal } from "~/providers/modal";
 import { useWorkspace, WorkspaceProvider } from "~/providers/workspace";
 import { api } from "~/utils/api";
+import FeedbackWidget from "./FeedbackWidget";
 import SideNavigation from "./SideNavigation";
 
 interface DashboardProps {
@@ -197,6 +198,7 @@ export default function Dashboard({
           </div>
         </div>
       </div>
+      <FeedbackWidget />
     </>
   );
 }
