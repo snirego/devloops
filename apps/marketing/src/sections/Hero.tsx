@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { HiSparkles } from "react-icons/hi2";
+import { HiSparkles, HiCheck } from "react-icons/hi2";
 
 import Button from "~/components/Button";
 import Badge from "~/components/Badge";
@@ -27,7 +27,7 @@ const feedbackItems: FeedbackItem[] = [
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 const dur = 0.45;
 
-/* ─── Stage Card wrapper: animates flex, bg, shadow via Framer ─── */
+/* ─── Stage Card wrapper ─── */
 
 function StageCard({
   isActive,
@@ -43,7 +43,7 @@ function StageCard({
   return (
     <motion.div
       animate={{
-        flexGrow: isActive ? 2 : 1,
+        flexGrow: isActive ? 2.2 : 1,
         backgroundColor: isActive ? activeColor : "rgba(128,128,128,0.06)",
         boxShadow: isActive
           ? `inset 0 0 0 1px ${activeBorder}, 0 4px 20px rgba(0,0,0,0.08)`
@@ -51,23 +51,23 @@ function StageCard({
       }}
       transition={{ duration: dur, ease }}
       style={{ flexBasis: 0, minWidth: 0 }}
-      className="h-[110px] overflow-hidden rounded-xl p-2.5 sm:h-[120px] sm:p-3 lg:p-4"
+      className="flex h-[100px] flex-col overflow-hidden rounded-xl p-2.5 sm:h-[115px] sm:p-3 lg:p-3.5"
     >
       {children}
     </motion.div>
   );
 }
 
-/* ─── Small components ─── */
+/* ─── Small shared components ─── */
 
 function StageHeader({ color, label, pulse }: { color: string; label: string; pulse?: boolean }) {
   return (
-    <div className="mb-2 flex items-center gap-1.5">
+    <div className="mb-1.5 flex flex-shrink-0 items-center gap-1.5 sm:mb-2">
       <div
-        className={`h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2 ${pulse ? "animate-pulse" : ""}`}
+        className={`h-1.5 w-1.5 flex-shrink-0 rounded-full sm:h-2 sm:w-2 ${pulse ? "animate-pulse" : ""}`}
         style={{ backgroundColor: color }}
       />
-      <span className="text-[8px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700 sm:text-[9px]">
+      <span className="truncate text-[7px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700 sm:text-[8px]">
         {label}
       </span>
     </div>
@@ -76,7 +76,7 @@ function StageHeader({ color, label, pulse }: { color: string; label: string; pu
 
 function InnerCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-[calc(100%-24px)] flex-col justify-center overflow-hidden rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100 sm:h-[calc(100%-28px)] sm:p-2.5">
+    <div className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden rounded-lg border border-light-200 bg-white px-2.5 py-2 dark:border-dark-300 dark:bg-dark-100 sm:px-3 sm:py-2.5">
       {children}
     </div>
   );
@@ -92,7 +92,28 @@ function IdlePlaceholder() {
       transition={{ duration: 0.2 }}
       className="flex items-center justify-center"
     >
-      <div className="h-3 w-12 rounded-full bg-light-200 dark:bg-dark-400" />
+      <div className="h-2.5 w-10 rounded-full bg-light-200 dark:bg-dark-400" />
+    </motion.div>
+  );
+}
+
+/** Compact "done" chip shown in passed cards -- single line, never wraps */
+function DoneChip({ text }: { text: string }) {
+  return (
+    <motion.div
+      key="done"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex items-center gap-1.5"
+    >
+      <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full bg-green-500/15 sm:h-4 sm:w-4">
+        <HiCheck className="h-2 w-2 text-green-500 sm:h-2.5 sm:w-2.5" />
+      </span>
+      <span className="truncate text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">
+        {text}
+      </span>
     </motion.div>
   );
 }
@@ -105,26 +126,29 @@ function FeedbackStage({ feedback, isActive }: { feedback: FeedbackItem; isActiv
       <StageHeader color="#3b82f6" label="Feedback" />
       <InnerCard>
         <AnimatePresence mode="wait">
-          <motion.div
-            key={feedback.id}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 8 }}
-            transition={{ duration: 0.2 }}
-            className="flex flex-col justify-center"
-          >
-            <div className="mb-1 flex items-center gap-1">
-              <span
-                className="rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white sm:text-[8px]"
-                style={{ backgroundColor: feedback.sourceColor }}
-              >
-                {feedback.source}
-              </span>
-            </div>
-            <p className="line-clamp-2 text-[9px] leading-snug text-light-900 dark:text-dark-900 sm:text-[10px]">
-              {feedback.text}
-            </p>
-          </motion.div>
+          {isActive ? (
+            <motion.div
+              key={`fb-${feedback.id}`}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-1 flex items-center gap-1">
+                <span
+                  className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white sm:text-[8px]"
+                  style={{ backgroundColor: feedback.sourceColor }}
+                >
+                  {feedback.source}
+                </span>
+              </div>
+              <p className="line-clamp-2 text-[8px] leading-snug text-light-900 dark:text-dark-900 sm:text-[9px]">
+                {feedback.text}
+              </p>
+            </motion.div>
+          ) : (
+            <DoneChip text={feedback.source} />
+          )}
         </AnimatePresence>
       </InnerCard>
     </StageCard>
@@ -138,28 +162,32 @@ function TriageStage({ isActive, isRevealed }: { isActive: boolean; isRevealed: 
       <InnerCard>
         <AnimatePresence mode="wait">
           {isRevealed ? (
-            <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <div className="mb-1.5 flex items-center gap-1">
-                <HiSparkles className="h-2.5 w-2.5 text-purple-500 sm:h-3 sm:w-3" />
-                <span className="text-[8px] font-semibold text-purple-600 dark:text-purple-400 sm:text-[9px]">
-                  {isActive ? "Analyzing..." : "Analyzed"}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Type</span>
-                  <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[7px] font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400 sm:text-[8px]">
-                    Bug
+            isActive ? (
+              <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <div className="mb-1.5 flex items-center gap-1">
+                  <HiSparkles className="h-2.5 w-2.5 flex-shrink-0 text-purple-500 sm:h-3 sm:w-3" />
+                  <span className="text-[8px] font-semibold text-purple-600 dark:text-purple-400 sm:text-[9px]">
+                    Analyzing...
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Priority</span>
-                  <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[7px] font-bold text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 sm:text-[8px]">
-                    High
-                  </span>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[7px] text-light-700 dark:text-dark-700 sm:text-[8px]">Type</span>
+                    <span className="flex-shrink-0 rounded-full bg-red-100 px-1.5 py-0.5 text-[6px] font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400 sm:text-[7px]">
+                      Bug
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[7px] text-light-700 dark:text-dark-700 sm:text-[8px]">Priority</span>
+                    <span className="flex-shrink-0 rounded-full bg-orange-100 px-1.5 py-0.5 text-[6px] font-bold text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 sm:text-[7px]">
+                      High
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            ) : (
+              <DoneChip text="Bug · High" />
+            )
           ) : (
             <IdlePlaceholder />
           )}
@@ -176,15 +204,19 @@ function TicketStage({ isActive, isRevealed }: { isActive: boolean; isRevealed: 
       <InnerCard>
         <AnimatePresence mode="wait">
           {isRevealed ? (
-            <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <p className="text-[9px] font-semibold text-light-1000 dark:text-dark-1000 sm:text-[10px]">BUG-347</p>
-              <p className="mt-0.5 text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">Auto-generated prompt</p>
-              <div className="mt-1 rounded-md bg-light-100 p-1 dark:bg-dark-200">
-                <p className="truncate text-[7px] font-mono text-brand-600 dark:text-brand-400 sm:text-[8px]">
-                  Fix mobile crash on login view...
-                </p>
-              </div>
-            </motion.div>
+            isActive ? (
+              <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <p className="text-[8px] font-semibold text-light-1000 dark:text-dark-1000 sm:text-[9px]">BUG-347</p>
+                <p className="mt-0.5 text-[7px] text-light-600 dark:text-dark-600 sm:text-[8px]">Auto-generated prompt</p>
+                <div className="mt-1 rounded bg-light-100 px-1.5 py-0.5 dark:bg-dark-200">
+                  <p className="truncate text-[7px] font-mono text-brand-600 dark:text-brand-400 sm:text-[8px]">
+                    Fix mobile crash on login...
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <DoneChip text="BUG-347" />
+            )
           ) : (
             <IdlePlaceholder />
           )}
@@ -201,23 +233,21 @@ function AgentStage({ isActive, isRevealed }: { isActive: boolean; isRevealed: b
       <InnerCard>
         <AnimatePresence mode="wait">
           {isRevealed ? (
-            <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <div className="mb-1 flex items-center gap-1">
-                <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
-                  {isActive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />}
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500 sm:h-3 sm:w-3" />
-                </span>
-                <span className="text-[8px] font-semibold text-green-600 dark:text-green-400 sm:text-[9px]">
-                  {isActive ? "Running" : "Complete"}
-                </span>
-              </div>
-              <p className="text-[8px] text-light-700 dark:text-dark-700 sm:text-[9px]">
-                {isActive ? "Agent fixing bug..." : "Bug fixed"}
-              </p>
-              <p className="mt-0.5 text-[8px] text-brand-500 sm:text-[9px]">
-                {isActive ? "Awaiting approval" : "Approved"}
-              </p>
-            </motion.div>
+            isActive ? (
+              <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <div className="flex items-center gap-1">
+                  <span className="relative flex h-1 w-1 flex-shrink-0 sm:h-1.5 sm:w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-1 w-1 rounded-full bg-green-500 sm:h-1.5 sm:w-1.5" />
+                  </span>
+                  <span className="text-[8px] font-semibold text-green-600 dark:text-green-400 sm:text-[9px]">Running</span>
+                </div>
+                <p className="text-[7px] text-light-600 dark:text-dark-600 sm:text-[8px]">Fixing bug...</p>
+                <p className="mt-0.5 text-[7px] font-medium text-brand-500 sm:text-[8px]">Awaiting approval</p>
+              </motion.div>
+            ) : (
+              <DoneChip text="Shipped" />
+            )
           ) : (
             <IdlePlaceholder />
           )}
@@ -236,8 +266,8 @@ function StageArrow({ lit }: { lit: boolean }) {
       animate={{ opacity: lit ? 1 : 0.15 }}
       transition={{ duration: 0.3 }}
     >
-      <svg width="24" height="10" viewBox="0 0 24 10" className="text-brand-500">
-        <path d="M0 5h18M14 1.5l5 3.5-5 3.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <svg width="20" height="8" viewBox="0 0 20 8" className="text-brand-500">
+        <path d="M0 4h14M11 1l4 3-4 3" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
       </svg>
     </motion.div>
   );
@@ -286,7 +316,7 @@ function PipelineAnimation() {
           <div className="w-10 sm:w-16" />
         </div>
 
-        {/* Mobile: 2×2 grid (no flex-grow animation, just highlight) */}
+        {/* Mobile: 2×2 grid */}
         <div className="grid grid-cols-2 gap-2 sm:hidden">
           <FeedbackStage feedback={feedback} isActive={step === 0} />
           <TriageStage isActive={step === 1} isRevealed={step >= 1} />
@@ -306,7 +336,7 @@ function PipelineAnimation() {
         </div>
 
         {/* Desktop: flex row -- active card animates wider */}
-        <div className="hidden items-stretch gap-1.5 sm:flex lg:gap-2">
+        <div className="hidden items-stretch gap-1 sm:flex lg:gap-1.5">
           <FeedbackStage feedback={feedback} isActive={step === 0} />
           <StageArrow lit={step > 0} />
           <TriageStage isActive={step === 1} isRevealed={step >= 1} />
