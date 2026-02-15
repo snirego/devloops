@@ -29,8 +29,8 @@ const tabs: TabDef[] = [
     description: "Customer feedback from Intercom, Slack, email, and support tickets flows into one stream. No more digging through channels to find what users are saying.",
   },
   {
-    id: "ai-triage",
-    label: "AI Triage",
+    id: "ai-analysis",
+    label: "AI Analysis",
     icon: HiOutlineSparkles,
     title: "Your AI product manager.",
     description: "AI reads every piece of feedback, categorizes it (bug, feature, improvement), assigns priority, and groups duplicates. What took your PM hours now takes seconds.",
@@ -40,7 +40,7 @@ const tabs: TabDef[] = [
     label: "Prompt Generation",
     icon: HiOutlineBolt,
     title: "From ticket to agent-ready prompt.",
-    description: "Each triaged item automatically generates a detailed, context-rich prompt ready for an AI coding agent. Complete with acceptance criteria and technical context.",
+    description: "Each analyzed item automatically generates a detailed, context-rich prompt ready for an AI coding agent. Complete with acceptance criteria and technical context.",
   },
   {
     id: "agent-exec",
@@ -85,7 +85,7 @@ function FeedbackIntakePreview() {
   );
 }
 
-function AITriagePreview() {
+function AIAnalysisPreview() {
   const items = [
     { title: "File upload size limit", type: "Bug", priority: "High", typeColor: "#f43f5e", prioColor: "#f43f5e" },
     { title: "Dark mode request", type: "Feature", priority: "Medium", typeColor: "#6366f1", prioColor: "#f59e0b" },
@@ -214,7 +214,7 @@ function AgentExecPreview() {
 
 const previews: Record<string, React.FC> = {
   "feedback-intake": FeedbackIntakePreview,
-  "ai-triage": AITriagePreview,
+  "ai-analysis": AIAnalysisPreview,
   "prompt-gen": PromptGenPreview,
   "agent-exec": AgentExecPreview,
 };
@@ -249,7 +249,7 @@ export default function ProductShowcase() {
             to shipped code. Automatically.
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-base text-light-900 dark:text-dark-900">
-            Devloops replaces the manual grind of triaging, spec-writing, and task creation
+            Devloops replaces the manual grind of analyzing feedback, spec-writing, and task creation
             with an AI-powered pipeline that never sleeps.
           </p>
         </div>

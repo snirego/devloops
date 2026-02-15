@@ -14,7 +14,7 @@ const faqs: FaqItem[] = [
   {
     question: "What exactly does Devloops do?",
     answer:
-      "Devloops takes customer feedback from any source (Intercom, Slack, email, support tickets), uses AI to automatically triage and categorize it, generates detailed agent-ready prompts, and lets you send those prompts to AI coding agents. It replaces the manual grind of triaging, writing specs, and creating tasks -- so your team ships faster.",
+      "Devloops takes customer feedback from any source (Intercom, Slack, email, support tickets), uses AI to automatically analyze and categorize it, generates detailed agent-ready prompts, and lets you send those prompts to AI coding agents. It replaces the manual grind of analyzing feedback, writing specs, and creating tasks -- so your team ships faster.",
   },
   {
     question: "Is there a free trial?",
@@ -27,7 +27,7 @@ const faqs: FaqItem[] = [
       "Absolutely. You can upgrade, downgrade, or cancel at any time. If you cancel, you'll keep access until the end of your billing period. No lock-in, no cancellation fees.",
   },
   {
-    question: "How does the AI triage work?",
+    question: "How does the AI analysis work?",
     answer:
       "When feedback comes in, our AI reads the content, determines whether it's a bug, feature request, or improvement, assigns a priority level, detects duplicates, and groups related items. It then generates a structured ticket with a detailed prompt that's ready for an AI agent to execute on.",
   },

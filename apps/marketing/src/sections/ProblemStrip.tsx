@@ -12,8 +12,8 @@ import SectionWrapper from "~/components/SectionWrapper";
 const painPoints = [
   {
     icon: HiOutlineClock,
-    before: "Hours triaging customer feedback manually",
-    after: "AI auto-triages and categorizes in seconds",
+    before: "Hours analyzing customer feedback manually",
+    after: "AI auto-analyzes and categorizes in seconds",
     color: "#f43f5e",
   },
   {
@@ -47,7 +47,7 @@ export default function ProblemStrip() {
             <span className="text-light-800 dark:text-dark-800">Your process is the bottleneck.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-base text-light-900 dark:text-dark-900">
-            Every hour spent triaging, writing specs, and context-switching is an hour
+            Every hour spent analyzing feedback, writing specs, and context-switching is an hour
             you&apos;re not shipping. Devloops eliminates the busywork.
           </p>
         </div>

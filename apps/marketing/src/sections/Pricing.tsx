@@ -28,10 +28,10 @@ const tiers: Tier[] = [
     monthly: 16,
     yearly: 8,
     description:
-      "Everything your startup needs to close the feedback loop. AI triage and ticket generation included.",
+      "Everything your startup needs to close the feedback loop. AI analysis and ticket generation included.",
     features: [
       "Unlimited feedback sources",
-      "AI auto-triage & categorization",
+      "AI auto-analysis & categorization",
       "Auto-generated tickets",
       "Up to 10 workspace members",
       "Labels, filters & checklists",

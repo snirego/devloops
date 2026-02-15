@@ -20,7 +20,7 @@ const testimonials: Testimonial[] = [
     name: "Bobby Computers",
     handle: "@bobbycomputers",
     image: "/testimonials/avatars/bobby_computers.jpg",
-    text: "Holy crap I love this app. It's brutally minimal but somehow has everything I need. The AI triage alone saved us hours every week.",
+    text: "Holy crap I love this app. It's brutally minimal but somehow has everything I need. The AI analysis alone saved us hours every week.",
     link: "https://x.com/bobbycomputers",
   },
   {
@@ -35,7 +35,7 @@ const testimonials: Testimonial[] = [
     name: "singiamtel",
     handle: "@singiamtel",
     colour: "#ff6600",
-    text: "We replaced our entire triage process with Devloops. What took our PM 2 hours a day now just... happens.",
+    text: "We replaced our entire analysis process with Devloops. What took our PM 2 hours a day now just... happens.",
     link: "https://news.ycombinator.com/item?id=44157177",
   },
   {

@@ -22,7 +22,7 @@ export default function FinalCta() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl font-extrabold text-light-1000 dark:text-dark-1000 sm:text-4xl lg:text-5xl">
-            Stop triaging.
+            Stop analyzing.
             <br />
             <span className="gradient-text">Start shipping.</span>
           </h2>
