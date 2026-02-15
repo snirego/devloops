@@ -28,14 +28,14 @@ const tiers: Tier[] = [
     monthly: 16,
     yearly: 8,
     description:
-      "Everything you need to run your projects. Unlimited boards with powerful collaboration tools.",
+      "Everything your startup needs to close the feedback loop. AI triage and ticket generation included.",
     features: [
-      "Unlimited boards, lists & cards",
+      "Unlimited feedback sources",
+      "AI auto-triage & categorization",
+      "Auto-generated tickets",
       "Up to 10 workspace members",
       "Labels, filters & checklists",
-      "Board templates",
       "Activity log",
-      "Trello import",
       "Email support",
     ],
     highlighted: false,
@@ -47,12 +47,12 @@ const tiers: Tier[] = [
     monthly: 24,
     yearly: 12,
     description:
-      "For teams that want the full power of AI, unlimited scale, and premium support.",
+      "For teams that want AI agent prompts, unlimited scale, and the full autonomous pipeline.",
     features: [
       "Everything in Basic",
       "Unlimited workspace members",
-      "AI chat assistant",
-      "Work items & auto-triage",
+      "AI-generated agent prompts",
+      "One-click agent execution",
       "Custom workspace URL",
       "Priority support",
       "Advanced integrations",
@@ -101,10 +101,10 @@ export default function Pricing() {
         <div className="text-center">
           <Badge>Pricing</Badge>
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
-            Simple pricing that scales with you
+            Simple pricing. Massive time saved.
           </h2>
           <p className="mx-auto mt-3 max-w-md text-base text-light-900 dark:text-dark-900">
-            No hidden fees. No per-feature charges. Just pick a plan and build.
+            No hidden fees. No per-feature charges. Pick a plan and start shipping faster today.
           </p>
         </div>
 

@@ -7,7 +7,7 @@ export default function Document() {
         <link rel="icon" href="/favicon.ico" />
         <meta
           name="description"
-          content="Devloops - One platform for your entire team. Boards, AI chat, real-time collaboration. Ship faster, stop juggling tools."
+          content="Devloops turns customer feedback into agent-ready tickets and AI-generated prompts. Stop triaging, start shipping. Built for startups that move fast."
         />
       </Head>
       <body>

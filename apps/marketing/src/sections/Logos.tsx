@@ -24,7 +24,7 @@ export default function Logos() {
     <section className="py-12 sm:py-16">
       <div className="mx-auto max-w-6xl px-5">
         <p className="mb-8 text-center text-xs font-medium uppercase tracking-widest text-light-700 dark:text-dark-700">
-          Trusted by fast-moving teams around the world
+          Trusted by startups that move fast
         </p>
 
         <div className="relative overflow-hidden">

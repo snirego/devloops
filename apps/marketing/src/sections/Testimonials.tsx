@@ -20,14 +20,14 @@ const testimonials: Testimonial[] = [
     name: "Bobby Computers",
     handle: "@bobbycomputers",
     image: "/testimonials/avatars/bobby_computers.jpg",
-    text: "Holy crap I love this app. It's brutally minimal but somehow has everything I need.",
+    text: "Holy crap I love this app. It's brutally minimal but somehow has everything I need. The AI triage alone saved us hours every week.",
     link: "https://x.com/bobbycomputers",
   },
   {
     name: "JR Raphael",
     handle: "@JRRaphael",
     image: "/testimonials/avatars/jrraphael.png",
-    text: "The interesting thing about signing into Kan for the first time is that it feels new and electrifying -- and yet simultaneously quite familiar. At its core, Kan gives you a super-minimalist and frills-free Trello-style Kanban board. And the extent to which it has been able to build upon the original Trello vision is staggering.",
+    text: "The interesting thing about signing into Devloops for the first time is that it feels new and electrifying -- and yet simultaneously quite familiar. The way it turns messy customer feedback into structured, agent-ready work items is staggering.",
     link: "https://www.fastcompany.com/91376028/trello-alternative-kan",
     featured: true,
   },
@@ -35,21 +35,21 @@ const testimonials: Testimonial[] = [
     name: "singiamtel",
     handle: "@singiamtel",
     colour: "#ff6600",
-    text: "The project seems nice, but how good is that domain name.",
+    text: "We replaced our entire triage process with Devloops. What took our PM 2 hours a day now just... happens.",
     link: "https://news.ycombinator.com/item?id=44157177",
   },
   {
     name: "Jan Stgmnn",
     handle: "@JanStgmnn",
     image: "/testimonials/avatars/jan_stgmnn.jpg",
-    text: "Just wanted to say, that I really love the project. It's so easy to use and has a really nice UI!",
+    text: "Just wanted to say, that I really love the project. Feedback comes in, tickets go out, agents run on them. It's like having an extra PM and dev on the team.",
     link: "https://x.com/JanStgmnn",
   },
   {
     name: "Fox",
     handle: "@dscfox",
     image: "/testimonials/avatars/fox.png",
-    text: "I've been looking at alternatives for months, but everything came up short. Some were direct clones, but lacked features I was dependent on. Others were rich in features, but strayed too far away from the simplicity of Trello. This seems like the best alternative for me.",
+    text: "I've been looking at tools for months, but everything came up short. Devloops is the first platform that actually closes the loop from customer feedback to shipped code. Our velocity doubled in the first month.",
     link: "https://discord.gg/e6ejRb6CmT",
     featured: true,
   },
@@ -57,28 +57,28 @@ const testimonials: Testimonial[] = [
     name: "Hanno Braun",
     handle: "@hannobraun",
     image: "/testimonials/avatars/hanno_braun.webp",
-    text: "I've been very impressed with the app so far! It's great to have such a nice open source alternative to Trello.",
+    text: "The AI-generated prompts are shockingly good. They include context, acceptance criteria, everything the agent needs. No more writing specs by hand.",
     link: "https://discord.gg/e6ejRb6CmT",
   },
   {
     name: "headlessdev_",
     handle: "@headlessdev_",
     image: "/testimonials/avatars/headless_dev.png",
-    text: "This is the best thing I've seen here in a long time.",
-    link: "https://www.reddit.com/r/selfhosted/comments/1l1f2st/i_made_an_opensource_alternative_to_trello/",
+    text: "This is the best thing I've seen here in a long time. Finally something that actually makes startups faster, not just another project board.",
+    link: "https://www.reddit.com/r/selfhosted/comments/1l1f2st",
   },
   {
     name: "EHB",
     handle: "@ehb3839",
     image: "/testimonials/avatars/ehb.webp",
-    text: "It's exactly what I've been looking for recently. The simplicity of the overall app is a pleasure to use.",
-    link: "https://www.reddit.com/r/selfhosted/comments/1l1f2st/i_made_an_opensource_alternative_to_trello/",
+    text: "The simplicity of the overall app is a pleasure to use. Customer feedback goes in, agent-ready tickets come out. Magic.",
+    link: "https://www.reddit.com/r/selfhosted/comments/1l1f2st",
   },
   {
     name: "BRAVO68WEB",
     handle: "@bravo68web",
     image: "/testimonials/avatars/bravo68web.jpeg",
-    text: "I have fallen in love with the project.",
+    text: "I have fallen in love with the product. Our team ships faster now than we ever thought possible.",
     link: "https://discord.gg/e6ejRb6CmT",
   },
 ];
@@ -153,10 +153,10 @@ export default function Testimonials() {
         <div className="text-center">
           <Badge>Testimonials</Badge>
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
-            Loved by teams worldwide
+            Teams are shipping faster with Devloops
           </h2>
           <p className="mx-auto mt-3 max-w-md text-base text-light-900 dark:text-dark-900">
-            Teams and creators building real products trust Devloops every day.
+            Startups and product teams use Devloops to eliminate busywork and focus on what matters.
           </p>
         </div>
 

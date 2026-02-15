@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  HiOutlineViewColumns,
   HiOutlineChatBubbleLeftEllipsis,
-  HiOutlineUserGroup,
   HiOutlineBolt,
+  HiOutlineSparkles,
+  HiOutlineRocketLaunch,
 } from "react-icons/hi2";
 
 import SectionWrapper from "~/components/SectionWrapper";
@@ -22,253 +22,207 @@ interface TabDef {
 
 const tabs: TabDef[] = [
   {
-    id: "boards",
-    label: "Boards",
-    icon: HiOutlineViewColumns,
-    title: "Drag. Drop. Done.",
-    description: "Intuitive kanban boards that feel as fast as your thoughts. Unlimited boards, lists, and cards with zero friction.",
-  },
-  {
-    id: "ai-chat",
-    label: "AI Chat",
+    id: "feedback-intake",
+    label: "Feedback Intake",
     icon: HiOutlineChatBubbleLeftEllipsis,
-    title: "Your AI project partner.",
-    description: "Ask questions, create tasks, triage work items -- all through natural conversation. Context-aware, always ready.",
+    title: "Every signal captured. None lost.",
+    description: "Customer feedback from Intercom, Slack, email, and support tickets flows into one stream. No more digging through channels to find what users are saying.",
   },
   {
-    id: "collaboration",
-    label: "Real-time",
-    icon: HiOutlineUserGroup,
-    title: "See your team move.",
-    description: "Real-time updates, comments, mentions, and activity feeds. Everyone stays in sync without a single ping.",
+    id: "ai-triage",
+    label: "AI Triage",
+    icon: HiOutlineSparkles,
+    title: "Your AI product manager.",
+    description: "AI reads every piece of feedback, categorizes it (bug, feature, improvement), assigns priority, and groups duplicates. What took your PM hours now takes seconds.",
   },
   {
-    id: "work-items",
-    label: "Work Items",
+    id: "prompt-gen",
+    label: "Prompt Generation",
     icon: HiOutlineBolt,
-    title: "From chaos to clarity.",
-    description: "Ingest work from anywhere -- emails, chats, bugs. AI auto-triages and routes items to the right board.",
+    title: "From ticket to agent-ready prompt.",
+    description: "Each triaged item automatically generates a detailed, context-rich prompt ready for an AI coding agent. Complete with acceptance criteria and technical context.",
+  },
+  {
+    id: "agent-exec",
+    label: "Agent Execution",
+    icon: HiOutlineRocketLaunch,
+    title: "Approve. Ship. Repeat.",
+    description: "One click to send the prompt to an AI agent. Review the output, approve, and ship. Your feedback loop just went from weeks to hours.",
   },
 ];
 
 /* ─── Preview Mockups ─── */
 
-function BoardPreview() {
-  const cols = [
-    {
-      name: "Backlog",
-      cards: [
-        { title: "User onboarding flow", tag: "Feature", tagColor: "#6366f1" },
-        { title: "Mobile responsive fixes", tag: "Bug", tagColor: "#f43f5e" },
-      ],
-    },
-    {
-      name: "In Progress",
-      cards: [
-        { title: "Payment integration", tag: "Feature", tagColor: "#6366f1" },
-      ],
-    },
-    {
-      name: "Review",
-      cards: [
-        { title: "API rate limiting", tag: "Infra", tagColor: "#f59e0b" },
-      ],
-    },
-    {
-      name: "Done",
-      cards: [
-        { title: "Auth v2 rollout", tag: "Feature", tagColor: "#6366f1" },
-        { title: "Dashboard redesign", tag: "Design", tagColor: "#8b5cf6" },
-      ],
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {cols.map((col) => (
-        <div key={col.name} className="rounded-lg bg-light-100 p-2 dark:bg-dark-200/50">
-          <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-light-700 dark:text-dark-700">
-            {col.name}
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {col.cards.map((card) => (
-              <div
-                key={card.title}
-                className="rounded-md border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100"
-              >
-                <p className="text-[10px] font-medium text-light-1000 dark:text-dark-1000">
-                  {card.title}
-                </p>
-                <span
-                  className="mt-1 inline-block rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white"
-                  style={{ backgroundColor: card.tagColor }}
-                >
-                  {card.tag}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AIChatPreview() {
-  const messages = [
-    { role: "user" as const, text: "Create a task for the checkout bug reported by Sarah" },
-    {
-      role: "ai" as const,
-      text: 'Done! Created "Fix checkout validation error" on the Bugs board, assigned to Sarah with high priority.',
-    },
-    { role: "user" as const, text: "What's blocking the v2.1 release?" },
-    {
-      role: "ai" as const,
-      text: "2 items remain: API rate limiting (in review) and mobile responsive fixes (in progress). ETA looks like Thursday.",
-    },
-  ];
-
-  const [visibleCount, setVisibleCount] = useState(0);
-
-  useEffect(() => {
-    if (visibleCount < messages.length) {
-      const timeout = setTimeout(() => setVisibleCount((c) => c + 1), 800);
-      return () => clearTimeout(timeout);
-    }
-    // Reset after showing all
-    const resetTimeout = setTimeout(() => setVisibleCount(0), 3000);
-    return () => clearTimeout(resetTimeout);
-  }, [visibleCount, messages.length]);
-
-  return (
-    <div className="flex flex-col gap-2">
-      <AnimatePresence>
-        {messages.slice(0, visibleCount).map((msg, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-xl px-3 py-2 text-[10px] leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-brand-500 text-white"
-                  : "border border-light-200 bg-white text-light-1000 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-1000"
-              }`}
-            >
-              {msg.text}
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-      {visibleCount < messages.length && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex gap-1 px-2"
-        >
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-light-600 dark:bg-dark-600" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-light-600 delay-75 dark:bg-dark-600" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-light-600 delay-150 dark:bg-dark-600" />
-        </motion.div>
-      )}
-    </div>
-  );
-}
-
-function CollaborationPreview() {
-  const activities = [
-    { user: "Sarah", action: 'moved "Fix auth" to Done', time: "2m ago", avatar: "S", color: "#6366f1" },
-    { user: "Alex", action: 'commented on "API docs"', time: "5m ago", avatar: "A", color: "#f59e0b" },
-    { user: "Mike", action: 'created "Deploy pipeline"', time: "8m ago", avatar: "M", color: "#10b981" },
-    { user: "Jordan", action: "joined the workspace", time: "12m ago", avatar: "J", color: "#f43f5e" },
+function FeedbackIntakePreview() {
+  const feedbacks = [
+    { source: "Intercom", text: "Can't upload files larger than 5MB", time: "2m ago", color: "#1f8ded" },
+    { source: "Slack", text: "Users want dark mode in dashboard", time: "5m ago", color: "#4a154b" },
+    { source: "Email", text: "Payment fails with EU cards", time: "8m ago", color: "#ea4335" },
+    { source: "Zendesk", text: "Search results not returning latest items", time: "12m ago", color: "#03363d" },
   ];
 
   return (
     <div className="flex flex-col gap-2">
-      {activities.map((act, idx) => (
+      {feedbacks.map((fb, idx) => (
         <motion.div
           key={idx}
-          initial={{ opacity: 0, x: -10 }}
+          initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: idx * 0.15, duration: 0.3 }}
-          className="flex items-center gap-2 rounded-lg border border-light-200 bg-white p-2 dark:border-dark-300 dark:bg-dark-100"
+          transition={{ delay: idx * 0.12, duration: 0.3 }}
+          className="flex items-start gap-2.5 rounded-lg border border-light-200 bg-white p-2.5 dark:border-dark-300 dark:bg-dark-100"
         >
-          <div
-            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
-            style={{ backgroundColor: act.color }}
+          <span
+            className="mt-0.5 flex-shrink-0 rounded-md px-1.5 py-0.5 text-[7px] font-bold text-white"
+            style={{ backgroundColor: fb.color }}
           >
-            {act.avatar}
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] text-light-1000 dark:text-dark-1000">
-              <span className="font-semibold">{act.user}</span> {act.action}
-            </p>
-          </div>
-          <span className="flex-shrink-0 text-[9px] text-light-700 dark:text-dark-700">
-            {act.time}
+            {fb.source}
           </span>
+          <p className="flex-1 text-[10px] leading-relaxed text-light-1000 dark:text-dark-1000">{fb.text}</p>
+          <span className="flex-shrink-0 text-[8px] text-light-600 dark:text-dark-600">{fb.time}</span>
         </motion.div>
       ))}
     </div>
   );
 }
 
-function WorkItemsPreview() {
+function AITriagePreview() {
   const items = [
-    { source: "Email", title: "Server 500 errors on checkout", priority: "High", color: "#f43f5e" },
-    { source: "Slack", title: "Customer requesting bulk export", priority: "Medium", color: "#f59e0b" },
-    { source: "GitHub", title: "PR #142 needs review", priority: "Low", color: "#10b981" },
+    { title: "File upload size limit", type: "Bug", priority: "High", typeColor: "#f43f5e", prioColor: "#f43f5e" },
+    { title: "Dark mode request", type: "Feature", priority: "Medium", typeColor: "#6366f1", prioColor: "#f59e0b" },
+    { title: "EU card payment failure", type: "Bug", priority: "Critical", typeColor: "#f43f5e", prioColor: "#dc2626" },
   ];
 
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5 rounded-md bg-purple-50/50 px-2 py-1.5 dark:bg-purple-500/5">
+        <HiOutlineSparkles className="h-3 w-3 text-purple-500" />
+        <p className="text-[9px] font-medium text-purple-600 dark:text-purple-400">
+          AI analyzed 4 items &middot; 2 bugs, 1 feature, 1 duplicate removed
+        </p>
+      </div>
       {items.map((item, idx) => (
         <motion.div
           key={idx}
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: idx * 0.2, duration: 0.3 }}
-          className="flex items-center gap-3 rounded-lg border border-light-200 bg-white p-2.5 dark:border-dark-300 dark:bg-dark-100"
+          transition={{ delay: idx * 0.15 + 0.3, duration: 0.3 }}
+          className="flex items-center gap-2 rounded-lg border border-light-200 bg-white p-2.5 dark:border-dark-300 dark:bg-dark-100"
         >
-          <div className="flex h-6 min-w-[3.5rem] items-center justify-center rounded-md bg-light-100 text-[8px] font-bold text-light-800 dark:bg-dark-300 dark:text-dark-800">
-            {item.source}
+          <div className="flex-1">
+            <p className="text-[10px] font-medium text-light-1000 dark:text-dark-1000">{item.title}</p>
           </div>
-          <p className="flex-1 text-[10px] font-medium text-light-1000 dark:text-dark-1000">
-            {item.title}
-          </p>
-          <span
-            className="rounded-full px-2 py-0.5 text-[8px] font-bold text-white"
-            style={{ backgroundColor: item.color }}
-          >
-            {item.priority}
-          </span>
+          <span className="rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white" style={{ backgroundColor: item.typeColor }}>{item.type}</span>
+          <span className="rounded-full px-1.5 py-0.5 text-[7px] font-bold text-white" style={{ backgroundColor: item.prioColor }}>{item.priority}</span>
         </motion.div>
       ))}
-      <div className="mt-1 flex items-center gap-1.5 rounded-md bg-brand-50/50 px-2 py-1.5 dark:bg-brand-500/5">
-        <HiOutlineBolt className="h-3 w-3 text-brand-500" />
-        <p className="text-[9px] font-medium text-brand-600 dark:text-brand-400">
-          AI auto-triaged 3 items and routed to boards
-        </p>
+    </div>
+  );
+}
+
+function PromptGenPreview() {
+  const [typing, setTyping] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTyping(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="rounded-lg border border-light-200 bg-white p-3 dark:border-dark-300 dark:bg-dark-100">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[9px] font-bold text-light-1000 dark:text-dark-1000">BUG-892: File upload size limit</span>
+          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[7px] font-bold text-green-600 dark:bg-green-500/10 dark:text-green-400">Ready</span>
+        </div>
+        <div className="rounded-md bg-light-100 p-2 dark:bg-dark-200">
+          {typing ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+              <p className="text-[8px] font-mono leading-relaxed text-light-900 dark:text-dark-900">
+                <span className="text-brand-500">## Task</span><br />
+                Increase file upload limit from 5MB to 50MB<br /><br />
+                <span className="text-brand-500">## Context</span><br />
+                Multiple users report upload failures. Current limit set in /api/upload middleware.<br /><br />
+                <span className="text-brand-500">## Acceptance Criteria</span><br />
+                - Update max file size to 50MB<br />
+                - Add client-side validation with clear error<br />
+                - Update S3 presigned URL config
+              </p>
+            </motion.div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-brand-500" />
+              <span className="h-1 w-1 animate-pulse rounded-full bg-brand-500 delay-75" />
+              <span className="h-1 w-1 animate-pulse rounded-full bg-brand-500 delay-150" />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
+function AgentExecPreview() {
+  return (
+    <div className="flex flex-col gap-2">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="rounded-lg border border-light-200 bg-white p-3 dark:border-dark-300 dark:bg-dark-100"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+            </span>
+            <span className="text-[9px] font-semibold text-green-600 dark:text-green-400">Agent running</span>
+          </div>
+          <span className="text-[8px] text-light-600 dark:text-dark-600">BUG-892</span>
+        </div>
+        <div className="space-y-1.5 text-[8px] text-light-700 dark:text-dark-700">
+          <div className="flex items-center gap-1.5">
+            <span className="text-green-500">&#10003;</span>
+            <span>Analyzed codebase and found upload middleware</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-green-500">&#10003;</span>
+            <span>Updated file size limit to 50MB</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-green-500">&#10003;</span>
+            <span>Added client-side validation component</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="animate-pulse text-brand-500">&#9679;</span>
+            <span>Running tests...</span>
+          </div>
+        </div>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.3 }}
+        className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50/50 p-2 dark:border-green-500/20 dark:bg-green-500/5"
+      >
+        <span className="text-[9px] font-medium text-green-700 dark:text-green-400">Ready for your review</span>
+        <span className="rounded-md bg-green-600 px-2 py-0.5 text-[8px] font-bold text-white">Approve & Ship</span>
+      </motion.div>
+    </div>
+  );
+}
+
 const previews: Record<string, React.FC> = {
-  boards: BoardPreview,
-  "ai-chat": AIChatPreview,
-  collaboration: CollaborationPreview,
-  "work-items": WorkItemsPreview,
+  "feedback-intake": FeedbackIntakePreview,
+  "ai-triage": AITriagePreview,
+  "prompt-gen": PromptGenPreview,
+  "agent-exec": AgentExecPreview,
 };
 
 /* ─── Main Component ─── */
 
 export default function ProductShowcase() {
-  const [activeTab, setActiveTab] = useState("boards");
+  const [activeTab, setActiveTab] = useState("feedback-intake");
 
   // Auto-cycle tabs
   useEffect(() => {
@@ -288,15 +242,15 @@ export default function ProductShowcase() {
     <SectionWrapper className="py-20 sm:py-28" id="features">
       <div className="mx-auto max-w-6xl px-5">
         <div className="text-center">
-          <Badge>Features</Badge>
+          <Badge>How it works</Badge>
           <h2 className="mt-4 text-3xl font-bold text-light-1000 dark:text-dark-1000 sm:text-4xl">
-            Everything your team needs.
+            From customer feedback
             <br />
-            Nothing it doesn&apos;t.
+            to shipped code. Automatically.
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-base text-light-900 dark:text-dark-900">
-            Built for teams that move fast. Every feature designed to eliminate context-switching
-            and keep everyone in flow.
+            Devloops replaces the manual grind of triaging, spec-writing, and task creation
+            with an AI-powered pipeline that never sleeps.
           </p>
         </div>
 

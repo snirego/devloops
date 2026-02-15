@@ -6,7 +6,7 @@ import { HiMiniBars3, HiMiniXMark } from "react-icons/hi2";
 import Button from "~/components/Button";
 
 const navItems = [
-  { label: "Features", href: "#features" },
+  { label: "How it works", href: "#features" },
   { label: "Pricing", href: "#pricing" },
   { label: "Testimonials", href: "#testimonials" },
   { label: "FAQ", href: "#faq" },

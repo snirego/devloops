@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Devloops — One platform. Zero chaos.</title>
+        <title>Devloops — AI agents that turn feedback into shipped code</title>
       </Head>
       <div className="min-h-screen bg-light-100 dark:bg-dark-50">
         <Header />

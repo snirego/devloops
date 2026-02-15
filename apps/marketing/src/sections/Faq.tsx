@@ -12,14 +12,14 @@ interface FaqItem {
 
 const faqs: FaqItem[] = [
   {
-    question: "What makes Devloops different from Trello or Linear?",
+    question: "What exactly does Devloops do?",
     answer:
-      "Devloops combines kanban boards, AI chat, real-time collaboration, and work item triage in one platform. Instead of paying for 5 tools and losing context between them, your team gets one unified workspace. Plus it's open-source, so you can self-host if you need full data control.",
+      "Devloops takes customer feedback from any source (Intercom, Slack, email, support tickets), uses AI to automatically triage and categorize it, generates detailed agent-ready prompts, and lets you send those prompts to AI coding agents. It replaces the manual grind of triaging, writing specs, and creating tasks -- so your team ships faster.",
   },
   {
     question: "Is there a free trial?",
     answer:
-      "We don't do free trials -- we do better. You can self-host Devloops for free forever with all core features. Our cloud plans start at $8/mo per member (billed yearly) and include everything from day one. No feature gates, no surprises.",
+      "We don't do free trials. Our plans start at $8/mo per member (billed yearly) and include everything from day one. No feature gates, no surprises. You get the full power of the platform immediately -- because we want you shipping fast from minute one.",
   },
   {
     question: "Can I switch plans or cancel anytime?",
@@ -27,19 +27,19 @@ const faqs: FaqItem[] = [
       "Absolutely. You can upgrade, downgrade, or cancel at any time. If you cancel, you'll keep access until the end of your billing period. No lock-in, no cancellation fees.",
   },
   {
-    question: "How does the AI chat work?",
+    question: "How does the AI triage work?",
     answer:
-      "The AI assistant is built right into your workspace. You can ask it to create tasks, summarize project status, triage incoming work items, and more -- all through natural conversation. It has full context of your boards and team activity.",
+      "When feedback comes in, our AI reads the content, determines whether it's a bug, feature request, or improvement, assigns a priority level, detects duplicates, and groups related items. It then generates a structured ticket with a detailed prompt that's ready for an AI agent to execute on.",
   },
   {
-    question: "Can I import my data from Trello?",
+    question: "Which AI agents does Devloops work with?",
     answer:
-      "Yes! We have a one-click Trello import that brings over your boards, lists, cards, labels, and members. Most teams are fully migrated in under 5 minutes.",
+      "Devloops generates agent-ready prompts that work with any AI coding agent -- Cursor, Devin, Claude, GPT-based agents, and more. The prompts include full context, acceptance criteria, and technical details so agents can start working immediately.",
   },
   {
     question: "Is my data secure?",
     answer:
-      "Your data is encrypted at rest and in transit. We're GDPR compliant with a 99.9% uptime SLA. For maximum control, you can self-host on your own infrastructure with our Docker setup.",
+      "Your data is encrypted at rest and in transit. We're GDPR compliant with a 99.9% uptime SLA. All AI processing is done securely and your proprietary code never leaves your controlled environment.",
   },
 ];
 

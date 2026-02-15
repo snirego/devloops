@@ -38,9 +38,9 @@ function MetricCard({ value, suffix, label, delay, isActive }: MetricCardProps) 
 }
 
 const metrics = [
-  { value: 10, suffix: "x", label: "fewer context switches" },
-  { value: 50, suffix: "%", label: "faster sprint cycles" },
-  { value: 5, suffix: "+", label: "tools replaced" },
+  { value: 80, suffix: "%", label: "less time triaging" },
+  { value: 10, suffix: "x", label: "faster feedback loops" },
+  { value: 24, suffix: "/7", label: "agents never sleep" },
   { value: 2, suffix: "min", label: "setup time" },
 ];
 

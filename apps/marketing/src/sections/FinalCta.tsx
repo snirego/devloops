@@ -22,29 +22,33 @@ export default function FinalCta() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl font-extrabold text-light-1000 dark:text-dark-1000 sm:text-4xl lg:text-5xl">
-            Your team deserves better
+            Stop triaging.
             <br />
-            <span className="gradient-text">than tab chaos.</span>
+            <span className="gradient-text">Start shipping.</span>
           </h2>
 
           <p className="mx-auto mt-5 max-w-lg text-base text-light-900 dark:text-dark-900 sm:text-lg">
-            One platform for boards, AI, collaboration, and work items.
-            Set up in 2 minutes. No credit card required.
+            Let AI handle the busywork. Your team focuses on what matters --
+            building the product your customers are asking for.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button href="https://app.devloops.io/signup" size="lg">
-              Start Building Today
+              Start Shipping Faster
             </Button>
             <Button
-              href="https://github.com/kanbn/kan"
+              href="https://docs.devloops.io"
               variant="secondary"
               size="lg"
               openInNewTab
             >
-              Star on GitHub
+              Read the Docs
             </Button>
           </div>
+
+          <p className="mt-4 text-xs text-light-700 dark:text-dark-700">
+            Set up in 2 minutes. No credit card required.
+          </p>
         </motion.div>
       </div>
     </section>
