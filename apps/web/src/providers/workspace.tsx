@@ -66,7 +66,9 @@ function setCachedWorkspaces(list: Workspace[]) {
   }
 }
 
-const initialWorkspace: Workspace = getCachedWorkspace() ?? {
+// Same initial state on server and client to avoid hydration mismatch.
+// Cache is applied in useEffect after mount.
+const EMPTY_WORKSPACE: Workspace = {
   name: "",
   description: null,
   publicId: "",
@@ -76,8 +78,6 @@ const initialWorkspace: Workspace = getCachedWorkspace() ?? {
   brandColor: DEFAULT_BRAND_COLOR,
 };
 
-const initialAvailableWorkspaces: Workspace[] = getCachedWorkspaces() ?? [];
-
 export const WorkspaceContext = createContext<WorkspaceContextProps | undefined>(
   undefined,
 );
@@ -86,12 +86,11 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<Workspace>(initialWorkspace);
+  const [workspace, setWorkspace] = useState<Workspace>(EMPTY_WORKSPACE);
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>(
-    initialAvailableWorkspaces,
+    [],
   );
-  // If we have cached data, consider it "loaded" immediately
-  const [hasLoaded, setHasLoaded] = useState(initialWorkspace.publicId !== "");
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const workspacePublicId = useSearchParams().get("workspacePublicId");
 
@@ -112,6 +111,19 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
     router.push(`/boards`);
   };
 
+  // Hydrate from localStorage after mount (client-only) so first paint matches server.
+  useEffect(() => {
+    const cached = getCachedWorkspace();
+    const cachedList = getCachedWorkspaces();
+    if (cached?.publicId) {
+      setWorkspace(cached);
+      setHasLoaded(true);
+    }
+    if (cachedList?.length) {
+      setAvailableWorkspaces(cachedList);
+    }
+  }, []);
+
   useEffect(() => {
     if (!data?.length) {
       if (!isLoading) setHasLoaded(true);
@@ -119,7 +131,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     const storedWorkspaceId: string | null =
-      workspacePublicId ?? localStorage.getItem("workspacePublicId");
+      workspacePublicId ?? (typeof localStorage !== "undefined" ? localStorage.getItem("workspacePublicId") : null);
 
     if (data.length) {
       const workspaces = data.map(({ workspace, role }) => ({

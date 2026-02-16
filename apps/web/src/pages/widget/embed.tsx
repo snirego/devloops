@@ -72,9 +72,16 @@ function setLastReadTs(iso: string) {
   }
 }
 
+const FEEDBACK_SESSION_KEY = "devloops_feedback_widget_session";
+const FEEDBACK_THREAD_KEY = "devloops_feedback_widget_threadId";
+
 export default function WidgetEmbedPage() {
   const router = useRouter();
   const workspaceId = (router.query.workspaceId as string) ?? "";
+  const threadPublicId = (router.query.threadPublicId as string) ?? "";
+  const isFeedbackMode = threadPublicId.length > 0;
+  const sessionStorageKey = isFeedbackMode ? FEEDBACK_SESSION_KEY : "devloops_widget_session";
+  const threadStorageKey = isFeedbackMode ? FEEDBACK_THREAD_KEY : "devloops_widget_threadId";
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -156,11 +163,11 @@ export default function WidgetEmbedPage() {
       el.scrollHeight - el.scrollTop - el.clientHeight < 150;
   }, []);
 
-  // Restore session from localStorage
+  // Restore session from localStorage (uses feedback vs normal keys based on URL)
   useEffect(() => {
     const name = localStorage.getItem("devloops_widget_name");
-    const sid = localStorage.getItem("devloops_widget_session");
-    const tid = localStorage.getItem("devloops_widget_threadId");
+    const sid = localStorage.getItem(sessionStorageKey);
+    const tid = localStorage.getItem(threadStorageKey);
     if (name && sid) {
       setVisitorName(name);
       setSessionId(sid);
@@ -172,12 +179,12 @@ export default function WidgetEmbedPage() {
       initialLastReadRef.current = getLastReadTs();
       didCaptureRef.current = true;
     }
-  }, []);
+  }, [sessionStorageKey, threadStorageKey]);
 
   // Create or resume session
   const initSession = useCallback(
     async (name: string) => {
-      const existingSid = localStorage.getItem("devloops_widget_session");
+      const existingSid = localStorage.getItem(sessionStorageKey);
 
       const res = await fetch("/api/chat/session", {
         method: "POST",
@@ -186,21 +193,19 @@ export default function WidgetEmbedPage() {
           sessionId: existingSid,
           visitorName: name,
           workspacePublicId: workspaceId || undefined,
+          threadPublicId: threadPublicId || undefined,
         }),
       });
       const data = await res.json();
       setSessionId(data.sessionId);
       setThreadDbId(data.threadId ?? null);
-      localStorage.setItem("devloops_widget_session", data.sessionId);
+      localStorage.setItem(sessionStorageKey, data.sessionId);
       localStorage.setItem("devloops_widget_name", name);
       if (data.threadId) {
-        localStorage.setItem(
-          "devloops_widget_threadId",
-          String(data.threadId),
-        );
+        localStorage.setItem(threadStorageKey, String(data.threadId));
       }
     },
-    [workspaceId],
+    [workspaceId, threadPublicId, isFeedbackMode, sessionStorageKey, threadStorageKey],
   );
 
   // Fetch initial messages once when session is established

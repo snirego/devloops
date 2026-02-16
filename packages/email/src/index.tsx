@@ -1,4 +1,4 @@
 export const name = "email";
 
-export { sendEmail } from "./sendEmail";
+export { sendEmail, sendRawEmail } from "./sendEmail";
 export { notificationClient } from "./notificationClient";

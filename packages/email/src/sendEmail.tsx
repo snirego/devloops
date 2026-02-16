@@ -79,3 +79,26 @@ export const sendEmail = async (
     throw error;
   }
 };
+
+/** Send an email with raw HTML (no template). Used e.g. for feedback. */
+export const sendRawEmail = async (
+  to: string,
+  subject: string,
+  html: string,
+) => {
+  try {
+    const resend = getResendClient();
+    const { data: response, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM ?? "Devloops <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    });
+    if (error) throw new Error(error.message);
+    return response;
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("Raw email failed:", { to, subject, error: errMsg });
+    throw error;
+  }
+};

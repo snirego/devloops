@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
 import { env } from "next-runtime-env";
 import { useEffect, useState } from "react";
-import { HiBolt } from "react-icons/hi2";
+import { HiBolt, HiOutlineClipboard } from "react-icons/hi2";
 
 import type { Subscription } from "@kan/shared/utils";
 import { hasActiveSubscription } from "@kan/shared/utils";
@@ -33,6 +33,15 @@ export default function WorkspaceSettings() {
     staleTime: 2 * 60_000,
   });
   const [hasOpenedUpgradeModal, setHasOpenedUpgradeModal] = useState(false);
+  const [copiedWorkspaceId, setCopiedWorkspaceId] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const copyWorkspaceId = () => {
+    if (!workspace.publicId) return;
+    void navigator.clipboard.writeText(workspace.publicId);
+    setCopiedWorkspaceId(true);
+    setTimeout(() => setCopiedWorkspaceId(false), 2000);
+  };
 
   const { data: workspaceData } = api.workspace.byId.useQuery(
     { workspacePublicId: workspace.publicId },
@@ -64,6 +73,30 @@ export default function WorkspaceSettings() {
       <PageHead title={t`Settings | Workspace`} />
 
       <div className="mb-8 border-t border-light-300 dark:border-dark-300">
+        {mounted && workspace.publicId && (
+          <>
+            <h2 className="mb-4 mt-8 text-[14px] font-bold text-neutral-900 dark:text-dark-1000">
+              {t`Workspace ID`}
+            </h2>
+            <p className="mb-2 text-xs text-light-700 dark:text-dark-700">
+              {t`Use this ID for the chat widget and for NEXT_PUBLIC_DEVLOOPS_FEEDBACK_WORKSPACE_ID when routing in-app feedback to this workspace.`}
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="rounded bg-light-200 px-2 py-1.5 text-sm dark:bg-dark-300">
+                {workspace.publicId}
+              </code>
+              <button
+                type="button"
+                onClick={copyWorkspaceId}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-light-700 transition-colors hover:bg-light-200 hover:text-light-900 dark:text-dark-700 dark:hover:bg-dark-300 dark:hover:text-dark-900"
+              >
+                <HiOutlineClipboard className="h-3.5 w-3.5" />
+                {copiedWorkspaceId ? t`Copied!` : t`Copy`}
+              </button>
+            </div>
+          </>
+        )}
+
         <h2 className="mb-4 mt-8 text-[14px] font-bold text-neutral-900 dark:text-dark-1000">
           {t`Workspace name`}
         </h2>

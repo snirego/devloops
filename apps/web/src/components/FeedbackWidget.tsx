@@ -6,17 +6,18 @@ import {
 } from "react-icons/hi2";
 import { twMerge } from "tailwind-merge";
 
-import { useWorkspace } from "~/providers/workspace";
-
+import Button from "~/components/Button";
+import { usePopup } from "~/providers/popup";
+import { api } from "~/utils/api";
 
 export default function FeedbackWidget() {
-  const { workspace } = useWorkspace();
+  const { showPopup } = usePopup();
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const workspacePublicId = workspace?.publicId;
-  const hasWorkspace =
-    !!workspacePublicId && workspacePublicId.length >= 12;
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -27,16 +28,39 @@ export default function FeedbackWidget() {
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen]);
 
-  if (!hasWorkspace) return null;
+  const createFeedback = api.feedback.create.useMutation({
+    onSuccess: () => {
+      setMessage("");
+      setIsOpen(false);
+      showPopup({
+        header: t`Feedback sent`,
+        message: t`Thank you! We'll read it and get back to you.`,
+        icon: "success",
+      });
+    },
+    onError: () => {
+      showPopup({
+        header: t`Unable to send`,
+        message: t`Please try again or email us directly.`,
+        icon: "error",
+      });
+    },
+  });
 
-  const embedUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/widget/embed?workspaceId=${encodeURIComponent(workspacePublicId)}`
-      : "";
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = message.trim();
+    if (!text) return;
+    createFeedback.mutate({
+      feedback: text,
+      url: typeof window !== "undefined" ? window.location.href : "",
+    });
+  };
+
+  if (!mounted) return null;
 
   return (
     <>
-      {/* Floating feedback button — hidden when panel is open */}
       {!isOpen && (
         <button
           type="button"
@@ -45,23 +69,22 @@ export default function FeedbackWidget() {
           onMouseLeave={() => setIsHovered(false)}
           className={twMerge(
             "fixed bottom-6 right-6 z-[9990] flex items-center gap-2 rounded-full shadow-lg transition-all duration-200 ease-out",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-light-50 dark:focus-visible:ring-offset-dark-50",
-          "bg-brand-500 text-white hover:bg-brand-600 hover:shadow-xl hover:scale-105",
-          "dark:bg-brand-500 dark:hover:bg-brand-600",
-          isHovered ? "pl-4 pr-5" : "p-3",
-        )}
-        aria-label={t`Send feedback`}
-      >
-        <HiOutlineChatBubbleLeftRight className="h-5 w-5 flex-shrink-0" />
-        {isHovered && (
-          <span className="whitespace-nowrap text-sm font-medium">
-            {t`Feedback`}
-          </span>
-        )}
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-light-50 dark:focus-visible:ring-offset-dark-50",
+            "bg-brand-500 text-white hover:bg-brand-600 hover:shadow-xl hover:scale-105",
+            "dark:bg-brand-500 dark:hover:bg-brand-600",
+            isHovered ? "pl-4 pr-5" : "p-3",
+          )}
+          aria-label={t`Send feedback`}
+        >
+          <HiOutlineChatBubbleLeftRight className="h-5 w-5 flex-shrink-0" />
+          {isHovered && (
+            <span className="whitespace-nowrap text-sm font-medium">
+              {t`Feedback`}
+            </span>
+          )}
         </button>
       )}
 
-      {/* Slide-up panel with chat widget iframe */}
       {isOpen && (
         <>
           <div
@@ -70,12 +93,11 @@ export default function FeedbackWidget() {
             onClick={() => setIsOpen(false)}
           />
           <div
-            className="fixed bottom-0 right-0 z-[9997] flex h-[min(560px,85vh)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-tl-2xl border border-b-0 border-r-0 border-light-200 bg-white shadow-2xl transition-all duration-300 ease-out dark:border-dark-300 dark:bg-dark-100"
+            className="fixed bottom-0 right-0 z-[9997] flex w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-tl-2xl border border-b-0 border-r-0 border-light-200 bg-white shadow-2xl dark:border-dark-300 dark:bg-dark-100"
             role="dialog"
             aria-modal="true"
             aria-labelledby="feedback-widget-title"
           >
-            {/* Panel header */}
             <div className="flex flex-shrink-0 items-center justify-between border-b border-light-200 bg-light-50/80 px-4 py-3 dark:border-dark-300 dark:bg-dark-200/50">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-900/40">
@@ -103,17 +125,29 @@ export default function FeedbackWidget() {
               </button>
             </div>
 
-            {/* Iframe: chat widget */}
-            <div className="relative min-h-0 flex-1">
-              {embedUrl ? (
-                <iframe
-                  title={t`Feedback chat`}
-                  src={embedUrl}
-                  className="absolute inset-0 h-full w-full border-0"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                />
-              ) : null}
-            </div>
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-4 p-4"
+            >
+              <textarea
+                id="feedback-widget-message"
+                placeholder={t`What's on your mind? Ideas, bugs, feature requests...`}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setIsOpen(false);
+                }}
+                rows={5}
+                className="w-full resize-none rounded-md border border-light-300 bg-white px-3 py-2 text-sm text-light-900 shadow-sm ring-1 ring-inset ring-light-600 placeholder:text-light-600 focus:ring-2 focus:ring-brand-500 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900 dark:ring-dark-600 dark:placeholder:text-dark-600"
+              />
+              <Button
+                type="submit"
+                isLoading={createFeedback.isPending}
+                disabled={!message.trim()}
+              >
+                {t`Send to team`}
+              </Button>
+            </form>
           </div>
         </>
       )}
