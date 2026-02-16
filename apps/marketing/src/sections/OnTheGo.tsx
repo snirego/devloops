@@ -399,7 +399,7 @@ export default function OnTheGo() {
   useEffect(() => {
     const stepInFeedback = phase % PHASES_PER_FEEDBACK;
     const delayMs =
-      stepInFeedback === 0 ? 2000 : stepInFeedback === 1 ? 500 : stepInFeedback === 2 ? 2000 : 1800;
+      stepInFeedback === 0 ? 2000 : stepInFeedback === 1 ? 1600 : stepInFeedback === 2 ? 2000 : 1800;
     const t = setTimeout(() => {
       setPhase((prev) => (prev + 1) % PHASES_PER_CYCLE);
     }, delayMs);

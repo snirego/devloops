@@ -3,6 +3,7 @@ import Head from "next/head";
 import Header from "~/sections/Header";
 import Hero from "~/sections/Hero";
 import ProblemStrip from "~/sections/ProblemStrip";
+import HowItWorks from "~/sections/HowItWorks";
 import ProductShowcase from "~/sections/ProductShowcase";
 import OnTheGo from "~/sections/OnTheGo";
 import Logos from "~/sections/Logos";
@@ -24,6 +25,7 @@ export default function Home() {
         <Hero />
         <Logos />
         <ProblemStrip />
+        <HowItWorks />
         <ProductShowcase />
         <OnTheGo />
         <Metrics />
