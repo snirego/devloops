@@ -24,6 +24,8 @@ import chatIconDark from "~/assets/chat-dark.json";
 import chatIconLight from "~/assets/chat-light.json";
 import membersIconDark from "~/assets/members-dark.json";
 import membersIconLight from "~/assets/members-light.json";
+import integrationsIconDark from "~/assets/integrations-dark.json";
+import integrationsIconLight from "~/assets/integrations-light.json";
 import settingsIconDark from "~/assets/settings-dark.json";
 import settingsIconLight from "~/assets/settings-light.json";
 // import templatesIconDark from "~/assets/templates-dark.json";
@@ -171,6 +173,18 @@ export default function SideNavigation({
       },
     },
     {
+      name: t`Integrations`,
+      href: "/settings/integrations",
+      icon: isDarkMode ? integrationsIconDark : integrationsIconLight,
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "I" }],
+        action: () => router.push("/settings/integrations"),
+        group: "NAVIGATION",
+        description: t`Go to integrations`,
+      },
+    },
+    {
       name: t`Settings`,
       href: "/settings",
       icon: isDarkMode ? settingsIconDark : settingsIconLight,
@@ -233,11 +247,16 @@ export default function SideNavigation({
               const showDot = aiIsActive && aiDotPaths.has(item.href);
               const isChatTab = item.href === "/chat";
               const showBadge = isChatTab && unreadChatCount > 0;
+              const isCurrent =
+                item.href === "/settings"
+                  ? pathname.startsWith("/settings") &&
+                    !pathname.startsWith("/settings/integrations")
+                  : pathname.includes(item.href);
               return (
                 <li key={item.name} className="relative">
                   <ReactiveButton
                     href={item.href}
-                    current={pathname.includes(item.href)}
+                    current={isCurrent}
                     name={item.name}
                     json={item.icon}
                     isCollapsed={isCollapsed}

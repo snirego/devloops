@@ -56,7 +56,7 @@ export default function WorkspaceMenu({
             >
               <Menu.Button
                 className={twMerge(
-                  "mb-1 flex h-[34px] min-w-0 flex-1 items-center justify-start rounded-md p-1.5 hover:bg-light-200 dark:hover:bg-dark-200",
+                  "mb-1 flex h-[34px] min-w-0 flex-1 items-center justify-start rounded-md p-1.5 hover:bg-light-200 focus:outline-none dark:hover:bg-dark-200",
                   isCollapsed &&
                     "md:mb-1.5 md:h-9 md:w-9 md:flex-none md:justify-center md:p-0",
                 )}
@@ -75,16 +75,6 @@ export default function WorkspaceMenu({
                 >
                   {workspace.name}
                 </span>
-                {workspace.plan === "pro" && (
-                  <span
-                    className={twMerge(
-                      "ml-2 inline-flex items-center rounded-md bg-brand-100 px-2 py-1 text-[10px] font-medium text-brand-700",
-                      isCollapsed && "md:hidden",
-                    )}
-                  >
-                    Pro
-                  </span>
-                )}
               </Menu.Button>
               <Tooltip content={commandPaletteShortcutTooltipContent}>
                 <Button

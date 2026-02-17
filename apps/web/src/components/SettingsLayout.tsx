@@ -14,6 +14,7 @@ import {
   HiOutlineBanknotes,
   HiOutlineBellAlert,
   HiOutlineCodeBracketSquare,
+  HiOutlinePuzzlePiece,
   HiOutlineRectangleGroup,
   HiOutlineShieldCheck,
   HiOutlineUser,
@@ -73,7 +74,7 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
     },
     {
       key: "integrations",
-      icon: <HiOutlineCodeBracketSquare />,
+      icon: <HiOutlinePuzzlePiece />,
       label: t`Integrations`,
       condition: canEditWorkspace,
     },

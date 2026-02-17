@@ -13,6 +13,7 @@ import { env } from "~/env";
 import { useIsMobile } from "~/hooks/useMediaQuery";
 import { useKeyboardShortcuts } from "~/providers/keyboard-shortcuts";
 import { useModal } from "~/providers/modal";
+import { useWorkspace } from "~/providers/workspace";
 import { getAvatarUrl } from "~/utils/helpers";
 
 interface UserMenuProps {
@@ -36,6 +37,7 @@ export default function UserMenu({
   const { theme, setTheme } = useTheme();
   const { openModal } = useModal();
   const { openLegend } = useKeyboardShortcuts();
+  const { workspace } = useWorkspace();
   const isMobile = useIsMobile();
 
   const handleLogout = async () => {
@@ -76,7 +78,7 @@ export default function UserMenu({
           </div>
         ) : (
           <Menu.Button
-            className="flex w-full items-center rounded-md p-1.5 text-neutral-900 hover:bg-light-200 dark:text-dark-900 dark:hover:bg-dark-200 dark:hover:text-dark-1000"
+            className="flex w-full items-center rounded-md p-1.5 text-neutral-900 hover:bg-light-200 focus:outline-none dark:text-dark-900 dark:hover:bg-dark-200 dark:hover:text-dark-1000"
             title={isCollapsed ? (displayName || email) : undefined}
           >
             {avatarUrl ? (
@@ -100,12 +102,22 @@ export default function UserMenu({
             )}
             <span
               className={twMerge(
-                "mx-2 truncate text-sm",
+                "mx-2 min-w-0 flex-1 truncate text-left text-sm",
                 isCollapsed && "md:hidden",
               )}
             >
               {displayName || email}
             </span>
+            {workspace.plan === "pro" && (
+              <span
+                className={twMerge(
+                  "ml-auto inline-flex flex-shrink-0 items-center rounded-md bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300",
+                  isCollapsed && "md:hidden",
+                )}
+              >
+                Pro
+              </span>
+            )}
           </Menu.Button>
         )}
       </div>
