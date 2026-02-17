@@ -211,7 +211,7 @@ export default async function handler(
             .from(apikey)
             .where(eq(apikey.userId, user.id));
 
-          return res.status(200).json({ data: keys });
+          return res.status(200).json(keys);
         }
 
         // CREATE

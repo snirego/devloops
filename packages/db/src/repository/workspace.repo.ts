@@ -138,6 +138,7 @@ export const update = async (
     description?: string;
     showEmailsToMembers?: boolean;
     brandColor?: string;
+    knowledgeJson?: unknown;
   },
 ) => {
   const [result] = await db
@@ -149,6 +150,7 @@ export const update = async (
       description: workspaceInput.description,
       showEmailsToMembers: workspaceInput.showEmailsToMembers,
       brandColor: workspaceInput.brandColor,
+      knowledgeJson: workspaceInput.knowledgeJson,
     })
     .where(eq(workspaces.publicId, workspacePublicId))
     .returning({
@@ -160,6 +162,7 @@ export const update = async (
       plan: workspaces.plan,
       showEmailsToMembers: workspaces.showEmailsToMembers,
       brandColor: workspaces.brandColor,
+      knowledgeJson: workspaces.knowledgeJson,
     });
 
   return result;
@@ -174,6 +177,20 @@ export const getByPublicId = (db: dbClient, workspacePublicId: string) => {
       plan: true,
       slug: true,
       brandColor: true,
+    },
+    where: eq(workspaces.publicId, workspacePublicId),
+  });
+};
+
+export const getByPublicIdWithKnowledge = (
+  db: dbClient,
+  workspacePublicId: string,
+) => {
+  return db.query.workspaces.findFirst({
+    columns: {
+      id: true,
+      publicId: true,
+      knowledgeJson: true,
     },
     where: eq(workspaces.publicId, workspacePublicId),
   });
@@ -204,6 +221,7 @@ export const getByPublicIdWithMembers = (
       slug: true,
       showEmailsToMembers: true,
       brandColor: true,
+      knowledgeJson: true,
     },
     with: {
       members: {
@@ -213,6 +231,7 @@ export const getByPublicIdWithMembers = (
           role: true,
           status: true,
           createdAt: true,
+          developerMetaJson: true,
         },
         where: isNull(workspaceMembers.deletedAt),
         orderBy: (member, { desc }) => [

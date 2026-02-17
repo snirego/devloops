@@ -1,0 +1,208 @@
+---
+description: Local-first architecture, caching, and performance standards — applies to all frontend and API code
+globs: apps/web/**, packages/api/**
+alwaysApply: true
+---
+
+# Local-First Architecture & Performance Standards
+
+This project follows a **local-first** philosophy: the UI must feel instant at all times. Data is cached aggressively on the client, updates are optimistic, and the network is treated as a background sync mechanism — never a blocker for rendering.
+
+## Core Principles
+
+1. **Render from cache, sync in background.** Never show a loading spinner when cached data exists. Show stale data immediately, then silently revalidate.
+2. **The network is a background task.** No user action should wait for a network round-trip before the UI responds.
+3. **Optimistic by default.** Mutations update the UI instantly. Roll back only if the server rejects.
+4. **Realtime over polling.** Use Supabase Realtime subscriptions instead of `refetchInterval`. Polling wastes bandwidth and adds latency.
+5. **Minimal payloads.** Fetch only the data needed for the current view. Use `columns` filters in Drizzle queries. Avoid loading heavy fields (like message bodies) when only metadata is needed.
+
+## React Query / tRPC Defaults
+
+The global `QueryClient` in `apps/web/src/utils/api.ts` is configured with:
+
+```
+staleTime: 30_000       → Data is fresh for 30s (no refetch on remount)
+gcTime: 5 * 60 * 1000   → Cached data kept for 5 min after unmount
+refetchOnWindowFocus: false  → Realtime handles freshness
+retry: 1
+```
+
+### Per-Query staleTime Guidelines
+
+| Data type | staleTime | Reasoning |
+|---|---|---|
+| User profile, workspace metadata | `2 * 60_000` (2 min) | Rarely changes, blocks the whole shell |
+| Board list, board data | `30_000` (30s) | Changes via explicit mutations that invalidate |
+| Thread list, work item list | `60_000` (1 min) | Realtime subscriptions handle updates |
+| Thread messages | `5_000` (5s) | Must refetch on revisit to catch missed Realtime events |
+| Settings, integrations, members | `60_000` (1 min) | Rarely viewed, rarely changes |
+
+### Rules for Every `useQuery` Call
+
+- **NEVER** use `refetchInterval` unless there is no Realtime alternative (and document why).
+- **ALWAYS** set an explicit `staleTime` if the data type needs something different from the 30s default.
+- **NEVER** block rendering on `isLoading` when `data` is available from cache. Use this pattern:
+
+```tsx
+if (isLoading && !data) {
+  return <Spinner />;   // First load only
+}
+// Render with data (possibly stale), background refetch is automatic
+```
+
+- **NEVER** use `keepPreviousData` / `placeholderData: keepPreviousData` on queries whose return value drives a Realtime subscription or contains an `id` used as a dependency in another hook. The stale data will point to the wrong resource during transitions.
+
+## Optimistic Updates
+
+All mutations that change a visible UI state must use optimistic updates:
+
+```tsx
+const mutation = api.entity.update.useMutation({
+  onMutate: async (input) => {
+    await utils.entity.list.cancel();
+    const prev = utils.entity.list.getData(queryKey);
+    utils.entity.list.setData(queryKey, (old) => /* apply change */);
+    return { prev };
+  },
+  onError: (_err, _vars, ctx) => {
+    if (ctx?.prev) utils.entity.list.setData(queryKey, ctx.prev); // rollback
+  },
+  onSettled: () => {
+    utils.entity.list.invalidate(); // background revalidate
+  },
+});
+```
+
+### Where Optimistic Updates Are Required
+
+- Sending a chat message (append to message list immediately)
+- WorkItem status changes (update card in kanban cache, rollback on error)
+- Thread creation (add optimistic thread to sidebar)
+- Any status/toggle change visible in the current view
+
+### Where Optimistic Updates Are NOT Needed
+
+- Settings changes (page reloads after save)
+- File uploads (progress indicator is sufficient)
+- Destructive operations like delete (confirm dialog provides the delay)
+
+## Realtime Subscriptions
+
+Supabase Realtime replaces polling for all live data. The standard pattern:
+
+```tsx
+export function useRealtime<Entity>({
+  enabled,
+  onInvalidate,
+}: {
+  enabled?: boolean;
+  onInvalidate: () => void;
+}) {
+  const onInvalidateRef = useRef(onInvalidate);
+  onInvalidateRef.current = onInvalidate;
+  const lastRef = useRef(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const supabase = getSupabaseBrowserClient();
+
+    const throttled = () => {
+      const now = Date.now();
+      if (now - lastRef.current < 3000) return;  // Throttle to 1 call per 3s
+      lastRef.current = now;
+      onInvalidateRef.current();
+    };
+
+    const channel = supabase
+      .channel("realtime-<entity>")
+      .on("postgres_changes", { event: "*", schema: "public", table: "<table>" }, throttled)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [enabled]);
+}
+```
+
+### Realtime Rules
+
+- **Throttle** all invalidation callbacks to max once per 3s to avoid hammering the API.
+- **Use `useRef`** for the callback to avoid re-subscribing on every render.
+- **Clean up** channels in the effect cleanup function.
+- **Never subscribe globally** to high-volume tables without a filter (e.g. always filter by `threadId` or `workspaceId` when possible).
+
+## localStorage Hydration
+
+For data that blocks the entire app shell (workspace name, user profile), persist to localStorage and read on mount for instant hydration:
+
+```tsx
+// On mount: read cached data immediately
+const [data, setData] = useState(() => getCachedData() ?? defaultValue);
+
+// When server data arrives: update state + persist
+useEffect(() => {
+  if (serverData) {
+    setData(serverData);
+    setCachedData(serverData);
+  }
+}, [serverData]);
+```
+
+### What to Cache in localStorage
+
+- Current workspace (name, publicId, slug, plan, role, brandColor)
+- Available workspaces list
+- Brand color (for instant theme application before DB fetch)
+- Thread read timestamps (for unread badges)
+
+### What NOT to Cache in localStorage
+
+- Auth tokens (handled by Supabase)
+- Full message histories or board data (too large, too volatile)
+- Any data containing secrets or PII beyond the user's own profile
+
+## Loading States
+
+Use **granular, non-blocking** loading indicators:
+
+| State | UI Treatment |
+|---|---|
+| `isLoading && !data` | Full spinner (first load only) |
+| `isFetching && !isLoading` | Subtle "syncing..." text or shimmer |
+| `isProcessingAI` | Animated dot indicator in the relevant header |
+| `isUpdatingWorkItem` | Spinner on the specific card being mutated |
+| Mutation in flight | Optimistic update shown; no spinner needed |
+
+**NEVER** show a full-page spinner when cached/stale data is available.
+
+## LLM Calls
+
+All AI processing runs locally via Ollama and must never block the UI:
+
+- LLM calls run in a background async job via `runIngestPipelineAsync`.
+- The `aiProcessingSince` field on the thread row tracks processing state.
+- The `AiActivityProvider` broadcasts processing state to the whole app.
+- **Debounce** rapid messages: use a per-thread 3s timer so rapid-fire messages only trigger one LLM call.
+- **Cache** classification results: if identical input (message text + current state summary) was already processed, skip the LLM call.
+
+## API Endpoint Design for Local-First
+
+When creating or modifying API endpoints:
+
+- **Return the mutated entity** from all mutations so the frontend can update its cache without a separate fetch.
+- **Support incremental sync** where possible: accept a `since` timestamp parameter and return only new/changed records.
+- **Keep payloads minimal**: use `columns` selection in Drizzle to exclude large text fields from list queries.
+- **PATCH, not PUT**: status changes and field updates should be PATCH-style (only send/return changed fields).
+
+## Performance Safety Checklist
+
+Before shipping any feature, verify:
+
+- [ ] No `refetchInterval` without documented justification
+- [ ] No full-page spinner when cached data exists
+- [ ] No full list refetch after a single item mutation
+- [ ] No blocking `await` in the render path
+- [ ] No duplicate concurrent requests for the same data
+- [ ] Optimistic updates for all user-visible mutations
+- [ ] Realtime subscription for all live data (or documented exception)
+- [ ] Error boundaries around data-fetching components
+- [ ] Proper cleanup of Realtime subscriptions in useEffect

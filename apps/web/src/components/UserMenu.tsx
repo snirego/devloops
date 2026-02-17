@@ -201,6 +201,15 @@ export default function UserMenu({
               </Menu.Item>
               <Menu.Item>
                 <Link
+                  href="/settings/usage"
+                  onClick={handleLinkClick}
+                  className="flex w-full items-center rounded-[5px] px-3 py-2 text-left text-xs hover:bg-light-200 dark:hover:bg-dark-400"
+                >
+                  {t`Usage`}
+                </Link>
+              </Menu.Item>
+              <Menu.Item>
+                <Link
                   href="mailto:support@Devloops"
                   target="_blank"
                   rel="noreferrer"

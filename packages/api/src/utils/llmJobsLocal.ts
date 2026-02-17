@@ -281,6 +281,7 @@ function buildThreadStateUserPrompt(
 function buildWorkItemGenPrompt(
   threadState: ThreadStateJson,
   workItemType: "Bug" | "Feature" | "Chore" | "Docs",
+  workspaceKnowledge?: Record<string, unknown> | null,
 ): string {
   const summary = threadState.summary || "No summary available";
   const goal = threadState.userGoal || "";
@@ -289,7 +290,18 @@ function buildWorkItemGenPrompt(
   const expected = threadState.expectedBehavior || "";
   const actual = threadState.actualBehavior || "";
 
+  const knowledgeLines: string[] = [];
+  if (workspaceKnowledge && typeof workspaceKnowledge === "object") {
+    const k = workspaceKnowledge as Record<string, unknown>;
+    if (k.productDescription) knowledgeLines.push(`Product: ${k.productDescription}`);
+    if (k.targetAudience) knowledgeLines.push(`Target audience: ${k.targetAudience}`);
+    if (k.keyFeatures) knowledgeLines.push(`Key features & areas: ${k.keyFeatures}`);
+    if (k.domainTerminology) knowledgeLines.push(`Domain terminology: ${k.domainTerminology}`);
+    if (k.additionalContext) knowledgeLines.push(`Additional context: ${k.additionalContext}`);
+  }
+
   const context = [
+    ...(knowledgeLines.length > 0 ? ["--- Workspace Knowledge ---", ...knowledgeLines, "--- End Workspace Knowledge ---", ""] : []),
     `Type: ${workItemType}`,
     `Summary: ${summary}`,
     goal ? `User goal: ${goal}` : null,
@@ -437,10 +449,11 @@ export async function runWorkItemGenerator(
   threadId: number,
   threadState: ThreadStateJson,
   workItemType: "Bug" | "Feature" | "Chore" | "Docs",
+  workspaceKnowledge?: Record<string, unknown> | null,
 ): Promise<{ publicId: string; id: number } | null> {
   const result = await llmJsonCompletion({
     systemPrompt: WORKITEM_GEN_SYSTEM_PROMPT,
-    userPrompt: buildWorkItemGenPrompt(threadState, workItemType),
+    userPrompt: buildWorkItemGenPrompt(threadState, workItemType, workspaceKnowledge),
     validate: validateWorkItemGenOutput,
     temperature: 0.2,
     maxTokens: 4096,
@@ -504,7 +517,27 @@ export async function runIngestPipeline(
 
   let workItem: { publicId: string; id: number } | null = null;
   if (gatekeeperResult.shouldCreateWorkItem && gatekeeperResult.workItemType) {
-    workItem = await runWorkItemGenerator(db, threadId, updatedState, gatekeeperResult.workItemType);
+    // Attempt to load workspace knowledge for richer prompt context
+    let workspaceKnowledge: Record<string, unknown> | null = null;
+    try {
+      const thread = await feedbackThreadRepo.getById(db, threadId);
+      if (thread?.workspaceId) {
+        const workspaceRepo = await import("@kan/db/repository/workspace.repo");
+        const ws = await workspaceRepo.getById(db, thread.workspaceId);
+        if (ws) {
+          const wsFull = await db.query.workspaces.findFirst({
+            columns: { knowledgeJson: true },
+            where: (w, { eq }) => eq(w.id, ws.id),
+          });
+          if (wsFull?.knowledgeJson) {
+            workspaceKnowledge = wsFull.knowledgeJson as Record<string, unknown>;
+          }
+        }
+      }
+    } catch {
+      // Non-critical: proceed without knowledge context
+    }
+    workItem = await runWorkItemGenerator(db, threadId, updatedState, gatekeeperResult.workItemType, workspaceKnowledge);
   }
 
   return { threadState: updatedState, gatekeeper: gatekeeperResult, workItem };

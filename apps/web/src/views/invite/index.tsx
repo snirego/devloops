@@ -58,7 +58,7 @@ export default function InvitePage() {
 
   // Auto accept invite if user is logged in
   useEffect(() => {
-    if (session?.user.id && inviteCode && inviteInfo && !error) {
+    if (session?.user?.id && inviteCode && inviteInfo && !error) {
       setIsProcessing(true);
       setError(null);
 
@@ -67,12 +67,12 @@ export default function InvitePage() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id, inviteCode, inviteInfo, error]);
+  }, [session?.user?.id, inviteCode, inviteInfo, error]);
 
   if (
     !isInviteInfoError &&
     !error &&
-    (session?.user.id || isInviteInfoLoading || isSessionLoading)
+    (session?.user?.id || isInviteInfoLoading || isSessionLoading)
   ) {
     return (
       <>
@@ -139,7 +139,7 @@ export default function InvitePage() {
             )}
           </div>
           <div className="flex justify-center gap-2">
-            {session?.user.id ? (
+            {session?.user?.id ? (
               <Button href={`/boards`} variant="primary" size="md">
                 {t`Go to app`}
               </Button>

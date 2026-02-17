@@ -78,11 +78,11 @@ export const workspaceRouter = createTRPCRouter({
         });
       await assertPermission(ctx.db, userId, result.id, "workspace:view");
 
-      // Check if user is an admin
+      // Check if user is an admin or super-admin
       const userMember = result.members.find(
         (member) => member.user?.id === userId,
       );
-      const isAdmin = userMember?.role === "admin";
+      const isAdmin = userMember?.role === "admin" || userMember?.role === "super-admin";
 
       // Show emails if user is admin OR workspace setting allows it
       const shouldShowEmails =
@@ -303,6 +303,23 @@ export const workspaceRouter = createTRPCRouter({
         description: z.string().min(3).max(280).optional(),
         showEmailsToMembers: z.boolean().optional(),
         brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        knowledgeJson: z.object({
+          websiteUrl: z.string().max(500).default(""),
+          productDescription: z.string().max(2000).default(""),
+          targetAudience: z.string().max(500).default(""),
+          keyFeatures: z.string().max(2000).default(""),
+          domainTerminology: z.string().max(2000).default(""),
+          additionalContext: z.string().max(3000).default(""),
+          files: z.array(z.object({
+            id: z.string(),
+            filename: z.string(),
+            originalFilename: z.string(),
+            contentType: z.string(),
+            size: z.number(),
+            s3Key: z.string(),
+            uploadedAt: z.string(),
+          })).max(20).default([]),
+        }).optional(),
       }),
     )
     .output(z.custom<Awaited<ReturnType<typeof workspaceRepo.update>>>())
@@ -366,6 +383,7 @@ export const workspaceRouter = createTRPCRouter({
           description: input.description,
           showEmailsToMembers: input.showEmailsToMembers,
           brandColor: input.brandColor,
+          knowledgeJson: input.knowledgeJson,
         },
       );
 
@@ -557,5 +575,73 @@ export const workspaceRouter = createTRPCRouter({
       );
 
       return result;
+    }),
+  deleteKnowledgeFile: protectedProcedure
+    .input(
+      z.object({
+        workspacePublicId: z.string().min(12),
+        fileId: z.string().min(1),
+      }),
+    )
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user?.id;
+
+      if (!userId)
+        throw new TRPCError({
+          message: `User not authenticated`,
+          code: "UNAUTHORIZED",
+        });
+
+      const workspace = await workspaceRepo.getByPublicIdWithKnowledge(
+        ctx.db,
+        input.workspacePublicId,
+      );
+
+      if (!workspace)
+        throw new TRPCError({
+          message: `Workspace not found`,
+          code: "NOT_FOUND",
+        });
+
+      await assertPermission(
+        ctx.db,
+        userId,
+        workspace.id,
+        "workspace:edit",
+      );
+
+      const knowledge =
+        (workspace.knowledgeJson as import("@kan/db/schema").WorkspaceKnowledge | null) ?? null;
+      const files = knowledge?.files ?? [];
+      const fileToDelete = files.find((f) => f.id === input.fileId);
+
+      if (!fileToDelete)
+        throw new TRPCError({
+          message: `File not found`,
+          code: "NOT_FOUND",
+        });
+
+      const bucket = process.env.NEXT_PUBLIC_ATTACHMENTS_BUCKET_NAME;
+      if (bucket) {
+        try {
+          const { deleteObject } = await import("@kan/shared/utils");
+          await deleteObject(bucket, fileToDelete.s3Key);
+        } catch (error) {
+          console.error(
+            `Failed to delete knowledge file from S3: ${fileToDelete.s3Key}`,
+            error,
+          );
+        }
+      }
+
+      const updatedFiles = files.filter((f) => f.id !== input.fileId);
+      const updatedKnowledge = { ...knowledge, files: updatedFiles };
+
+      await workspaceRepo.update(ctx.db, input.workspacePublicId, {
+        knowledgeJson: updatedKnowledge,
+      });
+
+      return { success: true };
     }),
 });

@@ -13,6 +13,8 @@ import {
   HiChevronDown,
   HiOutlineBanknotes,
   HiOutlineBellAlert,
+  HiOutlineAcademicCap,
+  HiOutlineChartBarSquare,
   HiOutlineCodeBracketSquare,
   HiOutlinePuzzlePiece,
   HiOutlineRectangleGroup,
@@ -73,9 +75,21 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
       condition: true,
     },
     {
+      key: "usage",
+      icon: <HiOutlineChartBarSquare />,
+      label: t`Usage`,
+      condition: true,
+    },
+    {
       key: "integrations",
       icon: <HiOutlinePuzzlePiece />,
       label: t`Integrations`,
+      condition: canEditWorkspace,
+    },
+    {
+      key: "knowledge",
+      icon: <HiOutlineAcademicCap />,
+      label: t`Knowledge Hub`,
       condition: canEditWorkspace,
     },
   ];

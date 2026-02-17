@@ -165,8 +165,8 @@ export default function Dashboard({
           >
             <SideNavigation
               user={{
-                displayName: user?.name ?? session?.user.name,
-                email: user?.email ?? session?.user.email ?? "",
+                displayName: user?.name ?? session?.user?.name,
+                email: user?.email ?? session?.user?.email ?? "",
                 image: user?.image ?? undefined,
               }}
               isLoading={sessionLoading || userLoading}

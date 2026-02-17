@@ -119,3 +119,15 @@ await assertPermission(ctx.db, userId, resource.workspaceId, "edit");
 - **Optimistic updates**: Design mutations to return the data the frontend needs for cache updates.
 - **Transactions**: Use `ctx.db.transaction(...)` for multi-step operations.
 - **Superjson**: The tRPC instance uses Superjson as the transformer — Dates, Maps, etc. are serialized automatically.
+
+## Local-First API Design
+
+> Full details in the `local-first.mdc` rules file. Key points below.
+
+All API endpoints must be designed to support the local-first frontend:
+
+- **Return mutated entities** from all mutations. The frontend needs the updated object to patch its cache without a separate refetch.
+- **Support incremental sync** where practical: accept `since` (timestamp) parameters so the client fetches only new/changed records (e.g. `getMessagesSince`).
+- **PATCH, not PUT**: status updates and field changes should accept and return only the changed fields.
+- **Keep list payloads lean**: use Drizzle `columns` selection to exclude heavy fields (e.g. full message body) from list endpoints. Provide a detail endpoint for the full object.
+- **Never return more data than the client needs** to update its cache for a given operation.

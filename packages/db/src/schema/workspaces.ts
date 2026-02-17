@@ -56,7 +56,30 @@ export const workspaces = pgTable("workspace", {
   deletedBy: uuid("deletedBy").references(() => users.id, {
     onDelete: "set null",
   }),
+  knowledgeJson: jsonb("knowledgeJson"),
 }).enableRLS();
+
+// ─── Workspace Knowledge TypeScript interface ─────────────────────────────────
+
+export interface KnowledgeFile {
+  id: string;
+  filename: string;
+  originalFilename: string;
+  contentType: string;
+  size: number;
+  s3Key: string;
+  uploadedAt: string;
+}
+
+export interface WorkspaceKnowledge {
+  websiteUrl: string;
+  productDescription: string;
+  targetAudience: string;
+  keyFeatures: string;
+  domainTerminology: string;
+  additionalContext: string;
+  files: KnowledgeFile[];
+}
 
 export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
   user: one(users, {
@@ -107,6 +130,9 @@ export interface DeveloperMeta {
   maxConcurrentItems: number;
   role: "developer" | "tester" | "lead" | "designer";
   timezone?: string;
+  summary?: string;
+  focusAreas?: string[];
+  seniorityLevel?: "junior" | "mid" | "senior" | "staff" | "principal";
 }
 
 export const workspaceMembersRelations = relations(
@@ -117,10 +143,19 @@ export const workspaceMembersRelations = relations(
       references: [users.id],
       relationName: "workspaceMembersUser",
     }),
+    addedBy: one(users, {
+      fields: [workspaceMembers.createdBy],
+      references: [users.id],
+      relationName: "workspaceMembersAddedByUser",
+    }),
+    deletedByUser: one(users, {
+      fields: [workspaceMembers.deletedBy],
+      references: [users.id],
+      relationName: "workspaceMembersDeletedByUser",
+    }),
     workspace: one(workspaces, {
       fields: [workspaceMembers.workspaceId],
       references: [workspaces.id],
-      relationName: "workspaceMembersWorkspace",
     }),
     workspaceRole: one(workspaceRoles, {
       fields: [workspaceMembers.roleId],

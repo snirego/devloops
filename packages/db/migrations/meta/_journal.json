@@ -246,6 +246,27 @@
       "when": 1771153200000,
       "tag": "20260215100000_AddDevAccountsSupport",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1771092000000,
+      "tag": "20260214180000_AddSuperAdminAndTesterRoles",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1771110000000,
+      "tag": "20260215000000_AddAssignedMemberIdToWorkItem",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1771326000000,
+      "tag": "20260217100000_AddKnowledgeJsonToWorkspace",
+      "breakpoints": true
     }
   ]
 }

@@ -33,6 +33,8 @@ const dur = 0.45;
 
 /* ─── Stage Card wrapper ─── */
 
+const STEP_DURATION_MS = 3500;
+
 function StageCard({
   isActive,
   activeColor,
@@ -55,9 +57,25 @@ function StageCard({
       }}
       transition={{ duration: dur, ease }}
       style={{ flexBasis: 0, minWidth: 0 }}
-      className="flex h-[100px] flex-col overflow-hidden rounded-xl p-2.5 sm:h-[120px] sm:p-3 lg:h-[150px] lg:rounded-2xl lg:p-4"
+      className="relative flex h-[100px] flex-col overflow-hidden rounded-xl p-2.5 sm:h-[120px] sm:p-3 lg:h-[150px] lg:rounded-2xl lg:p-4"
     >
       {children}
+      {/* Progress border that fills while this step is active */}
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            key="progress-border"
+            className="absolute bottom-0 left-0 h-[2px] rounded-full"
+            style={{
+              background: `linear-gradient(90deg, ${activeBorder}, ${activeBorder.replace(/[\d.]+\)$/, "0.6)")})`,
+            }}
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            exit={{ width: "100%", opacity: 0, transition: { duration: 0.2 } }}
+            transition={{ duration: STEP_DURATION_MS / 1000, ease: "linear" }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -320,7 +338,7 @@ function PipelineAnimation() {
         }
         return prev + 1;
       });
-    }, 1800);
+    }, STEP_DURATION_MS);
     return () => clearInterval(interval);
   }, []);
 

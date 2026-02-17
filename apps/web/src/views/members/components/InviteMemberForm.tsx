@@ -93,10 +93,9 @@ export function InviteMemberForm({
       await refetchBoards();
     },
     onError: (error) => {
-      reset();
-      if (!isShareInviteLinkEnabled) closeModal();
-
       if (error.data?.code === "CONFLICT") {
+        reset();
+        closeModal();
         showPopup({
           header: t`Error inviting member`,
           message: t`User is already a member of this workspace`,
@@ -105,7 +104,7 @@ export function InviteMemberForm({
       } else {
         showPopup({
           header: t`Error inviting member`,
-          message: t`Please try again later, or contact customer support.`,
+          message: error.message || t`Please try again later, or contact customer support.`,
           icon: "error",
         });
       }

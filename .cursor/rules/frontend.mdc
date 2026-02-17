@@ -78,13 +78,18 @@ export default BoardPage;
 - Use `tailwind-merge` (`twMerge`) when conditionally combining class names.
 - Follow the shared Tailwind config from `@kan/tailwind-config`.
 
-## Data Fetching (tRPC)
+## Data Fetching (tRPC) — Local-First
+
+> Full details in the `local-first.mdc` rules file. Key points below.
 
 - Use tRPC React Query hooks for all server state:
-  - `trpc.<router>.<procedure>.useQuery()` for reads.
-  - `trpc.<router>.<procedure>.useMutation()` for writes.
-- Implement **optimistic updates** via `onMutate` for immediate UI feedback.
-- Invalidate relevant queries in `onSettled` or `onSuccess`.
+  - `api.<router>.<procedure>.useQuery()` for reads.
+  - `api.<router>.<procedure>.useMutation()` for writes.
+- **Always set `staleTime`** appropriate to the data type (see local-first.mdc for the table).
+- **Never block rendering** on `isLoading` when cached `data` exists — use `if (isLoading && !data)`.
+- Implement **optimistic updates** via `onMutate` for all user-visible mutations.
+- Invalidate relevant queries in `onSettled` (not `onSuccess` — `onSettled` fires on both success and error).
+- Use **Supabase Realtime** subscriptions instead of `refetchInterval` for live data.
 - Never call `fetch()` directly for tRPC endpoints — always use the typed hooks.
 
 ## Internationalization (Lingui)
@@ -102,7 +107,10 @@ export default BoardPage;
 
 | Type | Approach |
 |---|---|
-| Server state | tRPC + React Query |
+| Server state | tRPC + React Query (cache-first, background revalidation) |
+| Realtime sync | Supabase Realtime subscriptions (replaces polling) |
+| Optimistic mutations | `onMutate` / `onError` / `onSettled` pattern |
+| App shell hydration | localStorage cache for workspace, user profile |
 | UI modals | `useModal()` hook |
 | Toast / popups | `usePopup()` hook |
 | Theme | `next-themes` |
@@ -135,6 +143,9 @@ Custom hooks live in `src/hooks/`. Follow the `use<Name>` convention. Common hoo
 - `optimizePackageImports` is configured for `react-icons`, `date-fns`, `@headlessui/react`, `framer-motion`.
 - Use dynamic imports (`next/dynamic`) for heavy components that aren't needed on first paint.
 - Implement proper loading and error states for all data-fetching components.
+- **Never show a full-page spinner when cached/stale data is available.** Show stale data immediately and sync in the background.
+- Use granular loading indicators (`isFetching`, `isProcessingAI`, `isUpdatingWorkItem`) rather than a single global loading state.
+- See `local-first.mdc` for the complete performance safety checklist.
 
 ## Path Aliases
 

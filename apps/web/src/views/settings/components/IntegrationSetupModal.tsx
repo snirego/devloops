@@ -111,7 +111,7 @@ export interface IntegrationConfig {
   description: string;
   longDescription: string;
   icon: React.ReactNode;
-  category: "feedback" | "llm" | "agent";
+  category: "feedback" | "llm" | "agent" | "codebase";
   steps: IntegrationStep[];
   docsUrl?: string;
   comingSoon?: boolean;

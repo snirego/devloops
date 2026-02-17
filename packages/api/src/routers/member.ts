@@ -152,6 +152,7 @@ export const memberRouter = createTRPCRouter({
       const inviter = await userRepo.getById(ctx.db, userId);
       const inviterName = inviter?.name ?? inviter?.email ?? "A team member";
 
+      let emailSent = false;
       try {
         await sendEmail(
           input.email,
@@ -163,22 +164,21 @@ export const memberRouter = createTRPCRouter({
             workspaceName: workspace.name ?? "a workspace",
           },
         );
+        emailSent = true;
       } catch (emailError) {
-        console.error("Failed to send invite email:", {
+        const errMsg = emailError instanceof Error ? emailError.message : String(emailError);
+        console.warn("Failed to send invite email (invite still created):", {
           email: input.email,
-          error: emailError instanceof Error ? emailError.message : String(emailError),
+          error: errMsg,
         });
 
-        await memberRepo.softDelete(ctx.db, {
-          memberId: invite.id,
-          deletedAt: new Date(),
-          deletedBy: userId,
-        });
-
-        throw new TRPCError({
-          message: `Failed to send invitation to user with email ${input.email}.`,
-          code: "INTERNAL_SERVER_ERROR",
-        });
+        // If using Resend testing sender, give a clear message
+        if (errMsg.includes("only send testing emails") || errMsg.includes("domain is not verified")) {
+          throw new TRPCError({
+            message: `Member was invited but the email could not be delivered. Your email sender (EMAIL_FROM) domain is not verified with Resend — you can only send to your own Resend account email. Verify a domain at https://resend.com/domains to send to any address. The member can still join via an invite link.`,
+            code: "BAD_REQUEST",
+          });
+        }
       }
 
       return invite;
@@ -705,6 +705,9 @@ export const memberRouter = createTRPCRouter({
           maxConcurrentItems: z.number().min(1).max(20).default(3),
           role: z.enum(["developer", "tester", "lead", "designer"]),
           timezone: z.string().optional(),
+          summary: z.string().max(1000).optional(),
+          focusAreas: z.array(z.string().max(100)).max(20).optional(),
+          seniorityLevel: z.enum(["junior", "mid", "senior", "staff", "principal"]).optional(),
         }),
       }),
     )

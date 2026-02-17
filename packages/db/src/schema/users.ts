@@ -56,35 +56,19 @@ export const usersRelations = relations(users, ({ many }) => ({
   workspaces: many(workspaces, {
     relationName: "workspaceCreatedByUser",
   }),
+  memberships: many(workspaceMembers, {
+    relationName: "workspaceMembersUser",
+  }),
+  addedMembers: many(workspaceMembers, {
+    relationName: "workspaceMembersAddedByUser",
+  }),
+  deletedMembers: many(workspaceMembers, {
+    relationName: "workspaceMembersDeletedByUser",
+  }),
   apiKeys: many(apikey),
   integrations: many(integrations),
 }));
 
-export const usersToWorkspacesRelations = relations(
-  workspaceMembers,
-  ({ one }) => ({
-    addedBy: one(users, {
-      fields: [workspaceMembers.createdBy],
-      references: [users.id],
-      relationName: "usersToWorkspacesAddedByUser",
-    }),
-    deletedBy: one(users, {
-      fields: [workspaceMembers.deletedBy],
-      references: [users.id],
-      relationName: "usersToWorkspacesDeletedByUser",
-    }),
-    user: one(users, {
-      fields: [workspaceMembers.userId],
-      references: [users.id],
-      relationName: "usersToWorkspacesUser",
-    }),
-    workspace: one(workspaces, {
-      fields: [workspaceMembers.workspaceId],
-      references: [workspaces.id],
-      relationName: "usersToWorkspacesWorkspace",
-    }),
-  }),
-);
 
 export const userBoardFavoritesRelations = relations(userBoardFavorites, ({ one }) => ({
   user: one(users, {
