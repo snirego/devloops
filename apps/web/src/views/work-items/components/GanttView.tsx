@@ -122,7 +122,7 @@ export default function GanttView({ workItems, onItemClick }: GanttViewProps) {
                   isWeekend
                     ? "bg-light-100/60 dark:bg-dark-100/40"
                     : "bg-light-50 dark:bg-dark-50"
-                } ${isTodayCol ? "bg-violet-50 dark:bg-violet-950/20" : ""}`}
+                } ${isTodayCol ? "bg-brand-50 dark:bg-brand-950/20" : ""}`}
                 style={{ width: `${DAY_WIDTH}px`, minWidth: `${DAY_WIDTH}px` }}
               >
                 <span className="text-[10px] font-medium uppercase text-light-800 dark:text-dark-800">
@@ -131,7 +131,7 @@ export default function GanttView({ workItems, onItemClick }: GanttViewProps) {
                 <span
                   className={`text-xs font-semibold ${
                     isTodayCol
-                      ? "text-violet-600 dark:text-violet-400"
+                      ? "text-brand-500 dark:text-brand-400"
                       : "text-light-900 dark:text-dark-900"
                   }`}
                 >

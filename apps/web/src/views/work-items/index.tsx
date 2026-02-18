@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   HiOutlineArrowPath,
   HiOutlineDocumentText,
   HiOutlineViewColumns,
   HiOutlineBars3,
   HiOutlineCalendarDays,
+  HiOutlinePlusSmall,
+  HiOutlineSparkles,
+  HiOutlineXMark,
 } from "react-icons/hi2";
 
 import { PageHead } from "~/components/PageHead";
@@ -61,6 +64,40 @@ export default function WorkItemsView() {
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
+
+  // ── Add Work Item modal state ───────────────────────────────────────────
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addText, setAddText] = useState("");
+  const addTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const ingestMutation = api.feedbackThread.ingest.useMutation({
+    onSuccess: (data) => {
+      setShowAddModal(false);
+      setAddText("");
+      invalidateWorkItems();
+      if (data.workItem?.publicId) {
+        setSelectedWorkItemId(data.workItem.publicId);
+      }
+    },
+  });
+
+  const handleAddSubmit = useCallback(() => {
+    const text = addText.trim();
+    if (!text || ingestMutation.isPending) return;
+    ingestMutation.mutate({
+      source: "api",
+      workspacePublicId: workspace.publicId,
+      rawText: text,
+      metadata: { origin: "work_items_page" },
+    });
+  }, [addText, ingestMutation, workspace.publicId]);
+
+  // Focus textarea when modal opens
+  useEffect(() => {
+    if (showAddModal) {
+      setTimeout(() => addTextareaRef.current?.focus(), 50);
+    }
+  }, [showAddModal]);
 
   const utils = api.useUtils();
 
@@ -145,6 +182,14 @@ export default function WorkItemsView() {
             title="Refresh"
           >
             <HiOutlineArrowPath className="h-4 w-4 text-light-900 dark:text-dark-900" />
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition-colors duration-0 hover:bg-brand-600"
+            title="Add work item"
+          >
+            <HiOutlinePlusSmall className="h-4 w-4" />
+            <span className="hidden sm:inline">Add</span>
           </button>
         </div>
       </div>
@@ -245,6 +290,119 @@ export default function WorkItemsView() {
 
       {/* Logs Panel */}
       {showLogs && <LogsPanel onClose={() => setShowLogs(false)} />}
+
+      {/* ── Add Work Item Modal ─────────────────────────────────────────── */}
+      {showAddModal && (
+        <>
+          <div
+            className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              if (!ingestMutation.isPending) {
+                setShowAddModal(false);
+                setAddText("");
+                ingestMutation.reset();
+              }
+            }}
+          />
+          <div className="fixed left-1/2 top-1/2 z-[9999] w-[560px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-light-200 bg-white shadow-2xl dark:border-dark-300 dark:bg-dark-100">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-light-200 px-6 py-4 dark:border-dark-300">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                  <HiOutlineSparkles className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-light-900 dark:text-dark-900">
+                    Add Work Item
+                  </h2>
+                  <p className="text-xs text-light-800 dark:text-dark-800">
+                    Describe a feature, bug, or task in plain language
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!ingestMutation.isPending) {
+                    setShowAddModal(false);
+                    setAddText("");
+                    ingestMutation.reset();
+                  }
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-light-800 transition-colors duration-0 hover:bg-light-100 dark:text-dark-800 dark:hover:bg-dark-200"
+              >
+                <HiOutlineXMark className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-4">
+              <textarea
+                ref={addTextareaRef}
+                value={addText}
+                onChange={(e) => setAddText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    handleAddSubmit();
+                  }
+                }}
+                disabled={ingestMutation.isPending}
+                placeholder={`Examples:\n• "Users can't upload files larger than 10MB — they get a blank screen"\n• "Add a dark mode toggle in the settings page"\n• "Migrate CI from Jenkins to GitHub Actions"`}
+                className="w-full resize-none rounded-lg border border-light-200 bg-light-50 px-4 py-3 text-sm text-light-900 placeholder:text-light-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/20 disabled:opacity-60 dark:border-dark-300 dark:bg-dark-200 dark:text-dark-900 dark:placeholder:text-dark-700 dark:focus:border-brand-500 dark:focus:ring-brand-500/20"
+                rows={5}
+              />
+
+              {ingestMutation.isError && (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                  Failed to process. Please try again.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between border-t border-light-200 bg-light-50/50 px-6 py-3 dark:border-dark-300 dark:bg-dark-200/30">
+              <p className="text-[11px] text-light-800 dark:text-dark-800">
+                <kbd className="rounded border border-light-300 px-1 py-0.5 text-[10px] font-medium dark:border-dark-300">
+                  {navigator.platform?.includes("Mac") ? "⌘" : "Ctrl"}+Enter
+                </kbd>{" "}
+                to submit
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (!ingestMutation.isPending) {
+                      setShowAddModal(false);
+                      setAddText("");
+                      ingestMutation.reset();
+                    }
+                  }}
+                  disabled={ingestMutation.isPending}
+                  className="rounded-md border border-light-200 px-3 py-1.5 text-xs font-medium text-light-900 transition-colors duration-0 hover:bg-light-100 disabled:opacity-50 dark:border-dark-300 dark:text-dark-900 dark:hover:bg-dark-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddSubmit}
+                  disabled={!addText.trim() || ingestMutation.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-brand-500 px-4 py-1.5 text-xs font-medium text-white transition-colors duration-0 hover:bg-brand-600 disabled:opacity-50"
+                >
+                  {ingestMutation.isPending ? (
+                    <>
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <HiOutlineSparkles className="h-3.5 w-3.5" />
+                      Analyze & Create
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -277,7 +435,7 @@ function ViewToggle({
       title={label}
       className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-colors duration-0 ${rounded} ${
         active
-          ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
+          ? "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
           : "text-light-900 hover:bg-light-100 dark:text-dark-900 dark:hover:bg-dark-200"
       } ${position === "middle" ? "border-x border-light-300 dark:border-dark-300" : ""}`}
     >

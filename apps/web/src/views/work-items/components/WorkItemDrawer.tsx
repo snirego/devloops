@@ -146,7 +146,7 @@ export default function WorkItemDrawer({
     return (
       <DrawerShell onClose={onClose}>
         <div className="flex h-full items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
         </div>
       </DrawerShell>
     );
@@ -260,7 +260,7 @@ export default function WorkItemDrawer({
                 href={links.githubIssueUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 truncate text-sm text-violet-600 hover:underline dark:text-violet-400"
+                className="inline-flex items-center gap-1 truncate text-sm text-brand-500 hover:underline dark:text-brand-400"
               >
                 <HiOutlineArrowTopRightOnSquare className="h-3.5 w-3.5 flex-shrink-0" />
                 <span className="truncate">{links.githubIssueUrl.replace("https://github.com/", "")}</span>
@@ -356,12 +356,12 @@ export default function WorkItemDrawer({
                       key={i}
                       className={`rounded-lg border px-3 py-2.5 text-sm ${
                         isInternal
-                          ? "border-violet-200 bg-violet-50/50 dark:border-violet-800 dark:bg-violet-950/20"
+                          ? "border-brand-200 bg-brand-50/50 dark:border-brand-800 dark:bg-brand-950/20"
                           : "border-light-200 bg-light-50 dark:border-dark-200 dark:bg-dark-100"
                       }`}
                     >
                       <div className="mb-1 flex items-center justify-between">
-                        <span className={`text-xs font-semibold ${isInternal ? "text-violet-600 dark:text-violet-400" : "text-light-950 dark:text-dark-950"}`}>
+                        <span className={`text-xs font-semibold ${isInternal ? "text-brand-500 dark:text-brand-400" : "text-light-950 dark:text-dark-950"}`}>
                           {msg.senderName ?? (isInternal ? "Agent" : "User")}
                         </span>
                         <span className="text-[10px] text-light-900 dark:text-dark-900">
@@ -396,7 +396,7 @@ export default function WorkItemDrawer({
           )}
           {item.status === "Approved" && (
             <>
-              <ActionBtn icon={<HiOutlinePlay />} label="Start" variant="violet" onClick={() => start.mutate({ publicId })} loading={start.isPending} />
+              <ActionBtn icon={<HiOutlinePlay />} label="Start" variant="brand" onClick={() => start.mutate({ publicId })} loading={start.isPending} />
               {ghStatus?.configured && !links?.githubIssueUrl && (
                 <ActionBtn icon={<HiOutlineLink />} label="Create GitHub Issue" variant="slate" onClick={() => createIssue.mutate({ publicId })} loading={createIssue.isPending} />
               )}
@@ -412,7 +412,7 @@ export default function WorkItemDrawer({
           {item.status === "NeedsReview" && (
             <>
               <ActionBtn icon={<HiOutlineCheck />} label="Done" variant="green" onClick={() => markDone.mutate({ publicId })} loading={markDone.isPending} />
-              <ActionBtn icon={<HiOutlinePlay />} label="Back to In Progress" variant="violet" onClick={() => start.mutate({ publicId })} loading={start.isPending} />
+              <ActionBtn icon={<HiOutlinePlay />} label="Back to In Progress" variant="brand" onClick={() => start.mutate({ publicId })} loading={start.isPending} />
             </>
           )}
         </div>
@@ -426,7 +426,7 @@ export default function WorkItemDrawer({
             <input
               autoFocus
               type="text"
-              className="w-full rounded-md border border-light-300 px-3 py-1.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 dark:border-dark-300 dark:bg-dark-200 dark:text-dark-900"
+              className="w-full rounded-md border border-light-300 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-dark-300 dark:bg-dark-200 dark:text-dark-900"
               placeholder="Enter reason..."
               value={reasonText}
               onChange={(e) => setReasonText(e.target.value)}
@@ -546,7 +546,7 @@ function ConfidenceBar({ value }: { value: number }) {
     <div className="flex items-center gap-2">
       <div className="h-1.5 flex-1 rounded-full bg-light-200 dark:bg-dark-200">
         <div
-          className="h-1.5 rounded-full bg-violet-500"
+          className="h-1.5 rounded-full bg-brand-500"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -664,7 +664,7 @@ function InlineEditText({
           if (e.key === "Enter") save();
           if (e.key === "Escape") { setDraft(value); setEditing(false); }
         }}
-        className={`w-full rounded-md border border-violet-300 bg-white px-2 py-1 outline-none ring-2 ring-violet-400/20 dark:border-violet-700 dark:bg-dark-100 ${className ?? ""}`}
+        className={`w-full rounded-md border border-brand-300 bg-white px-2 py-1 outline-none ring-2 ring-brand-400/20 dark:border-brand-700 dark:bg-dark-100 ${className ?? ""}`}
       />
     );
   }
@@ -721,10 +721,10 @@ function InlineEditTextarea({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={Math.max(minRows ?? 3, draft.split("\n").length + 1)}
-          className="w-full resize-y rounded-md border border-violet-300 bg-white px-3 py-2 text-sm leading-relaxed outline-none ring-2 ring-violet-400/20 dark:border-violet-700 dark:bg-dark-100 dark:text-dark-900"
+          className="w-full resize-y rounded-md border border-brand-300 bg-white px-3 py-2 text-sm leading-relaxed outline-none ring-2 ring-brand-400/20 dark:border-brand-700 dark:bg-dark-100 dark:text-dark-900"
         />
         <div className="flex items-center gap-2">
-          <button onClick={save} className="rounded-md bg-violet-600 px-3 py-1 text-xs font-medium text-white hover:bg-violet-700">
+          <button onClick={save} className="rounded-md bg-brand-500 px-3 py-1 text-xs font-medium text-white hover:bg-brand-600">
             Save
           </button>
           <button onClick={() => { setDraft(value); setEditing(false); }} className="rounded-md border border-light-300 px-3 py-1 text-xs text-light-950 hover:bg-light-100 dark:border-dark-300 dark:text-dark-950 dark:hover:bg-dark-200">
@@ -782,7 +782,7 @@ function InlineSelect({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all hover:ring-2 hover:ring-violet-400/30 ${className ?? "bg-light-200 text-light-950 dark:bg-dark-200 dark:text-dark-950"}`}
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all hover:ring-2 hover:ring-brand-400/30 ${className ?? "bg-light-200 text-light-950 dark:bg-dark-200 dark:text-dark-950"}`}
       >
         {icon}
         {value}
@@ -794,7 +794,7 @@ function InlineSelect({
             <button
               key={opt}
               onClick={() => { onSave(opt); setOpen(false); }}
-              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-light-100 dark:hover:bg-dark-200 ${opt === value ? "font-semibold text-violet-600 dark:text-violet-400" : "text-light-800 dark:text-dark-800"}`}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-light-100 dark:hover:bg-dark-200 ${opt === value ? "font-semibold text-brand-500 dark:text-brand-400" : "text-light-800 dark:text-dark-800"}`}
             >
               {opt === value && <HiOutlineCheck className="h-3 w-3" />}
               <span className={opt === value ? "" : "pl-5"}>{opt}</span>
@@ -841,7 +841,7 @@ function AcceptanceCriteriaEditor({
                 next[i] = e.target.value;
                 setDraft(next);
               }}
-              className="flex-1 rounded border border-light-300 px-2 py-1 text-sm outline-none focus:border-violet-400 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900"
+              className="flex-1 rounded border border-light-300 px-2 py-1 text-sm outline-none focus:border-brand-400 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900"
             />
             <button
               onClick={() => setDraft(draft.filter((_, j) => j !== i))}
@@ -862,7 +862,7 @@ function AcceptanceCriteriaEditor({
               }
             }}
             placeholder="Add criterion..."
-            className="flex-1 rounded border border-dashed border-light-300 px-2 py-1 text-sm outline-none focus:border-violet-400 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900"
+            className="flex-1 rounded border border-dashed border-light-300 px-2 py-1 text-sm outline-none focus:border-brand-400 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900"
           />
           <button
             onClick={() => {
@@ -871,13 +871,13 @@ function AcceptanceCriteriaEditor({
                 setNewItem("");
               }
             }}
-            className="rounded p-1 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+            className="rounded p-1 text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30"
           >
             <HiOutlinePlusCircle className="h-4 w-4" />
           </button>
         </div>
         <div className="flex gap-2">
-          <button onClick={save} className="rounded-md bg-violet-600 px-3 py-1 text-xs font-medium text-white hover:bg-violet-700">
+          <button onClick={save} className="rounded-md bg-brand-500 px-3 py-1 text-xs font-medium text-white hover:bg-brand-600">
             Save
           </button>
           <button onClick={() => { setDraft(items); setEditing(false); }} className="rounded-md border border-light-300 px-3 py-1 text-xs text-light-950 hover:bg-light-100 dark:border-dark-300 dark:text-dark-950 dark:hover:bg-dark-200">
@@ -892,7 +892,7 @@ function AcceptanceCriteriaEditor({
     return (
       <button
         onClick={() => setEditing(true)}
-        className="flex items-center gap-1.5 text-sm text-light-800 hover:text-violet-600 dark:text-dark-800 dark:hover:text-violet-400"
+        className="flex items-center gap-1.5 text-sm text-light-800 hover:text-brand-500 dark:text-dark-800 dark:hover:text-brand-400"
       >
         <HiOutlinePlusCircle className="h-4 w-4" />
         Add acceptance criteria
@@ -973,12 +973,12 @@ function PromptSection({
         <div className="space-y-2">
           <textarea
             autoFocus
-            className="h-40 w-full resize-y rounded-md border border-violet-300 bg-white p-3 font-mono text-xs leading-relaxed outline-none ring-2 ring-violet-400/20 dark:border-violet-700 dark:bg-dark-100 dark:text-dark-900"
+            className="h-40 w-full resize-y rounded-md border border-brand-300 bg-white p-3 font-mono text-xs leading-relaxed outline-none ring-2 ring-brand-400/20 dark:border-brand-700 dark:bg-dark-100 dark:text-dark-900"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
           <div className="flex gap-2">
-            <button onClick={handleSave} className="rounded-md bg-violet-600 px-3 py-1 text-xs font-medium text-white hover:bg-violet-700">
+            <button onClick={handleSave} className="rounded-md bg-brand-500 px-3 py-1 text-xs font-medium text-white hover:bg-brand-600">
               Save
             </button>
             <button onClick={() => { setDraft(promptBundle.cursorPrompt ?? ""); setEditing(false); }} className="rounded-md border border-light-300 px-3 py-1 text-xs text-light-950 hover:bg-light-100 dark:border-dark-300 dark:text-dark-950 dark:hover:bg-dark-200">
@@ -990,7 +990,7 @@ function PromptSection({
         <div className="group relative">
           <pre
             onClick={() => { setDraft(promptBundle.cursorPrompt ?? ""); setEditing(true); }}
-            className="max-h-40 cursor-text overflow-y-auto rounded-lg border border-light-200 bg-light-50 p-3 font-mono text-xs leading-relaxed text-light-900 transition-colors hover:border-violet-300 dark:border-dark-200 dark:bg-dark-100 dark:text-dark-900 dark:hover:border-violet-700"
+            className="max-h-40 cursor-text overflow-y-auto rounded-lg border border-light-200 bg-light-50 p-3 font-mono text-xs leading-relaxed text-light-900 transition-colors hover:border-brand-300 dark:border-dark-200 dark:bg-dark-100 dark:text-dark-900 dark:hover:border-brand-700"
           >
             {promptBundle.cursorPrompt || "No prompt generated"}
           </pre>
@@ -1039,7 +1039,7 @@ function PromptSection({
 const VARIANT_CLASSES: Record<string, string> = {
   green: "bg-emerald-600 text-white hover:bg-emerald-700",
   red: "bg-red-600 text-white hover:bg-red-700",
-  violet: "bg-violet-600 text-white hover:bg-violet-700",
+  brand: "bg-brand-500 text-white hover:bg-brand-600",
   orange: "bg-orange-500 text-white hover:bg-orange-600",
   slate: "border border-light-300 dark:border-dark-300 hover:bg-light-200 dark:hover:bg-dark-200 text-light-900 dark:text-dark-900",
 };

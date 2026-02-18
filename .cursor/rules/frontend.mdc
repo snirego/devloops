@@ -78,6 +78,32 @@ export default BoardPage;
 - Use `tailwind-merge` (`twMerge`) when conditionally combining class names.
 - Follow the shared Tailwind config from `@kan/tailwind-config`.
 
+### Dark Mode Color Guidelines
+
+The project uses a custom neutral color scale (`dark-50` through `dark-1000`). In dark mode, avoid using low-end values for text — they are nearly invisible against dark backgrounds.
+
+| Purpose | Light mode | Dark mode |
+|---|---|---|
+| Primary text | `text-light-1000` | `text-dark-1000` |
+| Strong secondary text (labels, prominent descriptions) | `text-light-800` | `text-dark-950` |
+| Secondary text (descriptions, helper text) | `text-light-700` | `text-dark-900` |
+| Tertiary text (metadata, captions, subtle info) | `text-light-600` | `text-dark-800` |
+| Muted icons (chevrons, action icons) | `text-light-500` | `text-dark-800` |
+| Input borders / rings | `ring-light-600` | `ring-dark-500` (focus: `ring-dark-600`) |
+| Input placeholders | `placeholder:text-light-700` | `dark:placeholder:text-dark-700` |
+
+**Never** use `dark:text-dark-500` or `dark:text-dark-600` for text — these are too dim and make the UI look disabled. The minimum for readable text in dark mode is `dark-700` for placeholders and `dark-800` for visible content.
+
+### Loading & Animation Patterns
+
+- Use the `animate-shimmer` utility for loading text effects. The shimmer sweeps left-to-right (LTR, matching English reading direction).
+- Shimmer text uses **white/neutral** tones, not brand colors. Apply via `bg-clip-text text-transparent` with a gradient:
+  - Light: `from-light-700 via-light-1000 to-light-700`
+  - Dark: `dark:from-dark-800 dark:via-dark-1000 dark:to-dark-800`
+- For inline loading spinners, keep them **small and thin** (`h-3.5 w-3.5`, `strokeWidth="2"`) in neutral colors, placed on the same row as the loading text.
+- Prefer minimal, elegant loading states over heavy progress bars or large spinners.
+- Available animations: `animate-shimmer`, `animate-fade-in`, `animate-fade-down`, `animate-spin`, `animate-pulse-slow`.
+
 ## Data Fetching (tRPC) — Local-First
 
 > Full details in the `local-first.mdc` rules file. Key points below.

@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Semantic color tokens ───────────────────────────────────────────────────
+ * Define once here, use everywhere via Tailwind (`text-primary`, `text-muted`,
+ * `ring-border`, etc.).  Change a value in one place and the whole app updates.
+ * ────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* text */
+    --color-text-primary: hsl(0deg 0% 9%);           /* light-1000 */
+    --color-text-secondary: hsl(0deg 0% 56.1%);      /* light-800 */
+    --color-text-tertiary: hsl(0deg 0% 78%);          /* light-700 */
+    --color-text-muted: hsl(0deg 0% 85.9%);           /* light-600 */
+    --color-text-placeholder: hsl(0deg 0% 78%);       /* light-700 */
+    /* icon */
+    --color-icon-default: hsl(0deg 0% 56.1%);         /* light-800 */
+    --color-icon-muted: hsl(0deg 0% 88.6%);           /* light-500 */
+    /* border / ring */
+    --color-border: hsl(0deg 0% 85.9%);               /* light-600 */
+    --color-border-focus: hsl(0deg 0% 78%);            /* light-700 */
+    --color-ring: hsl(0deg 0% 85.9%);                 /* light-600 */
+    --color-ring-focus: hsl(0deg 0% 78%);              /* light-700 */
+  }
+
+  .dark {
+    /* text */
+    --color-text-primary: #ededed;       /* dark-1000 */
+    --color-text-secondary: #bbb;        /* dark-950 */
+    --color-text-tertiary: #7e7e7e;      /* dark-900 */
+    --color-text-muted: #707070;         /* dark-800 */
+    --color-text-placeholder: #505050;   /* dark-700 */
+    /* icon */
+    --color-icon-default: #bbb;          /* dark-950 */
+    --color-icon-muted: #707070;         /* dark-800 */
+    /* border / ring */
+    --color-border: #343434;             /* dark-500 */
+    --color-border-focus: #3e3e3e;       /* dark-600 */
+    --color-ring: #343434;               /* dark-500 */
+    --color-ring-focus: #3e3e3e;         /* dark-600 */
+  }
+}
+
 /* ── Brand color overrides ────────────────────────────────────────────────────
  * CSS variables are set at runtime:
  *   1. Blocking <script> in _document.tsx reads localStorage and sets them

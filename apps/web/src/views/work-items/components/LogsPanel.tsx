@@ -80,7 +80,7 @@ const ACTION_META: Record<
   started: {
     label: "Started",
     icon: <HiOutlineArrowPath className="h-3.5 w-3.5" />,
-    color: "text-violet-500",
+    color: "text-brand-500",
   },
   done: {
     label: "Done",
@@ -110,7 +110,7 @@ const ACTION_META: Record<
   agent_prepared: {
     label: "Agent Prepared",
     icon: <HiOutlineCpuChip className="h-3.5 w-3.5" />,
-    color: "text-violet-500",
+    color: "text-brand-500",
   },
   github_issue_created: {
     label: "GitHub Issue Created",

@@ -18,10 +18,10 @@ function FieldLabel({
 }) {
   return (
     <div className="mb-1.5">
-      <label className="text-sm font-medium text-light-1000 dark:text-dark-1000">
+      <label className="text-sm font-medium text-primary">
         {label}
       </label>
-      <p className="text-xs text-light-600 dark:text-dark-600">{helperText}</p>
+      <p className="text-xs text-muted">{helperText}</p>
     </div>
   );
 }
@@ -32,7 +32,7 @@ export default function CompanyProfileSection({
   disabled = false,
 }: CompanyProfileSectionProps) {
   const inputClasses =
-    "block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-sm shadow-sm ring-1 ring-inset ring-light-600 placeholder:text-dark-800 focus:ring-2 focus:ring-inset focus:ring-light-700 dark:bg-dark-300 dark:text-dark-1000 dark:ring-dark-700 dark:focus:ring-dark-700 sm:leading-6";
+    "block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-sm shadow-sm ring-1 ring-inset ring-light-600 placeholder:text-light-700 focus:ring-2 focus:ring-inset focus:ring-light-700 dark:bg-dark-300 dark:text-dark-1000 dark:ring-dark-500 dark:placeholder:text-dark-700 dark:focus:ring-dark-600 sm:leading-6";
 
   const textareaClasses = twMerge(inputClasses, "min-h-[72px] resize-y");
 

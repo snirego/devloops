@@ -953,10 +953,10 @@ function SectionHeader({
         {icon}
       </div>
       <div>
-        <h2 className="text-sm font-bold text-light-1000 dark:text-dark-1000">
+        <h2 className="text-sm font-bold text-primary">
           {title}
         </h2>
-        <p className="text-xs text-light-700 dark:text-dark-700">
+        <p className="text-xs text-tertiary">
           {description}
         </p>
       </div>
@@ -1012,14 +1012,14 @@ function IntegrationCard({
           {integration.icon}
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-light-1000 dark:text-dark-1000">
+          <h3 className="text-sm font-semibold text-primary">
             {integration.name}
           </h3>
         </div>
       </div>
 
       {/* Description */}
-      <p className="line-clamp-2 text-xs leading-relaxed text-light-700 dark:text-dark-700">
+      <p className="line-clamp-2 text-xs leading-relaxed text-tertiary">
         {integration.description}
       </p>
 
@@ -1031,8 +1031,8 @@ function IntegrationCard({
             isConnected
               ? "text-green-600 dark:text-green-400"
               : integration.comingSoon
-                ? "text-light-500 dark:text-dark-500"
-                : "text-light-800 group-hover:text-light-1000 dark:text-dark-800 dark:group-hover:text-dark-1000",
+                ? "text-muted"
+                : "text-secondary group-hover:text-primary",
           )}
         >
           {isConnected

@@ -203,7 +203,7 @@ export function WorkItemContextMenu({
               if (e.key === "Escape") close();
             }}
             autoFocus
-            className="w-full rounded-md border border-light-300 bg-light-50 px-2.5 py-1.5 text-sm text-neutral-900 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-1000"
+            className="w-full rounded-md border border-light-300 bg-light-50 px-2.5 py-1.5 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-1000"
           />
           <div className="mt-2 flex justify-end gap-1.5">
             <button
@@ -214,7 +214,7 @@ export function WorkItemContextMenu({
             </button>
             <button
               onClick={submitRename}
-              className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-violet-700"
+              className="rounded-md bg-brand-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-600"
             >
               Save
             </button>
@@ -252,7 +252,7 @@ export function WorkItemContextMenu({
             }}
             autoFocus
             placeholder="Enter reason..."
-            className="w-full rounded-md border border-light-300 bg-light-50 px-2.5 py-1.5 text-sm text-neutral-900 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-1000"
+            className="w-full rounded-md border border-light-300 bg-light-50 px-2.5 py-1.5 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-1000"
           />
           <div className="mt-2 flex justify-end gap-1.5">
             <button

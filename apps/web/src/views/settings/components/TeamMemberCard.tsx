@@ -116,7 +116,7 @@ export default function TeamMemberCard({
   };
 
   const inputClasses =
-    "block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-sm shadow-sm ring-1 ring-inset ring-light-600 placeholder:text-dark-800 focus:ring-2 focus:ring-inset focus:ring-light-700 dark:bg-dark-300 dark:text-dark-1000 dark:ring-dark-700 dark:focus:ring-dark-700 sm:leading-6";
+    "block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-sm shadow-sm ring-1 ring-inset ring-light-600 placeholder:text-light-700 focus:ring-2 focus:ring-inset focus:ring-light-700 dark:bg-dark-300 dark:text-dark-1000 dark:ring-dark-500 dark:placeholder:text-dark-700 dark:focus:ring-dark-600 sm:leading-6";
 
   const selectClasses = twMerge(
     inputClasses,
@@ -142,7 +142,7 @@ export default function TeamMemberCard({
           />
           <div className="text-left">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-light-1000 dark:text-dark-1000">
+              <span className="text-sm font-medium text-primary">
                 {memberName}
               </span>
               <span
@@ -157,7 +157,7 @@ export default function TeamMemberCard({
                     member.role.slice(1)}
               </span>
             </div>
-            <span className="text-xs text-light-600 dark:text-dark-600">
+            <span className="text-xs text-muted">
               {memberEmail}
             </span>
           </div>
@@ -169,14 +169,14 @@ export default function TeamMemberCard({
               {t`Complete`}
             </span>
           ) : (
-            <span className="text-xs text-light-500 dark:text-dark-500">
+            <span className="text-xs text-muted">
               {completion}/{TOTAL_FIELDS}
             </span>
           )}
           {isExpanded ? (
-            <HiChevronUp className="h-4 w-4 text-light-500 dark:text-dark-500" />
+            <HiChevronUp className="h-4 w-4 text-icon-muted" />
           ) : (
-            <HiChevronDown className="h-4 w-4 text-light-500 dark:text-dark-500" />
+            <HiChevronDown className="h-4 w-4 text-icon-muted" />
           )}
         </div>
       </button>
@@ -185,7 +185,7 @@ export default function TeamMemberCard({
         <div className="border-t border-light-200 px-4 pb-5 pt-4 dark:border-dark-300">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`Developer Role`}
               </label>
               <div className="relative">
@@ -205,12 +205,12 @@ export default function TeamMemberCard({
                   <option value="lead">{t`Lead`}</option>
                   <option value="designer">{t`Designer`}</option>
                 </select>
-                <HiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-light-600 dark:text-dark-600" />
+                <HiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-icon-muted" />
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`Seniority Level`}
               </label>
               <div className="relative">
@@ -231,12 +231,12 @@ export default function TeamMemberCard({
                   <option value="staff">{t`Staff`}</option>
                   <option value="principal">{t`Principal`}</option>
                 </select>
-                <HiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-light-600 dark:text-dark-600" />
+                <HiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-icon-muted" />
               </div>
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`Skills`}
               </label>
               <TagInput
@@ -249,7 +249,7 @@ export default function TeamMemberCard({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`Focus Areas`}
               </label>
               <TagInput
@@ -261,7 +261,7 @@ export default function TeamMemberCard({
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`Max Concurrent Items`}
               </label>
               <input
@@ -276,13 +276,13 @@ export default function TeamMemberCard({
                 disabled={disabled}
                 className={inputClasses}
               />
-              <p className="mt-1 text-[11px] text-light-500 dark:text-dark-500">
+              <p className="mt-1 text-[11px] text-muted">
                 {t`How many work items this person can handle at once.`}
               </p>
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`Timezone`}
               </label>
               <div className="relative">
@@ -298,12 +298,12 @@ export default function TeamMemberCard({
                     </option>
                   ))}
                 </select>
-                <HiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-light-600 dark:text-dark-600" />
+                <HiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-icon-muted" />
               </div>
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-light-1000 dark:text-dark-1000">
+              <label className="mb-1 block text-xs font-medium text-primary">
                 {t`About`}
               </label>
               <textarea

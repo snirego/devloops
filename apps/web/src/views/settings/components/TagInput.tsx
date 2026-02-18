@@ -74,7 +74,7 @@ export default function TagInput({
     <div className={twMerge("relative", className)}>
       <div
         className={twMerge(
-          "flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-md border-0 bg-white/5 px-2 py-1.5 ring-1 ring-inset ring-light-600 transition-colors focus-within:ring-2 focus-within:ring-light-700 dark:bg-dark-300 dark:ring-dark-700 dark:focus-within:ring-dark-700",
+          "flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-md border-0 bg-white/5 px-2 py-1.5 ring-1 ring-inset ring-light-600 transition-colors focus-within:ring-2 focus-within:ring-light-700 dark:bg-dark-300 dark:ring-dark-500 dark:focus-within:ring-dark-600",
           disabled && "opacity-50",
         )}
         onClick={() => inputRef.current?.focus()}
@@ -115,7 +115,7 @@ export default function TagInput({
           onKeyDown={handleKeyDown}
           placeholder={tags.length === 0 ? placeholder : t`Add more...`}
           disabled={disabled || tags.length >= maxTags}
-          className="min-w-[80px] flex-1 border-0 bg-transparent p-1 text-sm text-light-1000 outline-none placeholder:text-dark-800 dark:text-dark-1000"
+          className="min-w-[80px] flex-1 border-0 bg-transparent p-1 text-sm text-light-1000 outline-none placeholder:text-light-700 dark:placeholder:text-dark-700 dark:text-dark-1000"
         />
       </div>
 

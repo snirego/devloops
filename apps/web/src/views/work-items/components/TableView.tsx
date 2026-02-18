@@ -179,14 +179,14 @@ export default function TableView({ workItems, onItemClick }: TableViewProps) {
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
             activeFilterCount > 0
-              ? "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-950/20 dark:text-violet-300"
+              ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-700 dark:bg-brand-950/20 dark:text-brand-300"
               : "border-light-300 text-light-900 hover:bg-light-100 dark:border-dark-300 dark:text-dark-900 dark:hover:bg-dark-200"
           }`}
         >
           <HiOutlineFunnel className="h-3.5 w-3.5" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="rounded-full bg-violet-200 px-1.5 py-0.5 text-[10px] font-bold text-violet-800 dark:bg-violet-800 dark:text-violet-200">
+            <span className="rounded-full bg-brand-200 px-1.5 py-0.5 text-[10px] font-bold text-brand-800 dark:bg-brand-800 dark:text-brand-200">
               {activeFilterCount}
             </span>
           )}
@@ -298,7 +298,7 @@ export default function TableView({ workItems, onItemClick }: TableViewProps) {
                   <td className="px-3 py-2.5">
                     {assignee ? (
                       <span className="flex items-center gap-1.5">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[9px] font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                           {(assignee.name ?? assignee.email).charAt(0).toUpperCase()}
                         </span>
                         <span className="truncate text-xs text-light-900 dark:text-dark-900">
@@ -390,7 +390,7 @@ function FilterGroup({
           onClick={() => onToggle(opt)}
           className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
             selected.includes(opt)
-              ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
+              ? "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
               : "bg-light-200 text-light-800 hover:bg-light-300 dark:bg-dark-200 dark:text-dark-800 dark:hover:bg-dark-300"
           }`}
         >

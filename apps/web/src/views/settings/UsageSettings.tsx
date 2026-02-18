@@ -131,12 +131,12 @@ function StatCard({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xs text-light-700 dark:text-dark-700">{label}</p>
-        <p className="text-xl font-bold tracking-tight text-light-1000 dark:text-dark-1000">
+        <p className="text-xs text-tertiary">{label}</p>
+        <p className="text-xl font-bold tracking-tight text-primary">
           {value}
         </p>
         {subtext && (
-          <p className="mt-0.5 text-[10px] text-light-600 dark:text-dark-600">
+          <p className="mt-0.5 text-[10px] text-muted">
             {subtext}
           </p>
         )}
@@ -255,9 +255,9 @@ export default function UsageSettings() {
         {/* Header */}
         <div className="mb-6 mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-light-700 dark:text-dark-700">
+            <p className="text-sm text-tertiary">
               {t`Monitor API requests, token consumption, and integration activity for`}{" "}
-              <span className="font-medium text-light-1000 dark:text-dark-1000">
+              <span className="font-medium text-primary">
                 {workspace.name || t`your workspace`}
               </span>
               .
@@ -271,8 +271,8 @@ export default function UsageSettings() {
                 className={twMerge(
                   "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                   period === p
-                    ? "bg-white text-light-1000 shadow-sm dark:bg-dark-300 dark:text-dark-1000"
-                    : "text-light-700 hover:text-light-1000 dark:text-dark-700 dark:hover:text-dark-1000",
+                    ? "bg-white text-primary shadow-sm dark:bg-dark-300"
+                    : "text-tertiary hover:text-primary",
                 )}
               >
                 {p === "7d" ? t`7D` : p === "30d" ? t`30D` : t`90D`}
@@ -316,32 +316,32 @@ export default function UsageSettings() {
         {/* Connected integrations – detailed table */}
         {connectedIntegrations.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-3 text-sm font-bold text-light-1000 dark:text-dark-1000">
+              <h2 className="mb-3 text-sm font-bold text-primary">
               {t`Active Integrations`}
             </h2>
             <div className="overflow-hidden rounded-xl border border-light-200 dark:border-dark-300">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-light-200 bg-light-50 dark:border-dark-300 dark:bg-dark-100">
-                    <th className="px-4 py-3 font-medium text-light-700 dark:text-dark-700">
+                    <th className="px-4 py-3 font-medium text-tertiary">
                       {t`Integration`}
                     </th>
-                    <th className="hidden px-4 py-3 font-medium text-light-700 dark:text-dark-700 sm:table-cell">
+                    <th className="hidden px-4 py-3 font-medium text-tertiary sm:table-cell">
                       {t`Category`}
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-light-700 dark:text-dark-700">
+                    <th className="px-4 py-3 text-right font-medium text-tertiary">
                       {t`Requests`}
                     </th>
-                    <th className="hidden px-4 py-3 text-right font-medium text-light-700 dark:text-dark-700 md:table-cell">
+                    <th className="hidden px-4 py-3 text-right font-medium text-tertiary md:table-cell">
                       {t`Tokens`}
                     </th>
-                    <th className="hidden px-4 py-3 text-right font-medium text-light-700 dark:text-dark-700 md:table-cell">
+                    <th className="hidden px-4 py-3 text-right font-medium text-tertiary md:table-cell">
                       {t`Items`}
                     </th>
-                    <th className="hidden px-4 py-3 text-right font-medium text-light-700 dark:text-dark-700 lg:table-cell">
+                    <th className="hidden px-4 py-3 text-right font-medium text-tertiary lg:table-cell">
                       {t`Activity`}
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-light-700 dark:text-dark-700">
+                    <th className="px-4 py-3 text-right font-medium text-tertiary">
                       {t`Last Used`}
                     </th>
                   </tr>
@@ -365,7 +365,7 @@ export default function UsageSettings() {
                             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-light-100 dark:bg-dark-200">
                               {integration.icon}
                             </div>
-                            <span className="font-medium text-light-1000 dark:text-dark-1000">
+                            <span className="font-medium text-primary">
                               {integration.name}
                             </span>
                           </div>
@@ -376,15 +376,15 @@ export default function UsageSettings() {
                             {categoryLabel(integration.category)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-light-1000 dark:text-dark-1000">
+                        <td className="px-4 py-3 text-right font-mono text-primary">
                           {formatNumber(integration.requests)}
                         </td>
-                        <td className="hidden px-4 py-3 text-right font-mono text-light-1000 dark:text-dark-1000 md:table-cell">
+                        <td className="hidden px-4 py-3 text-right font-mono text-primary md:table-cell">
                           {integration.tokensUsed > 0
                             ? formatNumber(integration.tokensUsed)
                             : "—"}
                         </td>
-                        <td className="hidden px-4 py-3 text-right font-mono text-light-1000 dark:text-dark-1000 md:table-cell">
+                        <td className="hidden px-4 py-3 text-right font-mono text-primary md:table-cell">
                           {formatNumber(integration.itemsProcessed)}
                         </td>
                         <td className="hidden px-4 py-3 lg:table-cell">
@@ -393,7 +393,7 @@ export default function UsageSettings() {
                             className="ml-auto h-6 w-24"
                           />
                         </td>
-                        <td className="px-4 py-3 text-right text-light-700 dark:text-dark-700">
+                        <td className="px-4 py-3 text-right text-tertiary">
                           {integration.lastUsed
                             ? formatRelativeTime(integration.lastUsed)
                             : "—"}
@@ -410,10 +410,10 @@ export default function UsageSettings() {
         {/* Disconnected integrations */}
         {disconnectedIntegrations.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-3 text-sm font-bold text-light-1000 dark:text-dark-1000">
+              <h2 className="mb-3 text-sm font-bold text-primary">
               {t`Inactive Integrations`}
             </h2>
-            <p className="mb-3 text-xs text-light-600 dark:text-dark-600">
+            <p className="mb-3 text-xs text-muted">
               {t`Connect these integrations from the`}{" "}
               <a
                 href="/settings/integrations"
@@ -432,7 +432,7 @@ export default function UsageSettings() {
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-light-100 opacity-50 dark:bg-dark-200">
                     {integration.icon}
                   </div>
-                  <span className="truncate text-xs text-light-500 dark:text-dark-500">
+                  <span className="truncate text-xs text-muted">
                     {integration.name}
                   </span>
                 </div>
@@ -445,10 +445,10 @@ export default function UsageSettings() {
         {connectedIntegrations.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-light-300 py-16 text-center dark:border-dark-400">
             <HiOutlineChartBar className="mb-3 h-8 w-8 text-light-400 dark:text-dark-400" />
-            <p className="text-sm font-medium text-light-700 dark:text-dark-700">
+            <p className="text-sm font-medium text-tertiary">
               {t`No usage data yet`}
             </p>
-            <p className="mt-1 max-w-xs text-xs text-light-500 dark:text-dark-500">
+            <p className="mt-1 max-w-xs text-xs text-muted">
               {t`Connect your first integration to start tracking usage. Head to the Integrations tab to get started.`}
             </p>
             <a

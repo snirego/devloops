@@ -77,18 +77,18 @@ function CollapsibleSection({
             {icon}
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-semibold text-light-1000 dark:text-dark-1000">
+            <h3 className="text-sm font-semibold text-primary">
               {title}
             </h3>
-            <p className="text-xs text-light-600 dark:text-dark-600">
+            <p className="text-xs text-muted">
               {description}
             </p>
           </div>
         </div>
         {isOpen ? (
-          <HiChevronUp className="h-5 w-5 flex-shrink-0 text-light-500 dark:text-dark-500" />
+          <HiChevronUp className="h-5 w-5 flex-shrink-0 text-icon-muted" />
         ) : (
-          <HiChevronDown className="h-5 w-5 flex-shrink-0 text-light-500 dark:text-dark-500" />
+          <HiChevronDown className="h-5 w-5 flex-shrink-0 text-icon-muted" />
         )}
       </button>
       {isOpen && (
@@ -239,7 +239,7 @@ export default function KnowledgeHub() {
       <div className="border-t border-light-300 pb-24 dark:border-dark-300">
         {/* Header */}
         <div className="mb-6 mt-8">
-          <p className="text-sm text-light-700 dark:text-dark-700">
+          <p className="text-sm text-tertiary">
             {t`Help the AI understand your product and team so it can turn customer feedback into more accurate, actionable work items.`}
           </p>
         </div>
@@ -247,7 +247,7 @@ export default function KnowledgeHub() {
         {/* Progress bar */}
         <div className="mb-8">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-light-700 dark:text-dark-700">
+            <span className="text-xs font-medium text-tertiary">
               {t`Profile completeness`}
             </span>
             <span
@@ -297,7 +297,7 @@ export default function KnowledgeHub() {
             title={t`Product & Domain`}
             description={t`What your product does, who uses it, and how they talk about it.`}
             icon={
-              <HiOutlineBuildingOffice2 className="h-4 w-4 text-light-800 dark:text-dark-800" />
+              <HiOutlineBuildingOffice2 className="h-4 w-4 text-icon-default" />
             }
             defaultOpen={progress === 0}
           >
@@ -312,7 +312,7 @@ export default function KnowledgeHub() {
             title={t`Reference Documents`}
             description={t`Upload product specs, style guides, or API docs for extra AI context.`}
             icon={
-              <HiOutlineDocumentArrowUp className="h-4 w-4 text-light-800 dark:text-dark-800" />
+              <HiOutlineDocumentArrowUp className="h-4 w-4 text-icon-default" />
             }
           >
             <KnowledgeFilesSection
@@ -325,7 +325,7 @@ export default function KnowledgeHub() {
             title={t`Team Profiles`}
             description={t`Developer skills, focus areas, and capacity for each team member.`}
             icon={
-              <HiOutlineUserGroup className="h-4 w-4 text-light-800 dark:text-dark-800" />
+              <HiOutlineUserGroup className="h-4 w-4 text-icon-default" />
             }
           >
             <TeamProfilesSection
@@ -342,7 +342,7 @@ export default function KnowledgeHub() {
       {!disabled && isDirty && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-light-200 bg-white/95 backdrop-blur-sm dark:border-dark-400 dark:bg-dark-100/95">
           <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
-            <p className="text-sm text-light-700 dark:text-dark-700">
+            <p className="text-sm text-tertiary">
               {t`You have unsaved changes`}
             </p>
             <div className="flex items-center gap-2">
@@ -353,7 +353,7 @@ export default function KnowledgeHub() {
                   setDraftMemberMetas({});
                 }}
                 disabled={saving}
-                className="rounded-md px-2.5 py-1.5 text-xs font-medium text-light-700 transition-colors hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-300"
+                className="rounded-md px-2.5 py-1.5 text-xs font-medium text-tertiary transition-colors hover:bg-light-100 dark:hover:bg-dark-300"
               >
                 {t`Discard`}
               </button>

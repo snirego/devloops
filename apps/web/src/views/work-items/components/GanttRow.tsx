@@ -154,7 +154,7 @@ export default function GanttRow({
             className="h-6 w-6 flex-shrink-0 rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
             {label.charAt(0).toUpperCase()}
           </div>
         )}

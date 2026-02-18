@@ -171,7 +171,7 @@ export default function KnowledgeFilesSection({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-light-600 dark:text-dark-600">
+      <p className="text-xs text-tertiary">
         {t`Upload documents like product specs, style guides, or API docs. The AI will use them as additional context when generating work items.`}
       </p>
 
@@ -196,7 +196,8 @@ export default function KnowledgeFilesSection({
               isDragging
                 ? "border-brand-400 bg-brand-50/50 dark:border-brand-600 dark:bg-brand-900/10"
                 : "border-light-300 hover:border-light-400 dark:border-dark-400 dark:hover:border-dark-500",
-              uploading && "pointer-events-none opacity-60",
+              uploading &&
+                "pointer-events-none border-brand-300 bg-brand-50/30 dark:border-brand-800/40 dark:bg-brand-900/10",
             )}
           >
             <div
@@ -212,20 +213,42 @@ export default function KnowledgeFilesSection({
                   "h-5 w-5",
                   isDragging
                     ? "text-brand-500"
-                    : "text-light-600 dark:text-dark-600",
+                    : "text-icon-muted",
                 )}
               />
             </div>
             {uploading ? (
-              <p className="text-sm text-light-700 dark:text-dark-700">
-                {t`Uploading...`}
-              </p>
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-3.5 w-3.5 animate-spin text-light-700 dark:text-dark-800"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="opacity-20"
+                  />
+                  <path
+                    fill="currentColor"
+                    className="opacity-75"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <p className="animate-shimmer bg-gradient-to-r from-light-700 via-light-1000 to-light-700 bg-[length:200%_100%] bg-clip-text text-sm font-medium text-transparent dark:from-dark-800 dark:via-dark-1000 dark:to-dark-800">
+                  {t`Uploading your file...`}
+                </p>
+              </div>
             ) : (
               <>
-                <p className="text-sm font-medium text-light-800 dark:text-dark-800">
+                <p className="text-sm font-medium text-secondary">
                   {t`Drop a file here or click to browse`}
                 </p>
-                <p className="text-xs text-light-500 dark:text-dark-500">
+                <p className="text-xs text-muted">
                   {t`PDF, Word, Excel, TXT, Markdown, CSV, JSON — up to 20 MB`}
                 </p>
               </>
@@ -243,13 +266,13 @@ export default function KnowledgeFilesSection({
               className="flex items-center gap-3 rounded-lg border border-light-200 bg-light-50 px-3 py-2.5 dark:border-dark-300 dark:bg-dark-200"
             >
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-light-200 dark:bg-dark-400">
-                <HiOutlineDocumentText className="h-4 w-4 text-light-700 dark:text-dark-700" />
+                <HiOutlineDocumentText className="h-4 w-4 text-icon-muted" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-light-1000 dark:text-dark-1000">
+                <p className="truncate text-sm font-medium text-primary">
                   {file.originalFilename}
                 </p>
-                <p className="text-xs text-light-500 dark:text-dark-500">
+                <p className="text-xs text-muted">
                   {FILE_TYPE_LABELS[file.contentType] ?? "File"}
                   {" · "}
                   {formatFileSize(file.size)}
@@ -263,7 +286,7 @@ export default function KnowledgeFilesSection({
                   onClick={() => handleDelete(file.id)}
                   disabled={deletingId === file.id}
                   className={twMerge(
-                    "flex-shrink-0 rounded-md p-1.5 text-light-500 transition-colors hover:bg-light-200 hover:text-red-500 dark:text-dark-500 dark:hover:bg-dark-400 dark:hover:text-red-400",
+                    "flex-shrink-0 rounded-md p-1.5 text-icon-muted transition-colors hover:bg-light-200 hover:text-red-500 dark:hover:bg-dark-400 dark:hover:text-red-400",
                     deletingId === file.id && "pointer-events-none opacity-40",
                   )}
                 >
@@ -276,7 +299,7 @@ export default function KnowledgeFilesSection({
       )}
 
       {files.length === 0 && disabled && (
-        <p className="py-4 text-center text-sm text-light-500 dark:text-dark-500">
+        <p className="py-4 text-center text-sm text-muted">
           {t`No files uploaded yet.`}
         </p>
       )}

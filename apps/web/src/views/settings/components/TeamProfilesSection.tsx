@@ -50,11 +50,11 @@ export default function TeamProfilesSection({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-light-600 dark:text-dark-600">
+      <p className="text-xs text-tertiary">
         {t`Set up each person's skills and focus areas so the AI can route work items to the right person.`}
       </p>
       {visibleMembers.length === 0 && (
-        <p className="py-6 text-center text-sm text-light-600 dark:text-dark-600">
+        <p className="py-6 text-center text-sm text-muted">
           {t`Members will appear here once they are part of this workspace.`}
         </p>
       )}

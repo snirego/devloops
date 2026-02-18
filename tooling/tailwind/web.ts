@@ -23,6 +23,8 @@ export default {
         "fade-down": "fade-down 0.5s ease-out",
         "fade-in": "fade-in 0.5s ease-out",
         scroll: "scroll 40s linear infinite",
+        shimmer: "shimmer 2s ease-in-out infinite",
+        "pulse-slow": "pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
 
       keyframes: {
@@ -56,8 +58,35 @@ export default {
             transform: "translateX(calc(-50% - 1.5rem))",
           },
         },
+        shimmer: {
+          "0%": {
+            backgroundPosition: "200% 0",
+          },
+          "100%": {
+            backgroundPosition: "-200% 0",
+          },
+        },
+      },
+      textColor: {
+        primary: "var(--color-text-primary)",
+        secondary: "var(--color-text-secondary)",
+        tertiary: "var(--color-text-tertiary)",
+        muted: "var(--color-text-muted)",
+      },
+      placeholderColor: {
+        DEFAULT: "var(--color-text-placeholder)",
+      },
+      ringColor: {
+        border: "var(--color-ring)",
+        "border-focus": "var(--color-ring-focus)",
+      },
+      borderColor: {
+        semantic: "var(--color-border)",
+        "semantic-focus": "var(--color-border-focus)",
       },
       colors: {
+        "icon-default": "var(--color-icon-default)",
+        "icon-muted": "var(--color-icon-muted)",
         "brand-50": "rgb(var(--brand-50, 247 247 254) / <alpha-value>)",
         "brand-100": "rgb(var(--brand-100, 239 240 254) / <alpha-value>)",
         "brand-200": "rgb(var(--brand-200, 224 224 252) / <alpha-value>)",
