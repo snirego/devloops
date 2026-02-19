@@ -33,8 +33,8 @@ export default function FinalCta() {
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button href="https://app.devloops.io/signup" size="lg">
-              Start Shipping Faster
+            <Button href="http://localhost:3003" size="lg">
+              Join the Waitlist
             </Button>
           </div>
 

@@ -64,8 +64,8 @@ export default function Header() {
             <Button variant="ghost" href="https://app.devloops.io/login" size="sm">
               Sign in
             </Button>
-            <Button href="https://app.devloops.io/signup" size="sm">
-              Get Started
+            <Button href="http://localhost:3003" size="sm">
+              Join Waitlist
             </Button>
           </div>
 
@@ -104,8 +104,8 @@ export default function Header() {
             <Button href="https://app.devloops.io/login" variant="secondary" size="lg">
               Sign in
             </Button>
-            <Button href="https://app.devloops.io/signup" size="lg">
-              Get Started
+            <Button href="http://localhost:3003" size="lg">
+              Join Waitlist
             </Button>
           </div>
         </div>

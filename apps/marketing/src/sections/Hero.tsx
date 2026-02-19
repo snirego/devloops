@@ -460,8 +460,8 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="mt-8 flex flex-col items-center gap-3 sm:flex-row"
           >
-            <Button href="https://app.devloops.io/signup" size="lg">
-              Start Shipping Faster
+            <Button href="http://localhost:3003" size="lg">
+              Join the Waitlist
             </Button>
             <Button href="#features" variant="secondary" size="lg">
               See how it works

@@ -1,0 +1,44 @@
+{
+  "name": "@kan/waitlist",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm with-env next build",
+    "clean": "git clean -xdf .cache .next .turbo node_modules",
+    "dev": "pnpm with-env next dev --port 3003 --turbo",
+    "with-env": "dotenv -e ../../.env --",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "lint": "eslint",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.26.2",
+    "geist": "^1.3.1",
+    "next": "15.5.9",
+    "next-themes": "^0.4.6",
+    "react": "catalog:react18",
+    "react-dom": "catalog:react18",
+    "react-icons": "^5.5.0",
+    "tailwind-merge": "^2.5.2"
+  },
+  "devDependencies": {
+    "@kan/eslint-config": "workspace:*",
+    "@kan/prettier-config": "workspace:*",
+    "@kan/tailwind-config": "workspace:*",
+    "@kan/tsconfig": "workspace:*",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^20.17.7",
+    "@types/react": "catalog:react18",
+    "@types/react-dom": "catalog:react18",
+    "autoprefixer": "^10.4.24",
+    "dotenv-cli": "^7.4.4",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  },
+  "prettier": "@kan/prettier-config"
+}
