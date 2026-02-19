@@ -359,9 +359,15 @@ const painPoints = [
 
 /* ─── Waitlist form ─── */
 
+const INTEREST_OPTIONS = [
+  { value: "notify", label: "Just notify me when it\u2019s ready", icon: HiEnvelope },
+  { value: "meet", label: "I\u2019d love to meet & share what I need", icon: HiSparkles },
+] as const;
+
 function WaitlistForm({ large }: { large?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [interest, setInterest] = useState<string>("notify");
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
 
   async function handleSubmit(e: FormEvent) {
@@ -372,9 +378,9 @@ function WaitlistForm({ large }: { large?: boolean }) {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, interest }),
       });
-      if (res.ok) router.push("/success");
+      if (res.ok) router.push(`/success?email=${encodeURIComponent(email)}`);
       else { setState("error"); setTimeout(() => setState("idle"), 3000); }
     } catch {
       setState("error"); setTimeout(() => setState("idle"), 3000);
@@ -383,32 +389,65 @@ function WaitlistForm({ large }: { large?: boolean }) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md">
-      <div className="relative">
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@company.com"
-          className={twMerge(
-            "w-full rounded-2xl border border-light-300 bg-white pl-5 pr-36 text-base text-light-1000 shadow-lg shadow-black/5 outline-none transition-all placeholder:text-light-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-1000 dark:shadow-black/20 dark:placeholder:text-dark-700 sm:pr-44",
-            large ? "h-16" : "h-14"
-          )}
-        />
-        <button
-          type="submit"
-          disabled={state === "loading"}
-          className={twMerge(
-            "absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-[#6366f1] text-sm font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#4f46e5] hover:shadow-[#6366f1]/40 disabled:opacity-60",
-            large ? "px-6 py-3 sm:px-7" : "px-5 py-2.5 sm:px-6"
-          )}
-        >
-          {state === "loading" ? (
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white" />
-          ) : (
-            <span className="flex items-center gap-1.5">Get early access<HiArrowRight className="h-4 w-4" /></span>
-          )}
-        </button>
+      <div className="overflow-hidden rounded-2xl border border-light-300 bg-white shadow-lg shadow-black/5 dark:border-dark-400 dark:bg-dark-100 dark:shadow-black/20">
+        {/* Interest picker */}
+        <div className="flex flex-col border-b border-light-200 dark:border-dark-300">
+          {INTEREST_OPTIONS.map((o, i) => {
+            const Icon = o.icon;
+            const selected = interest === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => setInterest(o.value)}
+                className={twMerge(
+                  "flex items-center gap-3 px-4 py-3 text-left text-[13px] font-medium transition-all",
+                  i < INTEREST_OPTIONS.length - 1 && "border-b border-light-100 dark:border-dark-300/50",
+                  selected
+                    ? "bg-brand-500/5 text-light-1000 dark:bg-brand-500/10 dark:text-dark-1000"
+                    : "text-light-600 hover:bg-light-50 dark:text-dark-600 dark:hover:bg-dark-200"
+                )}
+              >
+                <span className={twMerge(
+                  "flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border-2 transition-all",
+                  selected
+                    ? "border-brand-500"
+                    : "border-light-400 dark:border-dark-500"
+                )}>
+                  {selected && <span className="h-2 w-2 rounded-full bg-brand-500" />}
+                </span>
+                <Icon className={twMerge("h-4 w-4 flex-shrink-0", selected ? "text-brand-500" : "text-light-400 dark:text-dark-500")} />
+                <span className="leading-snug">{o.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Email + submit */}
+        <div className={twMerge("relative", large ? "h-16" : "h-14")}>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            className="h-full w-full border-0 bg-transparent pl-5 pr-36 text-base text-light-1000 outline-none placeholder:text-light-500 dark:text-dark-1000 dark:placeholder:text-dark-600 sm:pr-44"
+          />
+          <button
+            type="submit"
+            disabled={state === "loading"}
+            className={twMerge(
+              "absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-[#6366f1] text-sm font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#4f46e5] hover:shadow-[#6366f1]/40 disabled:opacity-60",
+              large ? "px-6 py-3 sm:px-7" : "px-5 py-2.5 sm:px-6"
+            )}
+          >
+            {state === "loading" ? (
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <span className="flex items-center gap-1.5">Get early access<HiArrowRight className="h-4 w-4" /></span>
+            )}
+          </button>
+        </div>
       </div>
       {state === "error" && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-center text-sm text-red-500">

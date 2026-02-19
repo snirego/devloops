@@ -23,12 +23,13 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { email } = req.body as { email?: string };
+  const { email, interest } = req.body as { email?: string; interest?: string };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Invalid email" });
   }
 
   const cleanEmail = email.toLowerCase().trim();
+  const interestLabel = interest === "meet" ? "Meet" : "Notify";
   const apiKey = process.env.NOTION_API_KEY;
   const dbId = process.env.NOTION_DATABASE_ID;
 
@@ -55,6 +56,7 @@ export default async function handler(
         Email: { email: cleanEmail },
         "#": { number: nextIndex },
         "Joined At": { date: { start: new Date().toISOString() } },
+        Interest: { select: { name: interestLabel } },
       },
     });
 
