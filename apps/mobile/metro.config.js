@@ -13,10 +13,20 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-config.resolver.extraNodeModules = {
-  react: path.resolve(monorepoRoot, "node_modules/react"),
-  "react-native": path.resolve(monorepoRoot, "node_modules/react-native"),
-};
+config.resolver.extraNodeModules = new Proxy(
+  {},
+  {
+    get: (_, name) => {
+      const localPath = path.resolve(projectRoot, "node_modules", String(name));
+      try {
+        require.resolve(localPath);
+        return localPath;
+      } catch {
+        return path.resolve(monorepoRoot, "node_modules", String(name));
+      }
+    },
+  },
+);
 
 config.resolver.disableHierarchicalLookup = true;
 
