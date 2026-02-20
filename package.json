@@ -29,8 +29,6 @@
     "@kan/prettier-config": "workspace:*",
     "@turbo/gen": "^2.3.1",
     "prettier": "catalog:",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
     "turbo": "^2.3.1",
     "typescript": "catalog:"
   },
@@ -52,9 +50,7 @@
       "metro-source-map": "0.83.3",
       "metro-symbolicate": "0.83.3",
       "metro-transform-plugins": "0.83.3",
-      "metro-transform-worker": "0.83.3",
-      "react": "$react",
-      "react-dom": "$react-dom"
+      "metro-transform-worker": "0.83.3"
     },
     "peerDependencyRules": {
       "allowedVersions": {
