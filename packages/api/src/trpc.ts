@@ -10,6 +10,7 @@ import type { dbClient } from "@kan/db/client";
 import { createDrizzleClient } from "@kan/db/client";
 import * as userRepo from "@kan/db/repository/user.repo";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export interface User {
   id: string;
@@ -66,12 +67,28 @@ async function getUserFromRequest(
     },
   });
 
-  const {
-    data: { user: supabaseUser },
-    error,
-  } = await supabase.auth.getUser();
+  let supabaseUser: { id: string; email?: string } | null = null;
 
-  if (error || !supabaseUser) {
+  // 1. Try cookie-based session (web clients)
+  const cookieResult = await supabase.auth.getUser();
+  if (!cookieResult.error && cookieResult.data.user) {
+    supabaseUser = cookieResult.data.user;
+  }
+
+  // 2. Fallback: Authorization: Bearer <token> (mobile / API clients)
+  if (!supabaseUser) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const client = createSupabaseClient(supabaseUrl, supabaseAnonKey);
+      const { data, error: tokenError } = await client.auth.getUser(token);
+      if (!tokenError && data.user) {
+        supabaseUser = data.user;
+      }
+    }
+  }
+
+  if (!supabaseUser) {
     return null;
   }
 

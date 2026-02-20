@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Devloops",
+    "slug": "devloops",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0F172A",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.devloops.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      },
+      "package": "io.devloops.app"
+    },
+    "extra": {
+      "supabaseUrl": "https://sqevhwcarivzibltpxxq.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZXZod2Nhcml2emlibHRweHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5OTMzMjYsImV4cCI6MjA4NjU2OTMyNn0.ljBAJYOZ2w-TczhLfNGxylsm5tPCzQ2zcA_iDusvc1s",
+      "apiBaseUrl": "https://devloops.vercel.app"
+    }
+  }
+}

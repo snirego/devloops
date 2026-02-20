@@ -18,9 +18,20 @@ const nextApiHandler = createNextApiHandler({
       : undefined,
 });
 
+function setCorsHeaders(res: NextApiResponse) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-trpc-source",
+  );
+}
+
 export default withRateLimit(
   { points: 100, duration: 60 },
   async (req: NextApiRequest, res: NextApiResponse) => {
+    setCorsHeaders(res);
+
     if (req.method === "OPTIONS") {
       res.writeHead(200);
       res.end();

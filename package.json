@@ -15,12 +15,13 @@
     "db:studio": "turbo -F @kan/db studio",
     "dev": "turbo watch dev --continue",
     "dev:next": "turbo watch dev -F @kan/web...",
+    "dev:mobile": "turbo watch dev -F @kan/mobile",
     "format": "turbo run format --continue -- --cache --cache-location .cache/.prettiercache",
     "format:fix": "turbo run format --continue -- --write --cache --cache-location .cache/.prettiercache",
     "lint": "turbo run lint --continue -- --cache --cache-location .cache/.eslintcache",
     "lint:fix": "turbo run lint --continue -- --fix --cache --cache-location .cache/.eslintcache",
     "lint:ws": "pnpm dlx sherif@latest",
-    "postinstall": "pnpm lint:ws",
+    "postinstall": "node scripts/patch-metro-exports.js && pnpm lint:ws",
     "typecheck": "turbo run typecheck",
     "ui-add": "turbo run ui-add"
   },
@@ -35,7 +36,21 @@
   "pnpm": {
     "overrides": {
       "@types/minimatch": "npm:minimatch@*",
-      "@types/glob": "npm:@types/glob@^8.1.0"
+      "@types/glob": "npm:@types/glob@^8.1.0",
+      "metro": "0.83.3",
+      "metro-babel-transformer": "0.83.3",
+      "metro-cache": "0.83.3",
+      "metro-cache-key": "0.83.3",
+      "metro-config": "0.83.3",
+      "metro-core": "0.83.3",
+      "metro-file-map": "0.83.3",
+      "metro-minify-terser": "0.83.3",
+      "metro-resolver": "0.83.3",
+      "metro-runtime": "0.83.3",
+      "metro-source-map": "0.83.3",
+      "metro-symbolicate": "0.83.3",
+      "metro-transform-plugins": "0.83.3",
+      "metro-transform-worker": "0.83.3"
     }
   }
 }

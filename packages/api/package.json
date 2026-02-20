@@ -56,6 +56,7 @@
     "@kan/email": "workspace:^",
     "@kan/shared": "workspace:^",
     "@kan/stripe": "workspace:^",
+    "@supabase/supabase-js": "^2.49.4",
     "@trpc/server": "catalog:",
     "rate-limiter-flexible": "^9.0.1",
     "superjson": "2.2.1",
