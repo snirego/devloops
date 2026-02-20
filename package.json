@@ -52,7 +52,9 @@
       "metro-source-map": "0.83.3",
       "metro-symbolicate": "0.83.3",
       "metro-transform-plugins": "0.83.3",
-      "metro-transform-worker": "0.83.3"
+      "metro-transform-worker": "0.83.3",
+      "react": "$react",
+      "react-dom": "$react-dom"
     },
     "peerDependencyRules": {
       "allowedVersions": {
